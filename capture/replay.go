@@ -1,7 +1,7 @@
 package capture
 
 import (
-	log "github.com/sirupsen/logrus"
+	"github.com/aardlabs/terminal-poc/tools"
 	"os"
 	"time"
 )
@@ -11,7 +11,7 @@ func Replay(filename string) error {
 	if err != nil {
 		return err
 	}
-	log.Infof("Replay: number of entries =  %v", len(fSet.Stdout))
+	tools.Log.Info().Msgf("Replay: number of entries =  %v", len(fSet.Stdout))
 	if err := play(fSet); err != nil {
 		return err
 	}

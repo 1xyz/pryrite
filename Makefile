@@ -1,7 +1,7 @@
 GO=go
 GOFMT=gofmt
 DELETE=rm
-BINARY=term-poc
+BINARY=pruney
 BUILD_BINARY=bin/$(BINARY)
 # go source files, ignore vendor directory
 SRC = $(shell find . -type f -name '*.go' -not -path "./vendor/*")

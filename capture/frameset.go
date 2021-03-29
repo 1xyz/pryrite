@@ -3,7 +3,7 @@ package capture
 import (
 	"encoding/json"
 	"fmt"
-	log "github.com/sirupsen/logrus"
+	"github.com/aardlabs/terminal-poc/tools"
 	"os"
 	"time"
 )
@@ -77,7 +77,7 @@ func (fw *FrameSetWriter) Close() error {
 	}
 	defer func() {
 		if err := ofile.Close(); err != nil {
-			log.Warnf("frameSetWriter.Close: err = %v", err)
+			tools.Log.Warn().Msgf("frameSetWriter.Close: err = %v", err)
 		}
 	}()
 
@@ -92,7 +92,7 @@ func ReadFromFile(filename string) (*FrameSet, error) {
 	}
 	defer func() {
 		if err := inFile.Close(); err != nil {
-			log.Warnf("readFromFile infile.close(%s) err = %v", filename, err)
+			tools.Log.Warn().Msgf("readFromFile infile.close(%s) err = %v", filename, err)
 		}
 	}()
 

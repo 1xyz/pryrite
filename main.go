@@ -2,106 +2,75 @@ package main
 
 import (
 	"fmt"
-	"github.com/aardlabs/terminal-poc/capture"
+	"github.com/aardlabs/terminal-poc/config"
+	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/docopt/docopt-go"
-	"github.com/google/uuid"
-	log "github.com/sirupsen/logrus"
-	"io/ioutil"
+	"github.com/rs/zerolog"
 	"os"
-	"path"
-	"time"
 )
 
-func main() {
-	usage := `Terminal poc.
+const version = "0.1.alpha"
 
-Usage:
-  term_poc capture [<command>...]
-  term_poc replay --input=<file>
-  term_poc -h | --help
-  term_poc --version
-
-Options:
-  --input=<file>  Input file to replay content.
-  -h --help       Show this screen.
-
-Examples:
-  $ term_poc capture
-  start capturing output from the current shell until exit or ctrl+D is called 
-
-  $ term_poc capture cat go.mod
-  Capture the output of command: cat go.mod
-
-  $ term_poc replay --input /tmp/frameset-755e7e9c-9436-4e2c-8417-1548bba315b2.json
-  Replay a capture of events on this console
-`
-	tStart := time.Now()
-	defer func() {
-		log.Infof("completed at %v", time.Since(tStart))
-	}()
-
-	arguments, err := docopt.ParseDoc(usage)
+func setupLogfile() *os.File {
+	var fp *os.File
+	logFile := os.ExpandEnv("$HOME/.pruney/pruney.log")
+	fp, err := tools.OpenFile(logFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND)
 	if err != nil {
-		log.Fatalf("doctopt.ParseDoc err = %v", err)
+		tools.Log.Fatal().Err(err).Msgf("setupLogFile")
 	}
 
-	log.Debugf("Args: ", arguments)
-	doCapture, err := arguments.Bool("capture")
-	if err != nil {
-		log.Fatalf("arguments.Bool err = %v", err)
-	}
-	if doCapture {
-		cmd, cmdArgs, err := parseCommand(arguments)
-		if err != nil {
-			log.Fatalf("parseCommand err = %v", err)
-		}
-
-		sessionID := uuid.New().String()
-		tmpDir, err := ioutil.TempDir("", "frames")
-		if err != nil {
-			log.Fatalf("ioutil.TempDir err = %v", err)
-		}
-		outJsonFile := path.Join(tmpDir, fmt.Sprintf("frameset-%s.json", sessionID))
-		log.Printf("cmd = %v, cmdArgs = %v sessionID = %s output = %s",
-			cmd, cmdArgs, sessionID, outJsonFile)
-
-		if err := capture.Capture(sessionID, outJsonFile, cmd, cmdArgs...); err != nil {
-			log.Errorf("capture error = %v", err)
-		}
-		return
-	}
-
-	doReplay, err := arguments.Bool("replay")
-	if err != nil {
-		log.Fatalf("arguments.Bool err = %v", err)
-	}
-	if doReplay {
-		inpFile, err := arguments.String("--input")
-		if err != nil {
-			log.Fatalf("argments.String = %v", err)
-		}
-
-		log.Printf("Replaying from %s", inpFile)
-		if err := capture.Replay(inpFile); err != nil {
-			log.Fatalf("capture.Replay err = %v", err)
-		}
-	}
+	return fp
 }
 
-func parseCommand(arguments docopt.Opts) (string, []string, error) {
-	iface, ok := arguments["<command>"]
-	if !ok {
-		return "", nil, fmt.Errorf("cannot find a command in arguments")
+func main() {
+	usage := `usage: pruney [--version] [(--verbose|--quiet)] [--help]
+           <command> [<args>...]
+options:
+   -h, --help
+   --verbose      Change the logging level verbosity
+The commands are:
+   config   Explore configuration commands
+See 'pruney <command> --help' for more information on a specific command.
+`
+	parser := &docopt.Parser{OptionsFirst: true}
+	args, err := parser.ParseArgs(usage, nil, version)
+	if err != nil {
+		tools.Log.Fatal().Err(err).Msgf("parser.ParseArgs")
 	}
-	args, ok := iface.([]string)
-	if !ok {
-		return "", nil, fmt.Errorf("cannot cast to type []string")
+
+	// setup logging
+	logFp := setupLogfile()
+	defer tools.CloseFile(logFp)
+
+	level := zerolog.InfoLevel
+	verbose := tools.OptsBool(args, "--verbose")
+	quiet := tools.OptsBool(args, "--quiet")
+	if verbose == true {
+		level = zerolog.DebugLevel
+	} else if quiet == true {
+		level = zerolog.WarnLevel
 	}
-	if len(args) == 0 {
-		return os.Getenv("SHELL"), []string{}, nil
+
+	tools.InitLogger(logFp, level)
+
+	cmd := args["<command>"].(string)
+	cmdArgs := args["<args>"].([]string)
+
+	tools.Log.Debug().Msgf("global arguments: %v", args)
+	tools.Log.Debug().Msgf("command arguments: %v %v", cmd, cmdArgs)
+	RunCommand(cmd, cmdArgs, version)
+	tools.Log.Debug().Msgf("done")
+}
+
+// RunCommand runs a specific command and the provided arguments
+func RunCommand(c string, args []string, version string) {
+	argv := append([]string{c}, args...)
+	switch c {
+	case "config":
+		if err := config.CmdConfig(argv, version); err != nil {
+			fmt.Printf("command failed:. err: %v\n", err)
+		}
+	default:
+		tools.Log.Debug().Msgf("%s is an unsupported command", c)
 	}
-	if len(args) == 1 {
-		return args[0], []string{}, nil
-	}
-	return args[0], args[1:], nil
 }

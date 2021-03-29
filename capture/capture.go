@@ -2,8 +2,8 @@ package capture
 
 import (
 	"fmt"
+	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/creack/pty"
-	log "github.com/sirupsen/logrus"
 	"golang.org/x/term"
 	"io"
 	"os"
@@ -25,7 +25,7 @@ func Capture(sessionID, filename, cmdName string, args ...string) error {
 	// Make sure to close the pty at the end.
 	defer func() {
 		if err = ptmx.Close(); err != nil {
-			log.Warnf("ptmx.Close err = %v", err)
+			tools.Log.Warn().Msgf("ptmx.Close err = %v", err)
 		}
 	}() // Best effort.
 
@@ -35,7 +35,7 @@ func Capture(sessionID, filename, cmdName string, args ...string) error {
 	go func() {
 		for range ch {
 			if err := pty.InheritSize(os.Stdin, ptmx); err != nil {
-				log.Warnf("pty.InheritSize err = %v", err)
+				tools.Log.Warn().Msgf("pty.InheritSize err = %v", err)
 			}
 		}
 	}()
@@ -48,7 +48,7 @@ func Capture(sessionID, filename, cmdName string, args ...string) error {
 	}
 	defer func() {
 		if err := term.Restore(int(os.Stdin.Fd()), oldState); err != nil {
-			log.Warnf("term.Restore err = %v", err)
+			tools.Log.Warn().Msgf("term.Restore err = %v", err)
 		}
 	}() // Best effort.
 
@@ -57,7 +57,7 @@ func Capture(sessionID, filename, cmdName string, args ...string) error {
 		// Copy stdin -> pty
 		// blocks until EOF is reached
 		if _, err := io.Copy(ptmx, os.Stdin); err != nil {
-			log.Warnf("io.copy(ptmx, os.Stdin) err = %v", err)
+			tools.Log.Warn().Msgf("io.copy(ptmx, os.Stdin) err = %v", err)
 		}
 	}()
 
@@ -67,7 +67,7 @@ func Capture(sessionID, filename, cmdName string, args ...string) error {
 	}
 	defer func() {
 		if err := outfw.Close(); err != nil {
-			log.Warnf("outfw.close err = %v", err)
+			tools.Log.Warn().Msgf("outfw.close err = %v", err)
 		}
 	}()
 
@@ -75,11 +75,12 @@ func Capture(sessionID, filename, cmdName string, args ...string) error {
 	// Copy pty -> stdout; blocks until EOF is reached
 	go func() {
 		if _, err := io.Copy(omw, ptmx); err != nil {
-			log.Warnf("io.copy ptmx to os.Stdout %v", err)
+			tools.Log.Warn().Msgf("io.copy ptmx to os.Stdout %v", err)
 		}
 	}()
 	if err := cmd.Wait(); err != nil {
-		log.Printf("cmd.wait err = %v", err)
+		tools.Log.Error().Msgf("cmd.wait err = %v", err)
+		return err
 	}
 	return nil
 }
