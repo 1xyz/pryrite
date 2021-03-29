@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/aardlabs/terminal-poc/config"
+	"github.com/aardlabs/terminal-poc/events"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/docopt/docopt-go"
 	"github.com/rs/zerolog"
@@ -67,8 +68,17 @@ func RunCommand(c string, args []string, version string) {
 	argv := append([]string{c}, args...)
 	switch c {
 	case "config":
-		if err := config.CmdConfig(argv, version); err != nil {
+		if err := config.Cmd(argv, version); err != nil {
 			fmt.Printf("command failed:. err: %v\n", err)
+		}
+	case "events":
+		entry, err := config.GetEntry("")
+		if err != nil {
+			fmt.Printf("config.getEntry err: %v\n", err)
+			return
+		}
+		if err := events.Cmd(entry, argv, version); err != nil {
+			fmt.Printf("command failed err = %v\n", err)
 		}
 	default:
 		tools.Log.Debug().Msgf("%s is an unsupported command", c)

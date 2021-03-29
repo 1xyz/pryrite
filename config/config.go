@@ -3,7 +3,6 @@ package config
 import (
 	"fmt"
 	"github.com/aardlabs/terminal-poc/tools"
-	"github.com/docopt/docopt-go"
 	"gopkg.in/yaml.v2"
 	"os"
 )
@@ -21,8 +20,13 @@ type Config struct {
 	DefaultEntry string           `yaml:"default"`
 }
 
+func (c *Config) Get(name string) (*Entry, bool) {
+	e, ok := c.Entries[name]
+	return &e, ok
+}
+
 func (c *Config) Add(name, serviceUrl string) error {
-	_, found := c.Entries[name]
+	_, found := c.Get(name)
 	if found {
 		return fmt.Errorf("entry with name = %s exists", name)
 	}
@@ -32,7 +36,7 @@ func (c *Config) Add(name, serviceUrl string) error {
 }
 
 func (c *Config) Del(name string) error {
-	_, found := c.Entries[name]
+	_, found := c.Get(name)
 	if !found {
 		return fmt.Errorf("entry with name = %s not found", name)
 	}
@@ -44,7 +48,7 @@ func (c *Config) Del(name string) error {
 }
 
 func (c *Config) SetDefault(name string) error {
-	_, found := c.Entries[name]
+	_, found := c.Get(name)
 	if !found {
 		return fmt.Errorf("entry with name = %s not found", name)
 	}
@@ -100,68 +104,22 @@ func Default() (*Config, error) {
 	return New(defaultConfigFile)
 }
 
-func CmdConfig(argv []string, version string) error {
-	usage := `
-usage: pruney config list 
-       pruney config add <name> --service-url=<url>
-       pruney config delete <name>
-       pruney config set-default <name>
-
-Options:
-  --service-url=<url>  Service URL endpoint.
-  -h --help            Show this screen.
-
-Examples:
-  List all configurations for this client
-  $ pruney config list 
-
-  Add a new configuration with the name "foobar" and service url: https://foobar.aardvarklabs.com:9443
-  $ pruney config add foobar --service-url=https://foobar.aardvarklabs.com:9443
-
-  Delete an existing configuration with name "foobar"
-  $ pruney config delete foobar
-
-  Set the default configuration to "foobar"
-  $ pruney config set-default foobar
-`
-	opts, err := docopt.ParseArgs(usage, argv, version)
-	if err != nil {
-		tools.Log.Fatal().Msgf("error parsing arguments. err=%v", err)
-	}
-
+func GetEntry(name string) (*Entry, error) {
 	cfg, err := Default()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	tools.Log.Info().Msgf("Config: %v add = %v", cfg, tools.OptsBool(opts, "add"))
-	doSave := false
-	if tools.OptsBool(opts, "add") == true {
-		if err := cfg.Add(tools.OptsStr(opts, "<name>"),
-			tools.OptsStr(opts, "--service-url")); err != nil {
-			return err
+	if name == "" {
+		name = cfg.DefaultEntry
+		if name == "" {
+			return nil, fmt.Errorf("set-default configuration or specify an explicity entry")
 		}
-		doSave = true
-	} else if tools.OptsBool(opts, "list") == true {
-		fmt.Printf("Listing entries\n")
-	} else if tools.OptsBool(opts, "delete") == true {
-		if err := cfg.Del(tools.OptsStr(opts, "<name>")); err != nil {
-			return err
-		}
-		doSave = true
-	} else if tools.OptsBool(opts, "set-default") == true {
-		if err := cfg.SetDefault(tools.OptsStr(opts, "<name>")); err != nil {
-			return err
-		}
-		doSave = true
 	}
 
-	if doSave {
-		if err := cfg.SaveFile(defaultConfigFile); err != nil {
-			return err
-		}
+	entry, found := cfg.Get(name)
+	if !found {
+		return nil, fmt.Errorf("configuration with name = %v not found", name)
 	}
-	tr := &tableRender{config: cfg}
-	tr.Render()
-	return nil
+	return entry, nil
 }
