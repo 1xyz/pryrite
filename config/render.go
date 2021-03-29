@@ -1,8 +1,7 @@
 package config
 
 import (
-	"fmt"
-	"github.com/olekukonko/tablewriter"
+	"github.com/jedib0t/go-pretty/v6/table"
 	"os"
 )
 
@@ -11,22 +10,21 @@ type tableRender struct {
 }
 
 func (tr *tableRender) Render() {
-	data := make([][]string, 0)
+	data := make([]table.Row, 0)
 	for name, entry := range tr.config.Entries {
 		defaultStr := "[ ]"
 		if name == tr.config.DefaultEntry {
 			defaultStr = "[*]"
 		}
-		data = append(data, []string{name, entry.ServiceUrl, defaultStr})
-	}
-	if len(data) == 0 {
-		fmt.Println("No entries found!")
-		return
+		row := table.Row{name, entry.ServiceUrl, defaultStr}
+		data = append(data, row)
 	}
 
-	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"Name", "Url", "default ?"})
-	table.SetBorder(false)
-	table.AppendBulk(data)
-	table.Render()
+	t := table.NewWriter()
+	t.SetStyle(table.StyleBold)
+	t.SetOutputMirror(os.Stdout)
+	t.AppendHeader(table.Row{"Name", "Service URL", "Default?"})
+	t.AppendRows(data)
+	t.AppendSeparator()
+	t.Render()
 }
