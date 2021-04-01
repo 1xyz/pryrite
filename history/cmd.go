@@ -2,6 +2,8 @@ package history
 
 import (
 	"fmt"
+	"github.com/aardlabs/terminal-poc/config"
+	"github.com/aardlabs/terminal-poc/events"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/docopt/docopt-go"
 	"io/ioutil"
@@ -10,7 +12,7 @@ import (
 	"time"
 )
 
-func Cmd(argv []string, version string) error {
+func Cmd(entry *config.Entry, argv []string, version string) error {
 	usage := `
 usage: pruney history show [-n=<count>]
        pruney history add-event <index> [-m=<message>]
@@ -34,12 +36,12 @@ Options:
 		if err != nil {
 			return err
 		}
-		result, err := h.GetAll()
+		items, err := h.GetAll()
 		if err != nil {
 			return err
 		}
 		hr := &historyRender{
-			H:     result,
+			H:     items,
 			Limit: limit,
 		}
 		hr.Render()
@@ -51,6 +53,20 @@ Options:
 			return err
 		}
 		return appendHistory(string(command))
+	} else if tools.OptsBool(opts, "add-event") {
+		index := tools.OptsInt(opts, "<index>")
+		message := tools.OptsStr(opts, "-m")
+		h, err := New()
+		if err != nil {
+			return err
+		}
+		item, err := h.GetByIndex(index)
+		if err != nil {
+			return err
+		}
+		if _, err := events.AddConsoleEvent(entry, item.Command, message, true); err != nil {
+			return err
+		}
 	} else {
 		return fmt.Errorf("no command found")
 	}

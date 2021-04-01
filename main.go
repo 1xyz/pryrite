@@ -83,7 +83,11 @@ func RunCommand(cmd string, args []string, version string) int {
 			return logErr(cmd, err)
 		}
 	case "history":
-		if err := history.Cmd(argv, version); err != nil {
+		entry, err := config.GetEntry("")
+		if err != nil {
+			return logErr(cmd, err)
+		}
+		if err := history.Cmd(entry, argv, version); err != nil {
 			return logErr(cmd, err)
 		}
 	default:

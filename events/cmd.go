@@ -56,35 +56,44 @@ Examples:
 		evtRender.Render()
 	} else if tools.OptsBool(opts, "add") {
 		content := tools.OptsStr(opts, "<content>")
-		content = strings.TrimSpace(content)
-		if len(content) == 0 {
-			return fmt.Errorf("content cannot be empty")
-		}
-
 		message := tools.OptsStr(opts, "-m")
-		if message == "None" {
-			message = tools.TrimLength(content, maxColumnLen)
-		}
+		_, err := AddConsoleEvent(entry, content, message, true)
+		return err
+	}
+	return nil
+}
 
-		rawJson, err := json.Marshal(&ConsoleMetadata{Raw: content})
-		if err != nil {
-			return err
-		}
-		event, err := store.AddEvent(&Event{
-			CreatedAt: time.Now().UTC(),
-			Kind:      "Console",
-			Details:   rawJson,
-			Metadata: Metadata{
-				SessionID: uuid.New().String(),
-				Title:     message,
-				URL:       "",
-			},
-		})
-		if err != nil {
-			return err
-		}
+func AddConsoleEvent(entry *config.Entry, content, message string, doRender bool) (*Event, error) {
+	store := NewStore(entry.ServiceUrl)
+	content = strings.TrimSpace(content)
+	if len(content) == 0 {
+		return nil, fmt.Errorf("content cannot be empty")
+	}
+	if message == "None" {
+		message = tools.TrimLength(content, maxColumnLen)
+	}
+
+	rawJson, err := json.Marshal(&ConsoleMetadata{Raw: content})
+	if err != nil {
+		return nil, err
+	}
+	event, err := store.AddEvent(&Event{
+		CreatedAt: time.Now().UTC(),
+		Kind:      "Console",
+		Details:   rawJson,
+		Metadata: Metadata{
+			SessionID: uuid.New().String(),
+			Title:     message,
+			URL:       "",
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if doRender {
 		evtRender := &eventRender{E: event}
 		evtRender.Render()
 	}
-	return nil
+	return event, nil
 }

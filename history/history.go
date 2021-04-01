@@ -17,8 +17,12 @@ type Item struct {
 type History interface {
 	// Retrieve all the items from history
 	GetAll() ([]Item, error)
+
 	// Append an item to the history
 	Append(*Item) error
+
+	// Return the history item by index (zero based index)
+	GetByIndex(index int) (*Item, error)
 }
 
 type localHistory struct {
@@ -62,6 +66,17 @@ func (h *localHistory) GetAll() ([]Item, error) {
 		result = append(result, item)
 	}
 	return result, nil
+}
+
+func (h *localHistory) GetByIndex(index int) (*Item, error) {
+	items, err := h.GetAll()
+	if err != nil {
+		return nil, err
+	}
+	if index >= len(items) {
+		return nil, fmt.Errorf("index (%d) exceeds number of items (%d)", index, len(items))
+	}
+	return &items[index], nil
 }
 
 var (
