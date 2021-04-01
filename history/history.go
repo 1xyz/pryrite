@@ -61,10 +61,6 @@ func (h *localHistory) GetAll() ([]Item, error) {
 		}
 		result = append(result, item)
 	}
-
-	for _, e := range result {
-		fmt.Printf("result = %v\n", e)
-	}
 	return result, nil
 }
 

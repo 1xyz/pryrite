@@ -11,3 +11,5 @@ preexec_append_history() { echo $1 | ${PRUNEY_BIN} history append-in; }
 
 source "$PRUNEY_DIR/bash-preexec.sh"
 preexec_functions+=(preexec_append_history)
+
+PATH=$PATH:${PRUNEY_DIR}

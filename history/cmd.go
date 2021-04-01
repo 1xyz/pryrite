@@ -12,27 +12,37 @@ import (
 
 func Cmd(argv []string, version string) error {
 	usage := `
-usage: pruney history append <command>
+usage: pruney history show [-n=<count>]
+       pruney history add-event <index> [-m=<message>]
        pruney history append-in
-       pruney history show
+       pruney history append <command>
 
 Options:
-  -h --help            Show this screen.
+  -n=<count>     Limit the number of history shown. zero is unlimited [default: 0].
+  -m=<message>   Message to be added with a new event [default: None].
+  -h --help      Show this screen.
 `
 	opts, err := docopt.ParseArgs(usage, argv, version)
 	if err != nil {
 		tools.Log.Fatal().Msgf("error parsing arguments. err=%v", err)
 	}
 
-	fmt.Printf("opts = %v", opts)
+	tools.Log.Printf("history raw-opts = %v", opts)
 	if tools.OptsBool(opts, "show") {
+		limit := tools.OptsInt(opts, "-n")
 		h, err := New()
 		if err != nil {
 			return err
 		}
-		if _, err := h.GetAll(); err != nil {
+		result, err := h.GetAll()
+		if err != nil {
 			return err
 		}
+		hr := &historyRender{
+			H:     result,
+			Limit: limit,
+		}
+		hr.Render()
 	} else if tools.OptsBool(opts, "append") {
 		return appendHistory(tools.OptsStr(opts, "<command>"))
 	} else if tools.OptsBool(opts, "append-in") {
