@@ -25,13 +25,13 @@ func setupLogfile() *os.File {
 }
 
 func main() {
-	usage := `usage: pruney [--version] [(--verbose|--quiet)] [--help]
-           <command> [<args>...]
+	usage := `usage: pruney <command> [<args>...]
 options:
    -h, --help
-   --verbose      Change the logging level verbosity
 The commands are:
-   config   Explore configuration commands
+   config   Setup & retrieve configuration.
+   events   Send and query events.
+   history  Work with your command history.
 See 'pruney <command> --help' for more information on a specific command.
 `
 	parser := &docopt.Parser{OptionsFirst: true}
@@ -43,16 +43,7 @@ See 'pruney <command> --help' for more information on a specific command.
 	// setup logging
 	logFp := setupLogfile()
 	defer tools.CloseFile(logFp)
-
 	level := zerolog.InfoLevel
-	verbose := tools.OptsBool(args, "--verbose")
-	quiet := tools.OptsBool(args, "--quiet")
-	if verbose == true {
-		level = zerolog.DebugLevel
-	} else if quiet == true {
-		level = zerolog.WarnLevel
-	}
-
 	tools.InitLogger(logFp, level)
 
 	cmd := args["<command>"].(string)
