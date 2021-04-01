@@ -1,4 +1,4 @@
-## Termnal-poc
+## Pruney (CLI) 
 
 Terminal capture program POC
 - Capture terminal stdout and send it to file

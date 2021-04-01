@@ -27,7 +27,6 @@ Examples:
 		tools.Log.Fatal().Msgf("error parsing arguments. err=%v", err)
 	}
 	tools.Log.Debug().Msgf("events.Cmd Opts = %v", opts)
-
 	store := NewStore(entry.ServiceUrl)
 	if tools.OptsBool(opts, "list") {
 		n := tools.OptsInt(opts, "-n")
@@ -38,10 +37,7 @@ Examples:
 
 		evtRender := &eventsRender{E: events}
 		evtRender.Render()
-		return nil
-	}
-
-	if tools.OptsBool(opts, "show") {
+	} else if tools.OptsBool(opts, "show") {
 		id := tools.OptsStr(opts, "<id>")
 		event, err := store.GetEvent(id)
 		if err != nil {
@@ -50,8 +46,6 @@ Examples:
 
 		evtRender := &eventRender{E: event}
 		evtRender.Render()
-		return nil
 	}
-
 	return nil
 }

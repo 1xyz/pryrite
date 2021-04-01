@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/events"
+	"github.com/aardlabs/terminal-poc/history"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/docopt/docopt-go"
 	"github.com/rs/zerolog"
@@ -79,6 +80,10 @@ func RunCommand(c string, args []string, version string) {
 		}
 		if err := events.Cmd(entry, argv, version); err != nil {
 			fmt.Printf("command failed err = %v\n", err)
+		}
+	case "history":
+		if err := history.Cmd(argv, version); err != nil {
+			fmt.Printf("history command failed err: %v\n", err)
 		}
 	default:
 		tools.Log.Debug().Msgf("%s is an unsupported command", c)

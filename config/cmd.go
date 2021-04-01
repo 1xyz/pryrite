@@ -67,6 +67,7 @@ Examples:
 			return err
 		}
 	}
+
 	tr := &tableRender{config: cfg}
 	tr.Render()
 	return nil
