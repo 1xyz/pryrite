@@ -1,0 +1,70 @@
+on:
+  push:
+    # Sequence of patterns matched against refs/tags
+    tags:
+    - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+
+name: Release
+
+jobs:
+  build:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:   
+        - name: Set up Go 1.16+
+          uses: actions/setup-go@v2
+          with:
+            go-version: ^1.16
+          id: go
+
+        - name: Check out code into the Go module directory
+          uses: actions/checkout@v2
+
+        - name: Build x64 linux release
+          run: make release/linux
+        
+        - name: Zip linux build
+          run: zip -j pruney-linux-amd64.zip README.md bin/darwin/*
+
+        - name: Build x64 darwin release
+          run: make release/darwin
+        
+        - name: Zip darwin build
+          run: zip -j pruney-darwin-amd64.zip README.md bin/darwin/*
+
+        - name: Get tag name
+          id: get_tag_name
+          run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+
+        - name: Create Release
+          id: create_release
+          uses: actions/create-release@v1
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          with:
+            tag_name: ${{ github.ref }}
+            release_name: Release ${{ github.ref }}
+            draft: false
+            prerelease: false
+
+        - name: Upload Linux Release Asset
+          id: upload-release-asset-linux
+          uses: actions/upload-release-asset@v1
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          with:
+            upload_url: ${{ steps.create_release.outputs.upload_url }}
+            asset_path: ./pruney-linux-amd64.zip
+            asset_name: pruney-linux-amd64-${{ steps.get_tag_name.outputs.VERSION }}.zip
+            asset_content_type: application/zip
+
+        - name: Upload darwin Release Asset
+          id: upload-release-asset-darwin
+          uses: actions/upload-release-asset@v1
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          with:
+            upload_url: ${{ steps.create_release.outputs.upload_url }}
+            asset_path: ./pruney-darwin-amd64.zip
+            asset_name: pruney-darwin-amd64-${{ steps.get_tag_name.outputs.VERSION }}.zip
+            asset_content_type: application/zip
