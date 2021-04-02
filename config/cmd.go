@@ -42,20 +42,20 @@ Examples:
 
 	tools.Log.Info().Msgf("Config: %v add = %v", cfg, tools.OptsBool(opts, "add"))
 	doSave := false
-	if tools.OptsBool(opts, "add") == true {
+	if tools.OptsBool(opts, "add") {
 		if err := cfg.Add(tools.OptsStr(opts, "<name>"),
 			tools.OptsStr(opts, "--service-url")); err != nil {
 			return err
 		}
 		doSave = true
-	} else if tools.OptsBool(opts, "list") == true {
+	} else if tools.OptsBool(opts, "list") {
 		fmt.Printf("Listing entries\n")
-	} else if tools.OptsBool(opts, "delete") == true {
+	} else if tools.OptsBool(opts, "delete") {
 		if err := cfg.Del(tools.OptsStr(opts, "<name>")); err != nil {
 			return err
 		}
 		doSave = true
-	} else if tools.OptsBool(opts, "set-default") == true {
+	} else if tools.OptsBool(opts, "set-default") {
 		if err := cfg.SetDefault(tools.OptsStr(opts, "<name>")); err != nil {
 			return err
 		}
