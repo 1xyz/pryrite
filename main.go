@@ -28,12 +28,12 @@ func main() {
 	usage := `usage: pruney [--version] [--verbose] [--help] <command> [<args>...]
 options:
    -h, --help    Show this message.
-   --verbose     Enable verbose logging.
+   --verbose     Enable verbose logging (logfile: $HOME/.pruney/pruney.log).
 
 The commands are:
-   config        Setup & retrieve configuration.
-   events        Send and query events.
-   history       Work with your command history.
+   config        provides options to configure pruney .
+   history       work with local shell command history .
+   log           work with events from the remote pruney log service.
 
 See 'pruney <command> --help' for more information on a specific command.
 `
@@ -74,7 +74,7 @@ func RunCommand(cmd string, args []string, version string) int {
 		if err := config.Cmd(argv, version); err != nil {
 			return logErr(cmd, err)
 		}
-	case "events":
+	case "log":
 		entry, err := config.GetEntry("")
 		if err != nil {
 			return logErr(cmd, err)

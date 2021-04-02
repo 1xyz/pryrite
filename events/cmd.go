@@ -12,10 +12,11 @@ import (
 )
 
 func Cmd(entry *config.Entry, argv []string, version string) error {
-	usage := `
-usage: pruney events list [-n=<count>] 
-       pruney events show <id>
-       pruney events add <content> [-m=<message>]
+	usage := `The "log" command allows you to retrieve events from the remote pruney log
+
+usage: pruney log [-n=<count>] 
+       pruney log show <id>
+       pruney log add <content> [-m=<message>]
 
 Options:
   -m=<message>   Message to be added with a new event [default: None].
@@ -23,14 +24,14 @@ Options:
   -h --help      Show this screen.
 
 Examples:
-  List the most recent 5 events
-  $ pruney events list -n 5
+  List the most recent 5 events from the log
+  $ pruney log  -n 5
 
   Show a specific event with id 25
-  $ pruney events show 25
+  $ pruney log show 25
 
-  Add an event message with content and message
-  $ pruney events add  "certbot run -a manual -i nginx -d example.com" -m "certbot manual nginx plugin" 
+  Log an event with content and message
+  $ pruney log add  "certbot run -a manual -i nginx -d example.com" -m "certbot manual nginx plugin" 
 `
 	opts, err := docopt.ParseArgs(usage, argv, version)
 	if err != nil {
@@ -38,15 +39,7 @@ Examples:
 	}
 	tools.Log.Debug().Msgf("events.Cmd Opts = %v", opts)
 	store := NewStore(entry.ServiceUrl)
-	if tools.OptsBool(opts, "list") {
-		n := tools.OptsInt(opts, "-n")
-		events, err := store.GetEvents(n)
-		if err != nil {
-			return err
-		}
-		evtRender := &eventsRender{E: events}
-		evtRender.Render()
-	} else if tools.OptsBool(opts, "show") {
+	if tools.OptsBool(opts, "show") {
 		id := tools.OptsStr(opts, "<id>")
 		event, err := store.GetEvent(id)
 		if err != nil {
@@ -59,6 +52,14 @@ Examples:
 		message := tools.OptsStr(opts, "-m")
 		_, err := AddConsoleEvent(entry, content, message, true)
 		return err
+	} else {
+		n := tools.OptsInt(opts, "-n")
+		events, err := store.GetEvents(n)
+		if err != nil {
+			return err
+		}
+		evtRender := &eventsRender{E: events}
+		evtRender.Render()
 	}
 	return nil
 }
