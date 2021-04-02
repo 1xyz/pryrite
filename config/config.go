@@ -113,7 +113,7 @@ func GetEntry(name string) (*Entry, error) {
 	if name == "" {
 		name = cfg.DefaultEntry
 		if name == "" {
-			return nil, fmt.Errorf("set-default configuration or specify an explicity entry")
+			return nil, fmt.Errorf("there is no default configuration. See pruney config --help to set a default configuration")
 		}
 	}
 

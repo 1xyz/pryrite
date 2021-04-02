@@ -62,6 +62,9 @@ Examples(s):
 			return appendHistory(tools.OptsStr(opts, "<command>"))
 		}
 	} else if tools.OptsBool(opts, "log") {
+		if entry == nil {
+			return fmt.Errorf("no remote configuration found")
+		}
 		index := tools.OptsInt(opts, "<index>")
 		message := tools.OptsStr(opts, "-m")
 		h, err := New()
