@@ -7,10 +7,11 @@ import (
 )
 
 func Cmd(argv []string, version string) error {
-	usage := `
-usage: pruney config list 
-       pruney config add <name> --service-url=<url>
-       pruney config delete <name>
+	usage := `The "config" command provides options to configure pruney 
+
+usage: pruney config add <name> --service-url=<url>
+       pruney config list
+       pruney config remove <name>
        pruney config set-default <name>
 
 Options:
@@ -18,14 +19,14 @@ Options:
   -h --help            Show this screen.
 
 Examples:
-  List all configurations for this client
-  $ pruney config list 
-
   Add a new configuration with the name "foobar" and service url: https://foobar.aardvarklabs.com:9443
   $ pruney config add foobar --service-url=https://foobar.aardvarklabs.com:9443
 
-  Delete an existing configuration with name "foobar"
-  $ pruney config delete foobar
+  List all configurations for this client
+  $ pruney config list
+
+  Remove an existing configuration with name "foobar"
+  $ pruney config remove foobar
 
   Set the default configuration to "foobar"
   $ pruney config set-default foobar
@@ -50,7 +51,7 @@ Examples:
 		doSave = true
 	} else if tools.OptsBool(opts, "list") {
 		fmt.Printf("Listing entries\n")
-	} else if tools.OptsBool(opts, "delete") {
+	} else if tools.OptsBool(opts, "remove") {
 		if err := cfg.Del(tools.OptsStr(opts, "<name>")); err != nil {
 			return err
 		}
