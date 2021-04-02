@@ -7,7 +7,7 @@
 PRUNEY_DIR="$(dirname "$(realpath "$0")")"
 PRUNEY_BIN=${PRUNEY_DIR}/pruney
 
-preexec_append_history() { echo $1 | ${PRUNEY_BIN} history append-in; }
+preexec_append_history() { echo $1 | ${PRUNEY_BIN} history append --stdin; }
 
 source "$PRUNEY_DIR/bash-preexec.sh"
 preexec_functions+=(preexec_append_history)
