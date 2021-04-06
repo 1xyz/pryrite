@@ -4,16 +4,29 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/go-resty/resty/v2"
+	"github.com/google/uuid"
 	"strconv"
 	"time"
 )
 
 const clientTimeout = 10 * time.Second
 
-type ConsoleMetadata struct {
+type Details interface {
+	// Encode this to rawMessage
+	EncodeJSON() ([]byte, error)
+
+	// The body representation of this
+	Body() string
+}
+
+type RawDetails struct {
 	Raw string `json:"raw"`
 }
+
+func (r *RawDetails) Body() string                { return r.Raw }
+func (r *RawDetails) EncodeJSON() ([]byte, error) { return json.Marshal(&RawDetails{Raw: r.Raw}) }
 
 type Metadata struct {
 	SessionID string `json:"SessionID"`
@@ -27,6 +40,50 @@ type Event struct {
 	Kind      string          `json:"Kind"`
 	Details   json.RawMessage `json:"Details,omitempty"`
 	Metadata  Metadata        `json:"Metadata"`
+}
+
+func New(kind, title, url string, details Details) (*Event, error) {
+	d, err := details.EncodeJSON()
+	if err != nil {
+		return nil, err
+	}
+	return &Event{
+		CreatedAt: time.Now().UTC(),
+		Kind:      kind,
+		Details:   d,
+		Metadata: Metadata{
+			SessionID: uuid.New().String(),
+			Title:     tools.TrimLength(title, maxColumnLen),
+			URL:       url,
+		},
+	}, nil
+}
+
+func (e *Event) EncodeDetails(d Details) error {
+	switch e.Kind {
+	case "Console":
+		b, err := d.EncodeJSON()
+		if err != nil {
+			return err
+		}
+		e.Details = b
+	}
+	return nil
+}
+
+func (e *Event) DecodeDetails() (Details, error) {
+	switch e.Kind {
+	case "Console":
+		raw := RawDetails{}
+		if err := json.Unmarshal(e.Details, &raw); err != nil {
+			return nil, fmt.Errorf("unmarshall ConsoleEvent %v", err)
+		}
+		return &raw, nil
+	case "PageClose", "PageOpen":
+		return &RawDetails{Raw: e.Metadata.URL}, nil
+	default:
+		return &RawDetails{Raw: string(e.Details)}, nil
+	}
 }
 
 type Store interface {

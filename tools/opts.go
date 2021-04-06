@@ -33,3 +33,8 @@ func OptsSeconds(opts docopt.Opts, key string) time.Duration {
 	v := OptsInt(opts, key)
 	return time.Duration(v) * time.Second
 }
+
+func OptsContains(opts docopt.Opts, key string) bool {
+	entry, found := opts[key]
+	return found && entry != nil
+}

@@ -31,8 +31,8 @@ Examples(s):
   $ pruney history -n 3
   ┏━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━┓
   ┃ INDEX ┃ DATE           ┃ COMMAND ┃
-  ┃    90 ┃ Apr  1 2:11PM  ┃ ls -l   ┃                                                                                                                                                                      ┃
-  ┃    91 ┃ Apr  1 2:11PM  ┃ cd /    ┃                                                                                                                                                                      ┃
+  ┃    90 ┃ Apr  1 2:11PM  ┃ ls -l   ┃
+  ┃    91 ┃ Apr  1 2:11PM  ┃ cd /    ┃
   ┃    92 ┃ Apr  1 2:11PM  ┃ ls -la  ┃
   ┗━━━━━━━┻━━━━━━━━━━━━━━━━┻━━━━━━━━━┛
   # Note: the above result show last three history entries   

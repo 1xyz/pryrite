@@ -1,22 +1,23 @@
 package events
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/docopt/docopt-go"
-	"github.com/google/uuid"
+	"io/ioutil"
+	"os"
 	"strings"
-	"time"
 )
 
 func Cmd(entry *config.Entry, argv []string, version string) error {
 	usage := `The "log" command allows you to retrieve events from the remote pruney log
 
-usage: pruney log [-n=<count>] 
-       pruney log show <id>
-       pruney log add <content> [-m=<message>]
+usage: pruney log [-n=<count>]
+       pruney log add [-m message] (<content>|--file=<filename>|--stdin)
+       pruney log pbcopy <id>
+       pruney log pbpaste [-m message]
+       pruney log show <id> 
 
 Options:
   -m=<message>   Message to be added with a new event [default: None].
@@ -25,13 +26,25 @@ Options:
 
 Examples:
   List the most recent 5 events from the log
-  $ pruney log  -n 5
+  $ pruney log -n 5
+
+  Log an event with content and message
+  $ pruney log add  -m "certbot manual nginx plugin" "certbot run -a manual -i nginx -d example.com"
+
+  Log an event with a specific file 
+  $ pruney log add -m "main gist file" --file main.go
+
+  Log an event from stdin
+  $ cat /tmp/example.log | pruney log add -m "Example log snippet" --stdin
+
+  Copy the content of event 25 to your local clipboard
+  $ pruney log pbcopy 25
+
+  Copy the content of the clipboard to a new event
+  $ pruney log pbpaste
 
   Show a specific event with id 25
   $ pruney log show 25
-
-  Log an event with content and message
-  $ pruney log add  "certbot run -a manual -i nginx -d example.com" -m "certbot manual nginx plugin" 
 `
 	opts, err := docopt.ParseArgs(usage, argv, version)
 	if err != nil {
@@ -48,10 +61,54 @@ Examples:
 		evtRender := &eventRender{E: event}
 		evtRender.Render()
 	} else if tools.OptsBool(opts, "add") {
-		content := tools.OptsStr(opts, "<content>")
+		//fmt.Printf("Opts = %v\n", opts)
+		content := ""
+		if tools.OptsContains(opts, "<content>") {
+			content = tools.OptsStr(opts, "<content>")
+		} else if tools.OptsContains(opts, "--file") {
+			b, err := os.ReadFile(tools.OptsStr(opts, "--file"))
+			if err != nil {
+				return err
+			}
+			content = string(b)
+		} else if tools.OptsContains(opts, "--stdin") {
+			b, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				return err
+			}
+			content = string(b)
+		} else {
+			return fmt.Errorf("unrecognized option")
+		}
+
 		message := tools.OptsStr(opts, "-m")
-		_, err := AddConsoleEvent(entry, content, message, true)
-		return err
+		if _, err := AddConsoleEvent(entry, content, message, true); err != nil {
+			return err
+		}
+	} else if tools.OptsBool(opts, "pbcopy") {
+		id := tools.OptsStr(opts, "<id>")
+		event, err := store.GetEvent(id)
+		if err != nil {
+			return err
+		}
+
+		d, err := event.DecodeDetails()
+		if err != nil {
+			return err
+		}
+		if err := clipTo(d.Body()); err != nil {
+			return fmt.Errorf("clipTo err = %v", err)
+		}
+		fmt.Printf("copied to clipboard!\n")
+	} else if tools.OptsBool(opts, "pbpaste") {
+		content, err := getClip()
+		if err != nil {
+			return fmt.Errorf("getClip err = %v", err)
+		}
+		message := tools.OptsStr(opts, "-m")
+		if _, err := AddConsoleEvent(entry, content, message, true); err != nil {
+			return err
+		}
 	} else {
 		n := tools.OptsInt(opts, "-n")
 		events, err := store.GetEvents(n)
@@ -74,20 +131,11 @@ func AddConsoleEvent(entry *config.Entry, content, message string, doRender bool
 		message = tools.TrimLength(content, maxColumnLen)
 	}
 
-	rawJson, err := json.Marshal(&ConsoleMetadata{Raw: content})
+	event, err := New("Console", message, "", &RawDetails{Raw: content})
 	if err != nil {
 		return nil, err
 	}
-	event, err := store.AddEvent(&Event{
-		CreatedAt: time.Now().UTC(),
-		Kind:      "Console",
-		Details:   rawJson,
-		Metadata: Metadata{
-			SessionID: uuid.New().String(),
-			Title:     message,
-			URL:       "",
-		},
-	})
+	event, err = store.AddEvent(event)
 	if err != nil {
 		return nil, err
 	}
