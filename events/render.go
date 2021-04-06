@@ -1,7 +1,7 @@
 package events
 
 import (
-	"encoding/json"
+	"fmt"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"os"
@@ -42,26 +42,18 @@ func (er *eventRender) Render() {
 	t.AppendRow(table.Row{"Id", er.E.ID})
 	t.AppendRow(table.Row{"Kind", er.E.Kind})
 	t.AppendSeparator()
-
 	t.AppendRows([]table.Row{
-		{"Title", er.E.Metadata.Title},
 		{"SessionID", er.E.Metadata.SessionID},
 		{"CreatedOn", tools.FmtTime(er.E.CreatedAt)},
+		{"Title", tools.TrimLength(er.E.Metadata.Title, maxColumnLen)},
 	})
 	t.AppendSeparator()
-
-	switch er.E.Kind {
-	case "Console":
-		cm := ConsoleMetadata{}
-		if err := json.Unmarshal(er.E.Details, &cm); err != nil {
-			t.AppendRow(table.Row{"Error", err.Error()})
-		} else {
-			t.AppendRows([]table.Row{
-				{"Content", cm.Raw},
-			})
-		}
-	case "PageClose", "PageOpen":
-		t.AppendRow(table.Row{"Url", er.E.Metadata.URL})
-	}
 	t.Render()
+
+	body, err := er.E.DecodeDetails()
+	if err != nil {
+		fmt.Println(err.Error())
+	} else {
+		fmt.Println(body.Body())
+	}
 }
