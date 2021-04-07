@@ -35,7 +35,7 @@ The commands are:
    config        provides options to configure pruney .
    history       work with local shell command history.
    log           work with events from the remote pruney log service.
-   capture       capture/play terminal stdout as an asciicast. 
+   capture       capture/play terminal stdout to/from an asciicast.
 
 See 'pruney <command> --help' for more information on a specific command.
 `

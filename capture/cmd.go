@@ -21,6 +21,12 @@ Options:
   -h --help            Show this screen.
 
 Examples:
+   # Start a new a new ascii cast with title "foobar"
+   # The cast would be saved as an event
+   $ pruney capture record --title "foobar"
+
+   # Play an event with id 25, (Assuming it it of type asciicast)
+   $ pruney capture play 25
 `
 	opts, err := docopt.ParseArgs(usage, argv, version)
 	if err != nil {
@@ -67,6 +73,9 @@ Examples:
 			event, err := events.GetEvent(entry, eventID)
 			if err != nil {
 				return err
+			}
+			if event.Kind != events.AsciiCast {
+				return fmt.Errorf("the event %s is not of type %s", event.Kind, events.AsciiCast)
 			}
 			if err := events.WriteEventDetailsToFile(event, filename, true); err != nil {
 				return err
