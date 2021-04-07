@@ -6,12 +6,12 @@ import (
 	"time"
 )
 
-func Replay(filename string) error {
+func Play(filename string) error {
 	fSet, err := ReadFromFile(filename)
 	if err != nil {
 		return err
 	}
-	tools.Log.Info().Msgf("Replay: number of entries =  %v", len(fSet.Stdout))
+	tools.Log.Info().Msgf("Play: number of entries =  %v", len(fSet.Stdout))
 	if err := play(fSet); err != nil {
 		return err
 	}
@@ -19,14 +19,11 @@ func Replay(filename string) error {
 }
 
 func play(fSet *FrameSet) error {
-	prevDelay := 0.0
 	for _, entry := range fSet.Stdout {
-		delay := entry.Delay - prevDelay
-		time.Sleep(time.Duration(float64(time.Second) * delay))
+		time.Sleep(time.Duration(float64(time.Second) * entry.Delay))
 		if err := write(entry.Data); err != nil {
 			//log.Warnf("error = %v", err)
 		}
-		prevDelay = entry.Delay
 	}
 	return nil
 }

@@ -12,7 +12,7 @@ import (
 	"syscall"
 )
 
-func Capture(sessionID, filename, cmdName string, args ...string) error {
+func Capture(title, filename, cmdName string, args ...string) error {
 	cmd := exec.Command(cmdName, args...)
 
 	// Refer "github.com/creack/pty" for example(s)
@@ -28,6 +28,11 @@ func Capture(sessionID, filename, cmdName string, args ...string) error {
 			tools.Log.Warn().Msgf("ptmx.Close err = %v", err)
 		}
 	}() // Best effort.
+
+	w, h, err := pty.Getsize(os.Stdin)
+	if err != nil {
+		return fmt.Errorf("pty.GetsizeFull err = %v", err)
+	}
 
 	// Handle pty size
 	ch := make(chan os.Signal, 1)
@@ -61,7 +66,7 @@ func Capture(sessionID, filename, cmdName string, args ...string) error {
 		}
 	}()
 
-	outfw, err := NewFrameSetWriter(sessionID, filename)
+	outfw, err := NewFrameSetWriter(w, h, title, filename)
 	if err != nil {
 		return fmt.Errorf("NewFrameSetWriter error = %v", err)
 	}

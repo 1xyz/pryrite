@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/aardlabs/terminal-poc/capture"
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/events"
 	"github.com/aardlabs/terminal-poc/history"
@@ -32,8 +33,9 @@ options:
 
 The commands are:
    config        provides options to configure pruney .
-   history       work with local shell command history .
+   history       work with local shell command history.
    log           work with events from the remote pruney log service.
+   capture       capture/play terminal stdout to/from an asciicast.
 
 See 'pruney <command> --help' for more information on a specific command.
 `
@@ -85,6 +87,14 @@ func RunCommand(cmd string, args []string, version string) int {
 	case "history":
 		entry, _ := config.GetEntry("")
 		if err := history.Cmd(entry, argv, version); err != nil {
+			return logErr(cmd, err)
+		}
+	case "capture":
+		entry, err := config.GetEntry("")
+		if err != nil {
+			return logErr(cmd, err)
+		}
+		if err := capture.Cmd(entry, argv, version); err != nil {
 			return logErr(cmd, err)
 		}
 	default:

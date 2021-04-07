@@ -8,10 +8,20 @@ import (
 	"time"
 )
 
+type Env struct {
+	Term  string `json:"term,omitempty"`
+	Shell string `json:"shell,omitempty"`
+}
+
 // Frameset is a bunch of frames with metadata
 type FrameSet struct {
-	SessionID string        `json:"session_id"`
-	Stdout    []*FrameEntry `json:"stdout"`
+	Version  int           `json:"version"`
+	Width    int           `json:"width"`
+	Height   int           `json:"height"`
+	Duration float64       `json:"duration"`
+	Title    string        `json:"title"`
+	Env      Env           `json:"env"`
+	Stdout   []*FrameEntry `json:"stdout"`
 }
 
 type FrameEntry struct {
@@ -43,24 +53,38 @@ func (f *FrameEntry) UnmarshalJSON(data []byte) error {
 }
 
 type FrameSetWriter struct {
-	outFile   string
-	startTime time.Time
-	frameSet  *FrameSet
+	outFile       string
+	startTime     time.Time
+	lastWriteTime time.Time
+	frameSet      *FrameSet
 }
 
-func NewFrameSetWriter(sessionID, filename string) (*FrameSetWriter, error) {
+func NewFrameSetWriter(w, h int, title, filename string) (*FrameSetWriter, error) {
+	shell := os.Getenv("SHELL")
+	term := os.Getenv("TERM")
+	now := time.Now()
 	return &FrameSetWriter{
-		startTime: time.Now(),
+		startTime:     now,
+		lastWriteTime: now,
 		frameSet: &FrameSet{
-			SessionID: sessionID,
-			Stdout:    []*FrameEntry{},
+			Version: 1,
+			Title:   title,
+			Height:  h,
+			Width:   w,
+			Env: Env{
+				Term:  term,
+				Shell: shell,
+			},
+			Duration: 0.0,
+			Stdout:   []*FrameEntry{},
 		},
 		outFile: filename,
 	}, nil
 }
 
 func (fw *FrameSetWriter) Write(p []byte) (int, error) {
-	delay := time.Since(fw.startTime).Seconds()
+	delay := time.Since(fw.lastWriteTime).Seconds()
+	fw.lastWriteTime = time.Now()
 	data := make([]byte, len(p))
 	n := copy(data, p)
 	fw.frameSet.Stdout = append(fw.frameSet.Stdout, &FrameEntry{
@@ -71,6 +95,7 @@ func (fw *FrameSetWriter) Write(p []byte) (int, error) {
 }
 
 func (fw *FrameSetWriter) Close() error {
+	fw.frameSet.Duration = time.Since(fw.startTime).Seconds()
 	ofile, err := os.Create(fw.outFile)
 	if err != nil {
 		return err
