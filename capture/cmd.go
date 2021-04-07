@@ -27,7 +27,7 @@ Examples:
 		tools.Log.Fatal().Msgf("error parsing arguments. err=%v", err)
 	}
 
-	fmt.Printf("Opts = %v\n", opts)
+	//fmt.Printf("Opts = %v\n", opts)
 	if tools.OptsBool(opts, "record") {
 		filename := ""
 		if tools.OptsContains(opts, "--file") {
@@ -48,7 +48,7 @@ Examples:
 		if err := Capture(title, filename, shell); err != nil {
 			return err
 		}
-		if _, err := events.AddEventFromFile(entry, "AsciiCast", filename, title, false); err != nil {
+		if _, err := events.AddEventFromFile(entry, events.AsciiCast, filename, title, false); err != nil {
 			return err
 		}
 		fmt.Printf("written cast to file %v\n", filename)

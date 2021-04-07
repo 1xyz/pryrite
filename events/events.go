@@ -1,14 +1,14 @@
 package events
 
 import (
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/tools"
-	"github.com/go-resty/resty/v2"
 	"github.com/google/uuid"
 	"io"
-	"strconv"
+	"os"
+	"strings"
 	"time"
 )
 
@@ -38,12 +38,12 @@ type Metadata struct {
 type Event struct {
 	ID        int64           `json:"ID"`
 	CreatedAt time.Time       `json:"CreatedAt"`
-	Kind      string          `json:"Kind"`
+	Kind      Kind            `json:"Kind"`
 	Details   json.RawMessage `json:"Details,omitempty"`
 	Metadata  Metadata        `json:"Metadata"`
 }
 
-func New(kind, title, url string, details Details) (*Event, error) {
+func New(kind Kind, title, url string, details Details) (*Event, error) {
 	d, err := details.EncodeJSON()
 	if err != nil {
 		return nil, err
@@ -74,13 +74,13 @@ func (e *Event) EncodeDetails(d Details) error {
 
 func (e *Event) DecodeDetails() (Details, error) {
 	switch e.Kind {
-	case "Console", "AsciiCast":
+	case Console, AsciiCast:
 		raw := RawDetails{}
 		if err := json.Unmarshal(e.Details, &raw); err != nil {
 			return nil, fmt.Errorf("unmarshall ConsoleEvent %v", err)
 		}
 		return &raw, nil
-	case "PageClose", "PageOpen":
+	case PageClose, PageOpen:
 		return &RawDetails{Raw: e.Metadata.URL}, nil
 	default:
 		return &RawDetails{Raw: string(e.Details)}, nil
@@ -96,92 +96,68 @@ func (e *Event) WriteBody(w io.Writer) (int, error) {
 	return w.Write(body)
 }
 
-type Store interface {
-	// GetEvents returns the most recent n events
-	GetEvents(n int) ([]Event, error)
+//
 
-	// Get the Event associated with this id
-	GetEvent(id string) (*Event, error)
-
-	// Add a new event to this store
-	AddEvent(*Event) (*Event, error)
+func AddConsoleEvent(entry *config.Entry, content, message string, doRender bool) (*Event, error) {
+	return AddEvent(entry, Console, content, message, doRender)
 }
 
-// remoteStore represents the remote event store backed by the service
-type remoteStore struct {
-	serviceUrl string
-}
-
-func NewStore(serviceUrl string) Store {
-	return &remoteStore{
-		serviceUrl: serviceUrl,
-	}
-}
-
-type getEventsResponse struct {
-	E []Event `json:"Events"`
-}
-
-func (r *remoteStore) GetEvents(n int) ([]Event, error) {
-	client := r.newHTTPClient(false)
-	resp, err := client.R().
-		SetQueryParams(map[string]string{
-			//"Kind":  "PageOpen", // query either PageOpen or PageClose events for now
-			"Limit": strconv.Itoa(n),
-		}).
-		SetHeader("Accept", "application/json").
-		Get("/api/v1/events")
+func AddEventFromFile(entry *config.Entry, kind Kind, filename, message string, doRender bool) (*Event, error) {
+	// ToDo: *maybe* a better way
+	b, err := os.ReadFile(filename)
 	if err != nil {
-		return nil, fmt.Errorf("http.get err: %v", err)
+		return nil, err
 	}
-
-	result := getEventsResponse{E: []Event{}}
-	if err := json.NewDecoder(resp.RawBody()).Decode(&result); err != nil {
-		return nil, fmt.Errorf("json.Decode err: %v", err)
-	}
-
-	return result.E, nil
+	content := string(b)
+	return AddEvent(entry, kind, content, message, doRender)
 }
 
-func (r *remoteStore) GetEvent(id string) (*Event, error) {
-	client := r.newHTTPClient(false)
-	resp, err := client.R().
-		SetPathParam("eventId", id).
-		SetHeader("Accept", "application/json").
-		Get("/api/v1/events/{eventId}")
+func AddEvent(entry *config.Entry, kind Kind, content, message string, doRender bool) (*Event, error) {
+	store := NewStore(entry.ServiceUrl)
+	content = strings.TrimSpace(content)
+	if len(content) == 0 {
+		return nil, fmt.Errorf("content cannot be empty")
+	}
+	if message == "None" {
+		message = tools.TrimLength(content, maxColumnLen)
+	}
+
+	event, err := New(kind, message, "", &RawDetails{Raw: content})
 	if err != nil {
-		return nil, fmt.Errorf("http.get err: %v", err)
+		return nil, err
 	}
-	result := getEventsResponse{E: []Event{}}
-	if err := json.NewDecoder(resp.RawBody()).Decode(&result); err != nil {
-		return nil, fmt.Errorf("json.Decode err: %v", err)
-	}
-	if len(result.E) == 0 {
-		return nil, fmt.Errorf("no entry found with id = %s", id)
-	}
-	return &result.E[0], nil
-}
-
-func (r *remoteStore) AddEvent(e *Event) (*Event, error) {
-	client := r.newHTTPClient(true)
-
-	result := Event{}
-	_, err := client.R().
-		SetHeader("Content-Type", "application/json").
-		SetBody(e).
-		SetResult(&result).
-		Post("/api/v1/events")
+	event, err = store.AddEvent(event)
 	if err != nil {
-		return nil, fmt.Errorf("http.post err: %v", err)
+		return nil, err
 	}
-	return &result, nil
+
+	if doRender {
+		evtRender := &eventRender{E: event, renderDetail: false}
+		evtRender.Render()
+	}
+	return event, nil
 }
 
-func (r *remoteStore) newHTTPClient(parseResponse bool) *resty.Client {
-	client := resty.New()
-	client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
-	client.SetDoNotParseResponse(!parseResponse)
-	client.SetHostURL(r.serviceUrl)
-	client.SetTimeout(clientTimeout)
-	return client
+func GetEvent(entry *config.Entry, eventID string) (*Event, error) {
+	store := NewStore(entry.ServiceUrl)
+	return store.GetEvent(eventID)
+}
+
+func WriteEventDetailsToFile(event *Event, filename string, overwrite bool) error {
+	exists, err := tools.StatExists(filename)
+	if err != nil {
+		return err
+	}
+	if exists && !overwrite {
+		return fmt.Errorf("cannot overwrite file = %v", filename)
+	}
+	fw, err := tools.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC)
+	if err != nil {
+		return err
+	}
+	defer tools.CloseFile(fw)
+	if _, err := event.WriteBody(fw); err != nil {
+		return err
+	}
+	return nil
 }

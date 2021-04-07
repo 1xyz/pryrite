@@ -7,7 +7,6 @@ import (
 	"github.com/docopt/docopt-go"
 	"io/ioutil"
 	"os"
-	"strings"
 )
 
 func Cmd(entry *config.Entry, argv []string, version string) error {
@@ -81,7 +80,7 @@ Examples:
 			content = tools.OptsStr(opts, "<content>")
 		} else if tools.OptsContains(opts, "--file") {
 			filename := tools.OptsStr(opts, "--file")
-			_, err := AddEventFromFile(entry, "Console", filename, message, true)
+			_, err := AddEventFromFile(entry, Console, filename, message, true)
 			return err
 		} else if tools.OptsContains(opts, "--stdin") {
 			b, err := ioutil.ReadAll(os.Stdin)
@@ -128,70 +127,6 @@ Examples:
 		}
 		evtRender := &eventsRender{E: events}
 		evtRender.Render()
-	}
-	return nil
-}
-
-func AddConsoleEvent(entry *config.Entry, content, message string, doRender bool) (*Event, error) {
-	return AddEvent(entry, "Console", content, message, doRender)
-}
-
-func AddEventFromFile(entry *config.Entry, kind, filename, message string, doRender bool) (*Event, error) {
-	// ToDo: *maybe* a better way
-	b, err := os.ReadFile(filename)
-	if err != nil {
-		return nil, err
-	}
-	content := string(b)
-	return AddEvent(entry, kind, content, message, doRender)
-}
-
-func AddEvent(entry *config.Entry, kind, content, message string, doRender bool) (*Event, error) {
-	store := NewStore(entry.ServiceUrl)
-	content = strings.TrimSpace(content)
-	if len(content) == 0 {
-		return nil, fmt.Errorf("content cannot be empty")
-	}
-	if message == "None" {
-		message = tools.TrimLength(content, maxColumnLen)
-	}
-
-	event, err := New(kind, message, "", &RawDetails{Raw: content})
-	if err != nil {
-		return nil, err
-	}
-	event, err = store.AddEvent(event)
-	if err != nil {
-		return nil, err
-	}
-
-	if doRender {
-		evtRender := &eventRender{E: event, renderDetail: false}
-		evtRender.Render()
-	}
-	return event, nil
-}
-
-func GetEvent(entry *config.Entry, eventID string) (*Event, error) {
-	store := NewStore(entry.ServiceUrl)
-	return store.GetEvent(eventID)
-}
-
-func WriteEventDetailsToFile(event *Event, filename string, overwrite bool) error {
-	exists, err := tools.StatExists(filename)
-	if err != nil {
-		return err
-	}
-	if exists && !overwrite {
-		return fmt.Errorf("cannot overwrite file = %v", filename)
-	}
-	fw, err := tools.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC)
-	if err != nil {
-		return err
-	}
-	defer tools.CloseFile(fw)
-	if _, err := event.WriteBody(fw); err != nil {
-		return err
 	}
 	return nil
 }
