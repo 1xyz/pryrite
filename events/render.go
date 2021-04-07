@@ -32,7 +32,8 @@ func (er *eventsRender) Render() {
 }
 
 type eventRender struct {
-	E *Event
+	E            *Event
+	renderDetail bool
 }
 
 func (er *eventRender) Render() {
@@ -50,10 +51,12 @@ func (er *eventRender) Render() {
 	t.AppendSeparator()
 	t.Render()
 
-	body, err := er.E.DecodeDetails()
-	if err != nil {
-		fmt.Println(err.Error())
-	} else {
-		fmt.Println(body.Body())
+	if er.renderDetail {
+		body, err := er.E.DecodeDetails()
+		if err != nil {
+			fmt.Println(err.Error())
+		} else {
+			fmt.Println(body.Body())
+		}
 	}
 }

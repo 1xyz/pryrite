@@ -17,12 +17,13 @@ usage: pruney log [-n=<count>]
        pruney log add [-m message] (<content>|--file=<filename>|--stdin)
        pruney log pbcopy <id>
        pruney log pbpaste [-m message]
-       pruney log show <id> 
+       pruney log show <id> [--file=<filename>]
 
 Options:
-  -m=<message>   Message to be added with a new event [default: None].
-  -n=<count>     Limit the number of events shown [default: 10].
-  -h --help      Show this screen.
+  -m=<message>       Message to be added with a new event [default: None].
+  -n=<count>         Limit the number of events shown [default: 10].
+  --file=<filename>  Filename to read/write details content from/to.
+  -h --help          Show this screen.
 
 Examples:
   List the most recent 5 events from the log
@@ -45,6 +46,9 @@ Examples:
 
   Show a specific event with id 25
   $ pruney log show 25
+
+  Show a specific event with id 25 and write the details content to a file
+  $ pruney log show 25 --file=/tmp/event-25.txt
 `
 	opts, err := docopt.ParseArgs(usage, argv, version)
 	if err != nil {
@@ -58,19 +62,27 @@ Examples:
 		if err != nil {
 			return err
 		}
-		evtRender := &eventRender{E: event}
+
+		renderDetail := true
+		if tools.OptsContains(opts, "--file") {
+			renderDetail = false
+			filename := tools.OptsStr(opts, "--file")
+			if err := WriteEventDetailsToFile(event, filename, false); err != nil {
+				return err
+			}
+		}
+		evtRender := &eventRender{E: event, renderDetail: renderDetail}
 		evtRender.Render()
 	} else if tools.OptsBool(opts, "add") {
 		//fmt.Printf("Opts = %v\n", opts)
+		message := tools.OptsStr(opts, "-m")
 		content := ""
 		if tools.OptsContains(opts, "<content>") {
 			content = tools.OptsStr(opts, "<content>")
 		} else if tools.OptsContains(opts, "--file") {
-			b, err := os.ReadFile(tools.OptsStr(opts, "--file"))
-			if err != nil {
-				return err
-			}
-			content = string(b)
+			filename := tools.OptsStr(opts, "--file")
+			_, err := AddEventFromFile(entry, "Console", filename, message, true)
+			return err
 		} else if tools.OptsContains(opts, "--stdin") {
 			b, err := ioutil.ReadAll(os.Stdin)
 			if err != nil {
@@ -81,7 +93,6 @@ Examples:
 			return fmt.Errorf("unrecognized option")
 		}
 
-		message := tools.OptsStr(opts, "-m")
 		if _, err := AddConsoleEvent(entry, content, message, true); err != nil {
 			return err
 		}
@@ -122,6 +133,20 @@ Examples:
 }
 
 func AddConsoleEvent(entry *config.Entry, content, message string, doRender bool) (*Event, error) {
+	return AddEvent(entry, "Console", content, message, doRender)
+}
+
+func AddEventFromFile(entry *config.Entry, kind, filename, message string, doRender bool) (*Event, error) {
+	// ToDo: *maybe* a better way
+	b, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+	content := string(b)
+	return AddEvent(entry, kind, content, message, doRender)
+}
+
+func AddEvent(entry *config.Entry, kind, content, message string, doRender bool) (*Event, error) {
 	store := NewStore(entry.ServiceUrl)
 	content = strings.TrimSpace(content)
 	if len(content) == 0 {
@@ -131,7 +156,7 @@ func AddConsoleEvent(entry *config.Entry, content, message string, doRender bool
 		message = tools.TrimLength(content, maxColumnLen)
 	}
 
-	event, err := New("Console", message, "", &RawDetails{Raw: content})
+	event, err := New(kind, message, "", &RawDetails{Raw: content})
 	if err != nil {
 		return nil, err
 	}
@@ -141,8 +166,32 @@ func AddConsoleEvent(entry *config.Entry, content, message string, doRender bool
 	}
 
 	if doRender {
-		evtRender := &eventRender{E: event}
+		evtRender := &eventRender{E: event, renderDetail: false}
 		evtRender.Render()
 	}
 	return event, nil
+}
+
+func GetEvent(entry *config.Entry, eventID string) (*Event, error) {
+	store := NewStore(entry.ServiceUrl)
+	return store.GetEvent(eventID)
+}
+
+func WriteEventDetailsToFile(event *Event, filename string, overwrite bool) error {
+	exists, err := tools.StatExists(filename)
+	if err != nil {
+		return err
+	}
+	if exists && !overwrite {
+		return fmt.Errorf("cannot overwrite file = %v", filename)
+	}
+	fw, err := tools.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC)
+	if err != nil {
+		return err
+	}
+	defer tools.CloseFile(fw)
+	if _, err := event.WriteBody(fw); err != nil {
+		return err
+	}
+	return nil
 }

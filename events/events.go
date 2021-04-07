@@ -7,6 +7,7 @@ import (
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/go-resty/resty/v2"
 	"github.com/google/uuid"
+	"io"
 	"strconv"
 	"time"
 )
@@ -73,7 +74,7 @@ func (e *Event) EncodeDetails(d Details) error {
 
 func (e *Event) DecodeDetails() (Details, error) {
 	switch e.Kind {
-	case "Console":
+	case "Console", "AsciiCast":
 		raw := RawDetails{}
 		if err := json.Unmarshal(e.Details, &raw); err != nil {
 			return nil, fmt.Errorf("unmarshall ConsoleEvent %v", err)
@@ -84,6 +85,15 @@ func (e *Event) DecodeDetails() (Details, error) {
 	default:
 		return &RawDetails{Raw: string(e.Details)}, nil
 	}
+}
+
+func (e *Event) WriteBody(w io.Writer) (int, error) {
+	d, err := e.DecodeDetails()
+	if err != nil {
+		return 0, err
+	}
+	body := []byte(d.Body())
+	return w.Write(body)
 }
 
 type Store interface {
