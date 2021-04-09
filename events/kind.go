@@ -4,7 +4,7 @@ type Kind string
 
 const (
 	Unknown       Kind = "Unknown"
-	Console            = "Console"
+	Command            = "Command"
 	AsciiCast          = "AsciiCast"
 	PageOpen           = "PageOpen"
 	PageClose          = "PageClose"

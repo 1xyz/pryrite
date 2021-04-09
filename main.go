@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"github.com/aardlabs/terminal-poc/auth"
 	"github.com/aardlabs/terminal-poc/capture"
+	"github.com/aardlabs/terminal-poc/cmd"
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/events"
 	"github.com/aardlabs/terminal-poc/history"
@@ -11,8 +13,6 @@ import (
 	"github.com/rs/zerolog"
 	"os"
 )
-
-const version = "0.1.alpha"
 
 func setupLogfile() *os.File {
 	var fp *os.File
@@ -26,18 +26,19 @@ func setupLogfile() *os.File {
 }
 
 func main() {
-	usage := `usage: pruney [--version] [--verbose] [--help] <command> [<args>...]
+	usage := `usage: pruney [--version] [--verbose] [--help] <c> [<args>...]
 options:
    -h, --help    Show this message.
    --verbose     Enable verbose logging (logfile: $HOME/.pruney/pruney.log).
 
 The commands are:
+   auth          authenticate with the remote service.
    config        provides options to configure pruney .
-   history       work with local shell command history.
+   history       work with local shell c history.
    log           work with events from the remote pruney log service.
    capture       capture/play terminal stdout to/from an asciicast.
 
-See 'pruney <command> --help' for more information on a specific command.
+See 'pruney <c> --help' for more information on a specific c.
 `
 	parser := &docopt.Parser{OptionsFirst: true}
 	args, err := parser.ParseArgs(usage, nil, version)
@@ -54,58 +55,61 @@ See 'pruney <command> --help' for more information on a specific command.
 	}
 	tools.InitLogger(logFp, level)
 
-	cmd := args["<command>"].(string)
-	cmdArgs := args["<args>"].([]string)
+	c := args["<c>"].(string)
+	cArgs := args["<args>"].([]string)
 	tools.Log.Debug().Msgf("global arguments: %v", args)
-	tools.Log.Debug().Msgf("command arguments: %v %v", cmd, cmdArgs)
-	ec := RunCommand(cmd, cmdArgs, version)
+	tools.Log.Debug().Msgf("c arguments: %v %v", c, cArgs)
+	p := cmd.Params{
+		Agent:   "TermConsole",
+		Version: version,
+		Argv:    append([]string{c}, cArgs...),
+		Command: c,
+	}
+	ec := RunCommand(&p)
 	if ec > 0 {
-		tools.Log.Warn().Msgf("command exited with %d", ec)
+		tools.Log.Warn().Msgf("c exited with %d", ec)
 		os.Exit(ec)
 	}
 	tools.Log.Debug().Msgf("done")
 }
 
+type cmdFunc func(*config.Entry, *cmd.Params) error
+
+var cmdFunctions = map[string]cmdFunc{
+	"auth":    auth.Cmd,
+	"capture": capture.Cmd,
+	"log":     events.Cmd,
+	"history": history.Cmd,
+}
+
 // RunCommand runs a specific command and the provided arguments
 // Returns back an integer which is used as the exit code
 // Ref: https://tldp.org/LDP/abs/html/exitcodes.html
-func RunCommand(cmd string, args []string, version string) int {
-	argv := append([]string{cmd}, args...)
-	switch cmd {
-	case "config":
-		if err := config.Cmd(argv, version); err != nil {
-			return logErr(cmd, err)
+func RunCommand(params *cmd.Params) int {
+	if params.Command == "config" {
+		if err := config.Cmd(params); err != nil {
+			return cmd.LogErr(params.Command, err)
 		}
-	case "log":
-		entry, err := config.GetEntry("")
-		if err != nil {
-			return logErr(cmd, err)
-		}
-		if err := events.Cmd(entry, argv, version); err != nil {
-			return logErr(cmd, err)
-		}
-	case "history":
+	} else if params.Command == "history" {
+		// history should continue to work if there is not config
 		entry, _ := config.GetEntry("")
-		if err := history.Cmd(entry, argv, version); err != nil {
-			return logErr(cmd, err)
+		if err := history.Cmd(entry, params); err != nil {
+			return cmd.LogErr(params.Command, err)
 		}
-	case "capture":
+	} else {
+		fn, found := cmdFunctions[params.Command]
+		if !found {
+			fmt.Printf("command %s not found!\n", params.Command)
+			tools.Log.Warn().Msgf("%s is an unsupported command", params.Command)
+			return 127 // command not found
+		}
 		entry, err := config.GetEntry("")
 		if err != nil {
-			return logErr(cmd, err)
+			return cmd.LogErr(params.Command, err)
 		}
-		if err := capture.Cmd(entry, argv, version); err != nil {
-			return logErr(cmd, err)
+		if err := fn(entry, params); err != nil {
+			return cmd.LogErr(params.Command, err)
 		}
-	default:
-		tools.Log.Warn().Msgf("%s is an unsupported command", cmd)
-		return 127 // command not found
 	}
 	return 0
-}
-
-func logErr(cmd string, err error) int {
-	fmt.Printf("command failed:. err: %v\n", err)
-	tools.Log.Err(err).Msgf("command %v failed", cmd)
-	return 1
 }

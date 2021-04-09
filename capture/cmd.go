@@ -2,6 +2,7 @@ package capture
 
 import (
 	"fmt"
+	"github.com/aardlabs/terminal-poc/cmd"
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/events"
 	"github.com/aardlabs/terminal-poc/tools"
@@ -9,7 +10,7 @@ import (
 	"os"
 )
 
-func Cmd(entry *config.Entry, argv []string, version string) error {
+func Cmd(entry *config.Entry, params *cmd.Params) error {
 	usage := `The "capture" command provides capture/play commands terminal stdout as an asciicast
 
 usage: pruney capture record --title=<title> [--file=<filename>] 
@@ -28,7 +29,7 @@ Examples:
    # Play an event with id 25, (Assuming it it of type asciicast)
    $ pruney capture play 25
 `
-	opts, err := docopt.ParseArgs(usage, argv, version)
+	opts, err := docopt.ParseArgs(usage, params.Argv, params.Version)
 	if err != nil {
 		tools.Log.Fatal().Msgf("error parsing arguments. err=%v", err)
 	}
@@ -54,7 +55,7 @@ Examples:
 		if err := Capture(title, filename, shell); err != nil {
 			return err
 		}
-		if _, err := events.AddEventFromFile(entry, events.AsciiCast, filename, title, false); err != nil {
+		if _, err := events.AddEventFromFile(entry, events.AsciiCast, entry.ClientID, params.Agent, filename, title, false); err != nil {
 			return err
 		}
 		fmt.Printf("written cast to file %v\n", filename)

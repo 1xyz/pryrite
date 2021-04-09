@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/google/uuid"
 	"gopkg.in/yaml.v2"
 	"os"
 )
@@ -12,35 +13,58 @@ var (
 )
 
 type Entry struct {
+	Name       string `yaml:"name"`
 	ServiceUrl string `yaml:"service_url"`
+	AuthScheme string `yaml:"auth_scheme"`
+	User       string `yaml:"user"`
+	ClientID   string `yaml:"client_id"`
 }
 
 type Config struct {
-	Entries      map[string]Entry `yaml:"entries"`
-	DefaultEntry string           `yaml:"default"`
+	Entries      []Entry `yaml:"entries"`
+	DefaultEntry string  `yaml:"default"`
 }
 
 func (c *Config) Get(name string) (*Entry, bool) {
-	e, ok := c.Entries[name]
-	return &e, ok
+	index, found := c.getIndex(name)
+	if !found {
+		return nil, found
+	}
+	return &c.Entries[index], found
+}
+
+func (c *Config) Set(e *Entry) error {
+	index, found := c.getIndex(e.Name)
+	if !found {
+		return fmt.Errorf("entry not found")
+	}
+	c.Entries[index] = *e
+	return nil
 }
 
 func (c *Config) Add(name, serviceUrl string) error {
-	_, found := c.Get(name)
+	_, found := c.getIndex(name)
 	if found {
 		return fmt.Errorf("entry with name = %s exists", name)
 	}
-	c.Entries[name] = Entry{ServiceUrl: serviceUrl}
+	c.Entries = append(c.Entries,
+		Entry{
+			Name:       name,
+			ServiceUrl: serviceUrl,
+			ClientID:   uuid.New().String(),
+		},
+	)
 	c.DefaultEntry = name
 	return nil
 }
 
 func (c *Config) Del(name string) error {
-	_, found := c.Get(name)
+	index, found := c.getIndex(name)
 	if !found {
 		return fmt.Errorf("entry with name = %s not found", name)
 	}
-	delete(c.Entries, name)
+
+	c.Entries = append(c.Entries[:index], c.Entries[index+1:]...)
 	if c.DefaultEntry == name {
 		c.DefaultEntry = ""
 	}
@@ -66,6 +90,15 @@ func (c *Config) SaveFile(filename string) error {
 	return enc.Encode(&c)
 }
 
+func (c *Config) getIndex(name string) (int, bool) {
+	for i, e := range c.Entries {
+		if e.Name == name {
+			return i, true
+		}
+	}
+	return -1, false
+}
+
 func New(filename string) (*Config, error) {
 	fp, err := tools.OpenFile(filename, os.O_RDONLY|os.O_CREATE)
 	if err != nil {
@@ -73,13 +106,13 @@ func New(filename string) (*Config, error) {
 	}
 	defer tools.CloseFile(fp)
 
-	size, err := filseSize(fp)
+	size, err := fileSize(fp)
 	if err != nil {
 		return nil, err
 	}
 	if size == 0 {
 		return &Config{
-			Entries:      map[string]Entry{},
+			Entries:      []Entry{},
 			DefaultEntry: "",
 		}, nil
 	}
@@ -92,7 +125,7 @@ func New(filename string) (*Config, error) {
 	return &c, nil
 }
 
-func filseSize(fp *os.File) (int64, error) {
+func fileSize(fp *os.File) (int64, error) {
 	fi, err := fp.Stat()
 	if err != nil {
 		return 0, err
@@ -122,4 +155,15 @@ func GetEntry(name string) (*Entry, error) {
 		return nil, fmt.Errorf("configuration with name = %v not found", name)
 	}
 	return entry, nil
+}
+
+func SetEntry(e *Entry) error {
+	cfg, err := Default()
+	if err != nil {
+		return err
+	}
+	if err := cfg.Set(e); err != nil {
+		return err
+	}
+	return cfg.SaveFile(defaultConfigFile)
 }

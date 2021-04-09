@@ -2,6 +2,7 @@ package history
 
 import (
 	"fmt"
+	"github.com/aardlabs/terminal-poc/cmd"
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/events"
 	"github.com/aardlabs/terminal-poc/tools"
@@ -12,7 +13,7 @@ import (
 	"time"
 )
 
-func Cmd(entry *config.Entry, argv []string, version string) error {
+func Cmd(entry *config.Entry, params *cmd.Params) error {
 	usage := `The "history" command allows pruney to work with local shell command history
 
 usage: pruney history [-n=<count>]
@@ -43,7 +44,7 @@ Examples(s):
   # Append to the local history. Note: Intended to be call by shell hooks. 
   $ pruney history append "ls -l " 
 `
-	opts, err := docopt.ParseArgs(usage, argv, version)
+	opts, err := docopt.ParseArgs(usage, params.Argv, params.Version)
 	if err != nil {
 		tools.Log.Fatal().Msgf("error parsing arguments. err=%v", err)
 	}
@@ -75,7 +76,7 @@ Examples(s):
 		if err != nil {
 			return err
 		}
-		if _, err := events.AddConsoleEvent(entry, item.Command, message, true); err != nil {
+		if _, err := events.AddConsoleEvent(entry, entry.ClientID, params.Agent, item.Command, message, true); err != nil {
 			return err
 		}
 	} else {

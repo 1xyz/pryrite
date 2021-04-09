@@ -22,7 +22,7 @@ info:
 	@echo " ------------------------------------------------------------------"
 
 build: clean fmt
-	$(GO) build -o $(BUILD_BINARY) -v main.go
+	$(GO) build -o $(BUILD_BINARY) -v main.go version.go
 	cp misc/bash/*.sh $(BIN_DIR)/
 
 .PHONY: clean
