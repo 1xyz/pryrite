@@ -43,11 +43,11 @@ type Metadata struct {
 	Agent     string `json:"Agent"`
 }
 
-func NewMetadata(sessionID, agent string) *Metadata {
+func NewMetadata(clientID, agent, version string) *Metadata {
 	ppId := os.Getppid()
 	return &Metadata{
-		SessionID: fmt.Sprintf("%s:%d", sessionID, ppId),
-		Agent:     agent,
+		SessionID: fmt.Sprintf("%s:%d", clientID, ppId),
+		Agent:     fmt.Sprintf("%s:%s", agent, version),
 	}
 }
 

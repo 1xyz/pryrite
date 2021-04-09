@@ -61,6 +61,7 @@ func (er *eventRender) Render() {
 		{"SessionID", er.E.Metadata.SessionID},
 		{"Date", tools.FmtTime(er.E.OccurredAt)},
 		{"CreatedOn", tools.FmtTime(er.E.CreatedAt)},
+		{"Agent", er.E.Metadata.Agent},
 		{"Summary", tools.TrimLength(er.E.Description, maxColumnLen)},
 	})
 	t.AppendSeparator()

@@ -82,7 +82,7 @@ Examples:
 			content = tools.OptsStr(opts, "<content>")
 		} else if tools.OptsContains(opts, "--file") {
 			filename := tools.OptsStr(opts, "--file")
-			_, err := graph.AddSnippetFromFile(entry, graph.Command, entry.ClientID, params.Agent, filename, message)
+			_, err := graph.AddSnippetFromFile(entry, graph.Command, entry.ClientID, params.Agent, params.Version, filename, message)
 			return err
 		} else if tools.OptsContains(opts, "--stdin") {
 			b, err := ioutil.ReadAll(os.Stdin)
@@ -94,7 +94,7 @@ Examples:
 			return fmt.Errorf("unrecognized option")
 		}
 
-		if _, err := graph.AddCommandSnippet(entry, entry.ClientID, params.Agent, content, message); err != nil {
+		if _, err := graph.AddCommandSnippet(entry, entry.ClientID, params.Agent, params.Version, content, message); err != nil {
 			return err
 		}
 	} else if tools.OptsBool(opts, "pbcopy") {
@@ -118,7 +118,7 @@ Examples:
 			return fmt.Errorf("getClip err = %v", err)
 		}
 		message := tools.OptsStr(opts, "-m")
-		if _, err := graph.AddCommandSnippet(entry, entry.ClientID, params.Agent, content, message); err != nil {
+		if _, err := graph.AddCommandSnippet(entry, entry.ClientID, params.Agent, params.Version, content, message); err != nil {
 			return err
 		}
 	} else {

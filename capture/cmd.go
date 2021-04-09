@@ -55,7 +55,7 @@ Examples:
 		if err := Capture(title, filename, shell); err != nil {
 			return err
 		}
-		if _, err := graph.AddSnippetFromFile(entry, graph.AsciiCast, entry.ClientID, params.Agent, filename, title); err != nil {
+		if _, err := graph.AddSnippetFromFile(entry, graph.AsciiCast, entry.ClientID, params.Agent, params.Version, filename, title); err != nil {
 			return err
 		}
 		fmt.Printf("written cast to file %v\n", filename)
