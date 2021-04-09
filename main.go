@@ -6,8 +6,8 @@ import (
 	"github.com/aardlabs/terminal-poc/capture"
 	"github.com/aardlabs/terminal-poc/cmd"
 	"github.com/aardlabs/terminal-poc/config"
-	"github.com/aardlabs/terminal-poc/events"
 	"github.com/aardlabs/terminal-poc/history"
+	"github.com/aardlabs/terminal-poc/log"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/docopt/docopt-go"
 	"github.com/rs/zerolog"
@@ -78,7 +78,7 @@ type cmdFunc func(*config.Entry, *cmd.Params) error
 var cmdFunctions = map[string]cmdFunc{
 	"auth":    auth.Cmd,
 	"capture": capture.Cmd,
-	"log":     events.Cmd,
+	"log":     log.Cmd,
 	"history": history.Cmd,
 }
 

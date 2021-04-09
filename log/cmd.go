@@ -1,9 +1,10 @@
-package events
+package log
 
 import (
 	"fmt"
 	"github.com/aardlabs/terminal-poc/cmd"
 	"github.com/aardlabs/terminal-poc/config"
+	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/docopt/docopt-go"
 	"io/ioutil"
@@ -55,10 +56,10 @@ Examples:
 		tools.Log.Fatal().Msgf("error parsing arguments. err=%v", err)
 	}
 	tools.Log.Debug().Msgf("events.Cmd Opts = %v", opts)
-	store := NewStore(entry)
+	store := graph.NewStore(entry)
 	if tools.OptsBool(opts, "show") {
 		id := tools.OptsStr(opts, "<id>")
-		event, err := store.GetEvent(id)
+		event, err := store.GetNode(id)
 		if err != nil {
 			return err
 		}
@@ -67,7 +68,7 @@ Examples:
 		if tools.OptsContains(opts, "--file") {
 			renderDetail = false
 			filename := tools.OptsStr(opts, "--file")
-			if err := WriteEventDetailsToFile(event, filename, false); err != nil {
+			if err := graph.WriteSnippetDetails(event, filename, false); err != nil {
 				return err
 			}
 		}
@@ -81,7 +82,7 @@ Examples:
 			content = tools.OptsStr(opts, "<content>")
 		} else if tools.OptsContains(opts, "--file") {
 			filename := tools.OptsStr(opts, "--file")
-			_, err := AddEventFromFile(entry, Command, entry.ClientID, params.Agent, filename, message, true)
+			_, err := graph.AddSnippetFromFile(entry, graph.Command, entry.ClientID, params.Agent, filename, message)
 			return err
 		} else if tools.OptsContains(opts, "--stdin") {
 			b, err := ioutil.ReadAll(os.Stdin)
@@ -93,12 +94,12 @@ Examples:
 			return fmt.Errorf("unrecognized option")
 		}
 
-		if _, err := AddConsoleEvent(entry, entry.ClientID, params.Agent, content, message, true); err != nil {
+		if _, err := graph.AddCommandSnippet(entry, entry.ClientID, params.Agent, content, message); err != nil {
 			return err
 		}
 	} else if tools.OptsBool(opts, "pbcopy") {
 		id := tools.OptsStr(opts, "<id>")
-		event, err := store.GetEvent(id)
+		event, err := store.GetNode(id)
 		if err != nil {
 			return err
 		}
@@ -117,12 +118,12 @@ Examples:
 			return fmt.Errorf("getClip err = %v", err)
 		}
 		message := tools.OptsStr(opts, "-m")
-		if _, err := AddConsoleEvent(entry, entry.ClientID, params.Agent, content, message, true); err != nil {
+		if _, err := graph.AddCommandSnippet(entry, entry.ClientID, params.Agent, content, message); err != nil {
 			return err
 		}
 	} else {
 		n := tools.OptsInt(opts, "-n")
-		events, err := store.GetEvents(n)
+		events, err := store.GetNodes(n)
 		if err != nil {
 			return err
 		}

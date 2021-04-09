@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/aardlabs/terminal-poc/cmd"
 	"github.com/aardlabs/terminal-poc/config"
-	"github.com/aardlabs/terminal-poc/events"
+	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/docopt/docopt-go"
 	"os"
@@ -34,7 +34,6 @@ Examples:
 		tools.Log.Fatal().Msgf("error parsing arguments. err=%v", err)
 	}
 
-	//fmt.Printf("Opts = %v\n", opts)
 	if tools.OptsBool(opts, "record") {
 		filename := ""
 		if tools.OptsContains(opts, "--file") {
@@ -46,6 +45,7 @@ Examples:
 			}
 			filename = f
 		}
+
 		title := tools.OptsStr(opts, "--title")
 		shell := os.Getenv("SHELL")
 		if len(shell) == 0 {
@@ -55,7 +55,7 @@ Examples:
 		if err := Capture(title, filename, shell); err != nil {
 			return err
 		}
-		if _, err := events.AddEventFromFile(entry, events.AsciiCast, entry.ClientID, params.Agent, filename, title, false); err != nil {
+		if _, err := graph.AddSnippetFromFile(entry, graph.AsciiCast, entry.ClientID, params.Agent, filename, title); err != nil {
 			return err
 		}
 		fmt.Printf("written cast to file %v\n", filename)
@@ -71,14 +71,14 @@ Examples:
 			filename = f
 
 			eventID := tools.OptsStr(opts, "<id>")
-			event, err := events.GetEvent(entry, eventID)
+			event, err := graph.GetSnippet(entry, eventID)
 			if err != nil {
 				return err
 			}
-			if event.Kind != events.AsciiCast {
-				return fmt.Errorf("the event %s is not of type %s", event.Kind, events.AsciiCast)
+			if event.Kind != graph.AsciiCast {
+				return fmt.Errorf("the event %s is not of type %s", event.Kind, graph.AsciiCast)
 			}
-			if err := events.WriteEventDetailsToFile(event, filename, true); err != nil {
+			if err := graph.WriteSnippetDetails(event, filename, true); err != nil {
 				return err
 			}
 		}
