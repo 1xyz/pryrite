@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/aardlabs/terminal-poc/auth"
 	"github.com/aardlabs/terminal-poc/capture"
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/events"
@@ -32,6 +33,7 @@ options:
    --verbose     Enable verbose logging (logfile: $HOME/.pruney/pruney.log).
 
 The commands are:
+   auth          authenticate with the remote service.
    config        provides options to configure pruney .
    history       work with local shell command history.
    log           work with events from the remote pruney log service.
@@ -72,6 +74,14 @@ See 'pruney <command> --help' for more information on a specific command.
 func RunCommand(cmd string, args []string, version string) int {
 	argv := append([]string{cmd}, args...)
 	switch cmd {
+	case "auth":
+		entry, err := config.GetEntry("")
+		if err != nil {
+			return logErr(cmd, err)
+		}
+		if err := auth.Cmd(entry, argv, version); err != nil {
+			return logErr(cmd, err)
+		}
 	case "config":
 		if err := config.Cmd(argv, version); err != nil {
 			return logErr(cmd, err)

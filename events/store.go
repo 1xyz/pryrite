@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"github.com/aardlabs/terminal-poc/config"
 	"github.com/go-resty/resty/v2"
 	"strconv"
 )
@@ -21,12 +22,12 @@ type Store interface {
 
 // remoteStore represents the remote event store backed by the service
 type remoteStore struct {
-	serviceUrl string
+	configEntry *config.Entry
 }
 
-func NewStore(serviceUrl string) Store {
+func NewStore(configEntry *config.Entry) Store {
 	return &remoteStore{
-		serviceUrl: serviceUrl,
+		configEntry: configEntry,
 	}
 }
 
@@ -42,7 +43,7 @@ func (r *remoteStore) GetEvents(n int) ([]Event, error) {
 			"Limit": strconv.Itoa(n),
 		}).
 		SetHeader("Accept", "application/json").
-		Get("/api/v1/events")
+		Get("/api/v1/nodes")
 	if err != nil {
 		return nil, fmt.Errorf("http.get err: %v", err)
 	}
@@ -58,9 +59,9 @@ func (r *remoteStore) GetEvents(n int) ([]Event, error) {
 func (r *remoteStore) GetEvent(id string) (*Event, error) {
 	client := r.newHTTPClient(false)
 	resp, err := client.R().
-		SetPathParam("eventId", id).
+		SetPathParam("nodeId", id).
 		SetHeader("Accept", "application/json").
-		Get("/api/v1/events/{eventId}")
+		Get("/api/v1/nodes/{nodeId}")
 	if err != nil {
 		return nil, fmt.Errorf("http.get err: %v", err)
 	}
@@ -93,7 +94,10 @@ func (r *remoteStore) newHTTPClient(parseResponse bool) *resty.Client {
 	client := resty.New()
 	client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
 	client.SetDoNotParseResponse(!parseResponse)
-	client.SetHostURL(r.serviceUrl)
+	client.SetHostURL(r.configEntry.ServiceUrl)
 	client.SetTimeout(clientTimeout)
+	client.SetHeader("Authorization",
+		fmt.Sprintf("%s %s", r.configEntry.AuthScheme, r.configEntry.User))
+	client.SetHeader("Accept", "application/json")
 	return client
 }

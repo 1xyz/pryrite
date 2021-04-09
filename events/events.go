@@ -113,7 +113,7 @@ func AddEventFromFile(entry *config.Entry, kind Kind, filename, message string, 
 }
 
 func AddEvent(entry *config.Entry, kind Kind, content, message string, doRender bool) (*Event, error) {
-	store := NewStore(entry.ServiceUrl)
+	store := NewStore(entry)
 	content = strings.TrimSpace(content)
 	if len(content) == 0 {
 		return nil, fmt.Errorf("content cannot be empty")
@@ -139,7 +139,7 @@ func AddEvent(entry *config.Entry, kind Kind, content, message string, doRender 
 }
 
 func GetEvent(entry *config.Entry, eventID string) (*Event, error) {
-	store := NewStore(entry.ServiceUrl)
+	store := NewStore(entry)
 	return store.GetEvent(eventID)
 }
 

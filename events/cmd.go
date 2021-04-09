@@ -54,7 +54,7 @@ Examples:
 		tools.Log.Fatal().Msgf("error parsing arguments. err=%v", err)
 	}
 	tools.Log.Debug().Msgf("events.Cmd Opts = %v", opts)
-	store := NewStore(entry.ServiceUrl)
+	store := NewStore(entry)
 	if tools.OptsBool(opts, "show") {
 		id := tools.OptsStr(opts, "<id>")
 		event, err := store.GetEvent(id)
