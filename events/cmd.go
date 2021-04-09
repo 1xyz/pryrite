@@ -80,7 +80,7 @@ Examples:
 			content = tools.OptsStr(opts, "<content>")
 		} else if tools.OptsContains(opts, "--file") {
 			filename := tools.OptsStr(opts, "--file")
-			_, err := AddEventFromFile(entry, Console, filename, message, true)
+			_, err := AddEventFromFile(entry, Command, filename, message, true)
 			return err
 		} else if tools.OptsContains(opts, "--stdin") {
 			b, err := ioutil.ReadAll(os.Stdin)
@@ -106,7 +106,7 @@ Examples:
 		if err != nil {
 			return err
 		}
-		if err := clipTo(d.Body()); err != nil {
+		if err := clipTo(d.Summary()); err != nil {
 			return fmt.Errorf("clipTo err = %v", err)
 		}
 		fmt.Printf("copied to clipboard!\n")

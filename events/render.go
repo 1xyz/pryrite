@@ -8,7 +8,7 @@ import (
 )
 
 type eventsRender struct {
-	E []Event
+	E []Node
 }
 
 const (
@@ -22,8 +22,8 @@ func (er *eventsRender) Render() {
 	for _, e := range er.E {
 		t.AppendRow(table.Row{
 			e.ID,
-			tools.FmtTime(e.CreatedAt),
-			tools.TrimLength(e.Metadata.Title, maxColumnLen),
+			tools.FmtTime(e.OccurredAt),
+			getSummary(&e),
 			e.Kind})
 	}
 	t.AppendHeader(table.Row{"Id", "Date", "Summary", "Type"})
@@ -31,8 +31,21 @@ func (er *eventsRender) Render() {
 	t.Render()
 }
 
+func getSummary(n *Node) string {
+	summary := n.Description
+	if len(summary) == 0 {
+		if d, err := n.DecodeDetails(); err != nil {
+			tools.Log.Err(err).Msgf("DecodeDetails")
+			summary = "N/A"
+		} else {
+			summary = d.Summary()
+		}
+	}
+	return tools.TrimLength(summary, maxColumnLen)
+}
+
 type eventRender struct {
-	E            *Event
+	E            *Node
 	renderDetail bool
 }
 
@@ -45,8 +58,8 @@ func (er *eventRender) Render() {
 	t.AppendSeparator()
 	t.AppendRows([]table.Row{
 		{"SessionID", er.E.Metadata.SessionID},
-		{"CreatedOn", tools.FmtTime(er.E.CreatedAt)},
-		{"Title", tools.TrimLength(er.E.Metadata.Title, maxColumnLen)},
+		{"CreatedOn", tools.FmtTime(er.E.OccurredAt)},
+		{"Summary", tools.TrimLength(er.E.Description, maxColumnLen)},
 	})
 	t.AppendSeparator()
 	t.Render()
@@ -56,7 +69,7 @@ func (er *eventRender) Render() {
 		if err != nil {
 			fmt.Println(err.Error())
 		} else {
-			fmt.Println(body.Body())
+			fmt.Println(body.Summary())
 		}
 	}
 }
