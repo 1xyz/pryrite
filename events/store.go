@@ -37,15 +37,15 @@ type getEventsResponse struct {
 
 func (r *remoteStore) GetEvents(n int) ([]Node, error) {
 	client := r.newHTTPClient(false)
-	resp, err := client.R().
+	req := client.R().
 		SetQueryParams(map[string]string{
 			//"Kind":  "PageOpen", // query either PageOpen or PageClose events for now
 			"Limit": strconv.Itoa(n),
 		}).
-		SetHeader("Accept", "application/json").
-		Get("/api/v1/nodes")
+		SetHeader("Accept", "application/json")
+	resp, err := req.Get("/api/v1/nodes")
 	if err != nil {
-		return nil, fmt.Errorf("http.get err: %v", err)
+		return nil, fmt.Errorf("http.get err: %v req: %s", err, req.URL)
 	}
 
 	result := getEventsResponse{N: []Node{}}
@@ -53,17 +53,17 @@ func (r *remoteStore) GetEvents(n int) ([]Node, error) {
 		return nil, fmt.Errorf("json.Decode err: %v", err)
 	}
 	if err := checkHTTP2XX(resp.StatusCode()); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("checkHTTP2XX url: %s err: %v", req.URL, err)
 	}
 	return result.N, nil
 }
 
 func (r *remoteStore) GetEvent(id string) (*Node, error) {
 	client := r.newHTTPClient(false)
-	resp, err := client.R().
+	req := client.R().
 		SetPathParam("nodeId", id).
-		SetHeader("Accept", "application/json").
-		Get("/api/v1/nodes/{nodeId}")
+		SetHeader("Accept", "application/json")
+	resp, err := req.Get("/api/v1/nodes/{nodeId}")
 	if err != nil {
 		return nil, fmt.Errorf("http.get err: %v", err)
 	}
@@ -75,7 +75,7 @@ func (r *remoteStore) GetEvent(id string) (*Node, error) {
 		return nil, fmt.Errorf("no entry found with id = %s", id)
 	}
 	if err := checkHTTP2XX(resp.StatusCode()); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("checkHTTP2XX url: %s err: %v", req.URL, err)
 	}
 	return &result.N[0], nil
 }

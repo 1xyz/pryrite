@@ -48,6 +48,14 @@ type Metadata struct {
 	Agent     string `json:"Agent"`
 }
 
+func NewMetadata(sessionID, agent string) *Metadata {
+	ppId := os.Getppid()
+	return &Metadata{
+		SessionID: fmt.Sprintf("%s:%d", sessionID, ppId),
+		Agent:     agent,
+	}
+}
+
 type User struct {
 	Email    string `json:"Email"`
 	Username string `json:"Username"`
@@ -55,26 +63,33 @@ type User struct {
 }
 
 type Node struct {
-	ID          int64           `json:"ID,omitempty"`
-	OccurredAt  time.Time       `json:"OccurredAt"`
-	Kind        Kind            `json:"Kind"`
-	Metadata    Metadata        `json:"Metadata"`
-	Description string          `json:"description,omitempty"`
-	Details     json.RawMessage `json:"Details,omitempty"`
-	UserID      int64           `json:"UserID,omitempty"`
-	User        User            `json:"User,omitempty"`
+	ID                    int64           `json:"ID,omitempty"`
+	CreatedAt             time.Time       `json:"CreatedAt"`
+	OccurredAt            time.Time       `json:"OccurredAt,omitempty"`
+	TimestampMilliseconds int64           `json:"timestampMilliseconds,omitempty"`
+	Kind                  Kind            `json:"Kind"`
+	Metadata              Metadata        `json:"Metadata"`
+	Description           string          `json:"description,omitempty"`
+	Details               json.RawMessage `json:"Details,omitempty"`
+	UserID                int64           `json:"UserID,omitempty"`
+	User                  User            `json:"User,omitempty"`
 }
 
-func New(kind Kind, description string, details Details) (*Node, error) {
+func New(kind Kind, description string, details Details, metadata *Metadata) (*Node, error) {
 	d, err := details.EncodeJSON()
 	if err != nil {
 		return nil, err
 	}
+	now := time.Now().UTC()
+	fmt.Printf("now ms %v\n", now.Unix())
 	return &Node{
-		OccurredAt:  time.Now().UTC(),
-		Kind:        kind,
-		Details:     d,
-		Description: description,
+		CreatedAt:             now,
+		OccurredAt:            now,
+		TimestampMilliseconds: now.UnixNano() / int64(time.Millisecond),
+		Kind:                  kind,
+		Details:               d,
+		Description:           description,
+		Metadata:              *metadata,
 	}, nil
 }
 
@@ -114,21 +129,22 @@ func (e *Node) WriteBody(w io.Writer) (int, error) {
 
 //
 
-func AddConsoleEvent(entry *config.Entry, content, description string, doRender bool) (*Node, error) {
-	return AddEvent(entry, Command, content, description, doRender)
+func AddConsoleEvent(entry *config.Entry, sessionID, agent, content, description string, doRender bool) (*Node, error) {
+	return AddEvent(entry, Command, sessionID, agent, content, description, doRender)
 }
 
-func AddEventFromFile(entry *config.Entry, kind Kind, filename, message string, doRender bool) (*Node, error) {
+func AddEventFromFile(entry *config.Entry, kind Kind, sessionID, agent, filename, message string, doRender bool) (*Node, error) {
 	// ToDo: *maybe* a better way
 	b, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
 	content := string(b)
-	return AddEvent(entry, kind, content, message, doRender)
+	return AddEvent(entry, kind, sessionID, agent,
+		content, message, doRender)
 }
 
-func AddEvent(entry *config.Entry, kind Kind, content, description string, doRender bool) (*Node, error) {
+func AddEvent(entry *config.Entry, kind Kind, sessionID, agent, content, description string, doRender bool) (*Node, error) {
 	store := NewStore(entry)
 	content = strings.TrimSpace(content)
 	if len(content) == 0 {
@@ -138,7 +154,7 @@ func AddEvent(entry *config.Entry, kind Kind, content, description string, doRen
 		description = tools.TrimLength(content, maxColumnLen)
 	}
 
-	event, err := New(kind, description, &TextDetails{Text: content})
+	event, err := New(kind, description, &TextDetails{Text: content}, NewMetadata(sessionID, agent))
 	if err != nil {
 		return nil, err
 	}

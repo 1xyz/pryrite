@@ -2,11 +2,12 @@ package config
 
 import (
 	"fmt"
+	"github.com/aardlabs/terminal-poc/cmd"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/docopt/docopt-go"
 )
 
-func Cmd(argv []string, version string) error {
+func Cmd(params *cmd.Params) error {
 	usage := `The "config" command provides options to configure pruney 
 
 usage: pruney config add <name> --service-url=<url>
@@ -31,7 +32,7 @@ Examples:
   Set the default configuration to "foobar"
   $ pruney config set-default foobar
 `
-	opts, err := docopt.ParseArgs(usage, argv, version)
+	opts, err := docopt.ParseArgs(usage, params.Argv, params.Version)
 	if err != nil {
 		tools.Log.Fatal().Msgf("error parsing arguments. err=%v", err)
 	}

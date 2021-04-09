@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/google/uuid"
 	"gopkg.in/yaml.v2"
 	"os"
 )
@@ -16,6 +17,7 @@ type Entry struct {
 	ServiceUrl string `yaml:"service_url"`
 	AuthScheme string `yaml:"auth_scheme"`
 	User       string `yaml:"user"`
+	ClientID   string `yaml:"client_id"`
 }
 
 type Config struct {
@@ -45,7 +47,13 @@ func (c *Config) Add(name, serviceUrl string) error {
 	if found {
 		return fmt.Errorf("entry with name = %s exists", name)
 	}
-	c.Entries = append(c.Entries, Entry{Name: name, ServiceUrl: serviceUrl})
+	c.Entries = append(c.Entries,
+		Entry{
+			Name:       name,
+			ServiceUrl: serviceUrl,
+			ClientID:   uuid.New().String(),
+		},
+	)
 	c.DefaultEntry = name
 	return nil
 }

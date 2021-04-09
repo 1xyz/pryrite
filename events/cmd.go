@@ -2,6 +2,7 @@ package events
 
 import (
 	"fmt"
+	"github.com/aardlabs/terminal-poc/cmd"
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/docopt/docopt-go"
@@ -9,7 +10,7 @@ import (
 	"os"
 )
 
-func Cmd(entry *config.Entry, argv []string, version string) error {
+func Cmd(entry *config.Entry, params *cmd.Params) error {
 	usage := `The "log" command allows you to retrieve events from the remote pruney log
 
 usage: pruney log [-n=<count>]
@@ -49,7 +50,7 @@ Examples:
   Show a specific event with id 25 and write the details content to a file
   $ pruney log show 25 --file=/tmp/event-25.txt
 `
-	opts, err := docopt.ParseArgs(usage, argv, version)
+	opts, err := docopt.ParseArgs(usage, params.Argv, params.Version)
 	if err != nil {
 		tools.Log.Fatal().Msgf("error parsing arguments. err=%v", err)
 	}
@@ -80,7 +81,7 @@ Examples:
 			content = tools.OptsStr(opts, "<content>")
 		} else if tools.OptsContains(opts, "--file") {
 			filename := tools.OptsStr(opts, "--file")
-			_, err := AddEventFromFile(entry, Command, filename, message, true)
+			_, err := AddEventFromFile(entry, Command, entry.ClientID, params.Agent, filename, message, true)
 			return err
 		} else if tools.OptsContains(opts, "--stdin") {
 			b, err := ioutil.ReadAll(os.Stdin)
@@ -92,7 +93,7 @@ Examples:
 			return fmt.Errorf("unrecognized option")
 		}
 
-		if _, err := AddConsoleEvent(entry, content, message, true); err != nil {
+		if _, err := AddConsoleEvent(entry, entry.ClientID, params.Agent, content, message, true); err != nil {
 			return err
 		}
 	} else if tools.OptsBool(opts, "pbcopy") {
@@ -116,7 +117,7 @@ Examples:
 			return fmt.Errorf("getClip err = %v", err)
 		}
 		message := tools.OptsStr(opts, "-m")
-		if _, err := AddConsoleEvent(entry, content, message, true); err != nil {
+		if _, err := AddConsoleEvent(entry, entry.ClientID, params.Agent, content, message, true); err != nil {
 			return err
 		}
 	} else {

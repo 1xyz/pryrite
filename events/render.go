@@ -58,7 +58,8 @@ func (er *eventRender) Render() {
 	t.AppendSeparator()
 	t.AppendRows([]table.Row{
 		{"SessionID", er.E.Metadata.SessionID},
-		{"CreatedOn", tools.FmtTime(er.E.OccurredAt)},
+		{"Date", tools.FmtTime(er.E.OccurredAt)},
+		{"CreatedOn", tools.FmtTime(er.E.CreatedAt)},
 		{"Summary", tools.TrimLength(er.E.Description, maxColumnLen)},
 	})
 	t.AppendSeparator()
