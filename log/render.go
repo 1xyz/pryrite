@@ -1,14 +1,15 @@
-package events
+package log
 
 import (
 	"fmt"
+	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"os"
 )
 
 type eventsRender struct {
-	E []Node
+	E []graph.Node
 }
 
 const (
@@ -31,7 +32,7 @@ func (er *eventsRender) Render() {
 	t.Render()
 }
 
-func getSummary(n *Node) string {
+func getSummary(n *graph.Node) string {
 	summary := n.Description
 	if len(summary) == 0 {
 		if d, err := n.DecodeDetails(); err != nil {
@@ -45,7 +46,7 @@ func getSummary(n *Node) string {
 }
 
 type eventRender struct {
-	E            *Node
+	E            *graph.Node
 	renderDetail bool
 }
 

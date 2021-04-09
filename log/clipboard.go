@@ -1,4 +1,4 @@
-package events
+package log
 
 import "github.com/atotto/clipboard"
 

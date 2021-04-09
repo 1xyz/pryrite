@@ -1,4 +1,4 @@
-package events
+package graph
 
 import (
 	"crypto/tls"
@@ -10,14 +10,14 @@ import (
 )
 
 type Store interface {
-	// GetEvents returns the most recent n events
-	GetEvents(n int) ([]Node, error)
+	// GetNodes returns the most recent n events
+	GetNodes(n int) ([]Node, error)
 
 	// Get the Node associated with this id
-	GetEvent(id string) (*Node, error)
+	GetNode(id string) (*Node, error)
 
-	// Add a new event to this store
-	AddEvent(*Node) (*Node, error)
+	// Add a new node to this store
+	AddNode(*Node) (*Node, error)
 }
 
 // remoteStore represents the remote event store backed by the service
@@ -35,7 +35,7 @@ type getEventsResponse struct {
 	N []Node `json:"Nodes"`
 }
 
-func (r *remoteStore) GetEvents(n int) ([]Node, error) {
+func (r *remoteStore) GetNodes(n int) ([]Node, error) {
 	client := r.newHTTPClient(false)
 	req := client.R().
 		SetQueryParams(map[string]string{
@@ -58,7 +58,7 @@ func (r *remoteStore) GetEvents(n int) ([]Node, error) {
 	return result.N, nil
 }
 
-func (r *remoteStore) GetEvent(id string) (*Node, error) {
+func (r *remoteStore) GetNode(id string) (*Node, error) {
 	client := r.newHTTPClient(false)
 	req := client.R().
 		SetPathParam("nodeId", id).
@@ -80,7 +80,7 @@ func (r *remoteStore) GetEvent(id string) (*Node, error) {
 	return &result.N[0], nil
 }
 
-func (r *remoteStore) AddEvent(e *Node) (*Node, error) {
+func (r *remoteStore) AddNode(e *Node) (*Node, error) {
 	client := r.newHTTPClient(true)
 
 	result := Node{}

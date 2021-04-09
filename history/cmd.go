@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/aardlabs/terminal-poc/cmd"
 	"github.com/aardlabs/terminal-poc/config"
-	"github.com/aardlabs/terminal-poc/events"
+	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/docopt/docopt-go"
 	"io/ioutil"
@@ -76,7 +76,7 @@ Examples(s):
 		if err != nil {
 			return err
 		}
-		if _, err := events.AddConsoleEvent(entry, entry.ClientID, params.Agent, item.Command, message, true); err != nil {
+		if _, err := graph.AddCommandSnippet(entry, entry.ClientID, params.Agent, item.Command, message); err != nil {
 			return err
 		}
 	} else {
