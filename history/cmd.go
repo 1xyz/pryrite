@@ -76,7 +76,7 @@ Examples(s):
 		if err != nil {
 			return err
 		}
-		if _, err := graph.AddCommandSnippet(entry, entry.ClientID, params.Agent, item.Command, message); err != nil {
+		if _, err := graph.AddCommandSnippet(entry, entry.ClientID, params.Agent, params.Version, item.Command, message); err != nil {
 			return err
 		}
 	} else {

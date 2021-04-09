@@ -8,20 +8,20 @@ import (
 	"strings"
 )
 
-func AddCommandSnippet(entry *config.Entry, sessionID, agent, content, description string) (*Node, error) {
-	return AddSnippet(entry, Command, sessionID, agent, content, description)
+func AddCommandSnippet(entry *config.Entry, sessionID, agent, version, content, description string) (*Node, error) {
+	return AddSnippet(entry, Command, sessionID, agent, version, content, description)
 }
 
-func AddSnippetFromFile(entry *config.Entry, kind Kind, sessionID, agent, filename, message string) (*Node, error) {
+func AddSnippetFromFile(entry *config.Entry, kind Kind, sessionID, agent, version, filename, message string) (*Node, error) {
 	b, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
 	content := string(b)
-	return AddSnippet(entry, kind, sessionID, agent, content, message)
+	return AddSnippet(entry, kind, sessionID, agent, version, content, message)
 }
 
-func AddSnippet(entry *config.Entry, kind Kind, sessionID, agent, content, description string) (*Node, error) {
+func AddSnippet(entry *config.Entry, kind Kind, sessionID, agent, version, content, description string) (*Node, error) {
 	store := NewStore(entry)
 	content = strings.TrimSpace(content)
 	if len(content) == 0 {
@@ -30,7 +30,7 @@ func AddSnippet(entry *config.Entry, kind Kind, sessionID, agent, content, descr
 	if len(description) == 0 {
 		description = tools.TrimLength(content, maxSummaryLen)
 	}
-	event, err := NewNode(kind, description, &TextDetails{Text: content}, NewMetadata(sessionID, agent))
+	event, err := NewNode(kind, description, &TextDetails{Text: content}, NewMetadata(sessionID, agent, version))
 	if err != nil {
 		return nil, err
 	}
