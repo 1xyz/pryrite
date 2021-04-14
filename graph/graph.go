@@ -23,10 +23,10 @@ type TextDetails struct {
 }
 
 func (t *TextDetails) Summary() string {
-	if len(t.Title) > 0 {
-		return t.Title
-	} else if len(t.Text) > 0 {
+	if len(t.Text) > 0 {
 		return t.Text
+	} else if len(t.Url) > 0 {
+		return t.Url
 	} else if len(t.Url) > 0 {
 		return t.Url
 	} else {
