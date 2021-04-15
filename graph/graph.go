@@ -9,11 +9,17 @@ import (
 )
 
 type Details interface {
-	// Encode this to rawMessage
+	// EncodeJSON encodes this details information to []byte
 	EncodeJSON() ([]byte, error)
 
-	// The body representation of this
-	Summary() string
+	// GetTitle  returns the title.
+	GetTitle() string
+
+	// GetUrl  returns the url
+	GetUrl() string
+
+	// GetBody  returns the text/body
+	GetBody() string
 }
 
 type TextDetails struct {
@@ -22,21 +28,10 @@ type TextDetails struct {
 	Text  string `json:"text,omitempty"`
 }
 
-func (t *TextDetails) Summary() string {
-	if len(t.Title) > 0 {
-		return t.Title
-	} else if len(t.Text) > 0 {
-		return t.Text
-	} else if len(t.Url) > 0 {
-		return t.Url
-	} else {
-		return ""
-	}
-}
-
-func (t *TextDetails) EncodeJSON() ([]byte, error) {
-	return json.Marshal(t)
-}
+func (t *TextDetails) GetTitle() string            { return t.Title }
+func (t *TextDetails) GetUrl() string              { return t.Url }
+func (t *TextDetails) GetBody() string             { return t.Text }
+func (t *TextDetails) EncodeJSON() ([]byte, error) { return json.Marshal(t) }
 
 type Metadata struct {
 	SessionID string `json:"SessionID"`
@@ -89,7 +84,7 @@ func NewNode(kind Kind, description string, details Details, metadata *Metadata)
 
 func (e *Node) EncodeDetails(d Details) error {
 	switch e.Kind {
-	case "Command":
+	case Command:
 		b, err := d.EncodeJSON()
 		if err != nil {
 			return err
@@ -117,6 +112,6 @@ func (e *Node) WriteBody(w io.Writer) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	body := []byte(d.Summary())
+	body := []byte(d.GetBody())
 	return w.Write(body)
 }

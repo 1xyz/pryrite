@@ -2,6 +2,7 @@ package tools
 
 import (
 	"github.com/docopt/docopt-go"
+	"github.com/rs/zerolog/log"
 	"time"
 )
 
@@ -19,6 +20,18 @@ func OptsStr(opts docopt.Opts, key string) string {
 		Log.Fatal().Msgf("OptsStr: %v parse err = %v", key, err)
 	}
 	return v
+}
+
+func OptsStrSlice(opts docopt.Opts, key string) []string {
+	v, ok := opts[key]
+	if !ok {
+		log.Fatal().Msgf("OptsStrSlice: cannot find entry w/ key %v", key)
+	}
+	ss, ok := v.([]string)
+	if !ok {
+		log.Fatal().Msgf("OptsStrSlice: cannot cast %v to []string", v)
+	}
+	return ss
 }
 
 func OptsInt(opts docopt.Opts, key string) int {

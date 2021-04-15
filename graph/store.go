@@ -13,11 +13,14 @@ type Store interface {
 	// GetNodes returns the most recent n events
 	GetNodes(n int) ([]Node, error)
 
-	// Get the Node associated with this id
+	// GetNode returns the Node associated with this id
 	GetNode(id string) (*Node, error)
 
-	// Add a new node to this store
+	// AddNode adds a new node to this store
 	AddNode(*Node) (*Node, error)
+
+	// SearchNodes searches for nodes for provided query
+	SearchNodes(string) ([]Node, error)
 }
 
 // remoteStore represents the remote event store backed by the service
@@ -96,6 +99,31 @@ func (r *remoteStore) AddNode(e *Node) (*Node, error) {
 		return nil, err
 	}
 	return &result, nil
+}
+
+func (r *remoteStore) SearchNodes(query string) ([]Node, error) {
+	client := r.newHTTPClient(false)
+	const limit = 25
+	req := client.R().
+		SetQueryParams(map[string]string{
+			//"Kind":  "PageOpen", // query either PageOpen or PageClose events for now
+			"Q":     query,
+			"Limit": strconv.Itoa(limit),
+		}).
+		SetHeader("Accept", "application/json")
+	resp, err := req.Get("/api/v1/search/nodes")
+	if err != nil {
+		return nil, fmt.Errorf("http.get err: %v req: %s", err, req.URL)
+	}
+
+	result := getEventsResponse{N: []Node{}}
+	if err := json.NewDecoder(resp.RawBody()).Decode(&result); err != nil {
+		return nil, fmt.Errorf("json.Decode err: %v", err)
+	}
+	if err := checkHTTP2XX(resp.StatusCode()); err != nil {
+		return nil, fmt.Errorf("checkHTTP2XX url: %s err: %v", req.URL, err)
+	}
+	return result.N, nil
 }
 
 func (r *remoteStore) newHTTPClient(parseResponse bool) *resty.Client {

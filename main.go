@@ -33,10 +33,10 @@ options:
 
 The commands are:
    auth          authenticate with the remote service.
-   config        provides options to configure pruney .
-   history       work with local shell c history.
-   log           work with events from the remote pruney log service.
-   capture       capture/play terminal stdout to/from an asciicast.
+   config        provides options to configure pruney.
+   history       work with your local shell history.
+   log           add & view snippets from the pruney service.
+   capture       record & play your terminal as asciicast snippets.
 
 See 'pruney <c> --help' for more information on a specific c.
 `
