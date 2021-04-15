@@ -26,7 +26,7 @@ func setupLogfile() *os.File {
 }
 
 func main() {
-	usage := `usage: pruney [--version] [--verbose] [--help] <c> [<args>...]
+	usage := `usage: pruney [--version] [--verbose] [--help] <command> [<args>...]
 options:
    -h, --help    Show this message.
    --verbose     Enable verbose logging (logfile: $HOME/.pruney/pruney.log).
@@ -73,7 +73,7 @@ See 'pruney <command> --help' for more information on a specific command.
 	}
 	tools.InitLogger(logFp, level)
 
-	c := args["<c>"].(string)
+	c := args["<command>"].(string)
 	cArgs := args["<args>"].([]string)
 	tools.Log.Debug().Msgf("global arguments: %v", args)
 	tools.Log.Debug().Msgf("c arguments: %v %v", c, cArgs)
@@ -94,10 +94,10 @@ See 'pruney <command> --help' for more information on a specific command.
 type cmdFunc func(*config.Entry, *cmd.Params) error
 
 var cmdFunctions = map[string]cmdFunc{
-	"auth":    auth.Cmd,
-	"capture": capture.Cmd,
-	"log":     log.Cmd,
-	"history": history.Cmd,
+	"auth":     auth.Cmd,
+	"termcast": capture.Cmd,
+	"log":      log.Cmd,
+	"history":  history.Cmd,
 }
 
 // RunCommand runs a specific command and the provided arguments
