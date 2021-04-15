@@ -11,10 +11,10 @@ import (
 )
 
 func Cmd(entry *config.Entry, params *cmd.Params) error {
-	usage := `The "capture" command provides capture/play commands terminal stdout as an asciicast
+	usage := `The "termcast" command provides capture/play commands terminal stdout as an asciicast
 
-usage: pruney capture record --title=<title> [--file=<filename>] 
-       pruney capture play (<id> | --file=<filename>)
+usage: pruney termcast record --title=<title> [--file=<filename>] 
+       pruney termcast play (<id> | --file=<filename>)
 
 Options:
   --file=<filename>    The name of the cast file.
@@ -24,10 +24,10 @@ Options:
 Examples:
    # Start a new a new ascii cast with title "foobar"
    # The cast would be saved as an event
-   $ pruney capture record --title "foobar"
+   $ pruney termcast record --title "foobar"
 
    # Play an event with id 25, (Assuming it it of type asciicast)
-   $ pruney capture play 25
+   $ pruney termcast play 25
 `
 	opts, err := docopt.ParseArgs(usage, params.Argv, params.Version)
 	if err != nil {

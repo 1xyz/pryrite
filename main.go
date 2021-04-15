@@ -26,7 +26,7 @@ func setupLogfile() *os.File {
 }
 
 func main() {
-	usage := `usage: pruney [--version] [--verbose] [--help] <c> [<args>...]
+	usage := `usage: pruney [--version] [--verbose] [--help] <command> [<args>...]
 options:
    -h, --help    Show this message.
    --verbose     Enable verbose logging (logfile: $HOME/.pruney/pruney.log).
@@ -36,9 +36,27 @@ The commands are:
    config        provides options to configure pruney.
    history       work with your local shell history.
    log           add & view snippets from the pruney service.
-   capture       record & play your terminal as asciicast snippets.
+   termcast      record/play an asciicast from your terminal.
 
-See 'pruney <c> --help' for more information on a specific c.
+See 'pruney <command> --help' for more information on a specific command.
+
+These are common pruney commands used in various situations:
+
+Configure and get started:
+   # Setup up pruney to talk to service 
+   $ pruney config add remote --service-url https://flaming-fishtoot.herokuapp.com/
+   
+   # Login into the user via the specified e-mail
+   $ pruney auth login alan@turing.me
+   
+Examine the snippet log:
+   # List the most recent snippets from the log.
+   pruney log
+
+   # Search the log for snippets involving cerbot
+   pruney log search cerbot
+
+See 'pruney <command> --help' for more information on a specific command.
 `
 	parser := &docopt.Parser{OptionsFirst: true}
 	args, err := parser.ParseArgs(usage, nil, version)
@@ -55,7 +73,7 @@ See 'pruney <c> --help' for more information on a specific c.
 	}
 	tools.InitLogger(logFp, level)
 
-	c := args["<c>"].(string)
+	c := args["<command>"].(string)
 	cArgs := args["<args>"].([]string)
 	tools.Log.Debug().Msgf("global arguments: %v", args)
 	tools.Log.Debug().Msgf("c arguments: %v %v", c, cArgs)
@@ -76,10 +94,10 @@ See 'pruney <c> --help' for more information on a specific c.
 type cmdFunc func(*config.Entry, *cmd.Params) error
 
 var cmdFunctions = map[string]cmdFunc{
-	"auth":    auth.Cmd,
-	"capture": capture.Cmd,
-	"log":     log.Cmd,
-	"history": history.Cmd,
+	"auth":     auth.Cmd,
+	"termcast": capture.Cmd,
+	"log":      log.Cmd,
+	"history":  history.Cmd,
 }
 
 // RunCommand runs a specific command and the provided arguments

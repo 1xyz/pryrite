@@ -77,7 +77,7 @@ Examples:
 				return err
 			}
 		}
-		evtRender := &eventRender{E: event, renderDetail: renderDetail}
+		evtRender := &nodeRender{Node: event, renderDetail: renderDetail}
 		evtRender.Render()
 	} else if tools.OptsBool(opts, "add") {
 		//fmt.Printf("Opts = %v\n", opts)
@@ -135,7 +135,7 @@ Examples:
 		if err != nil {
 			return err
 		}
-		evtRender := &nodesRender{G: nodes}
+		evtRender := &nodesRender{Nodes: nodes}
 		evtRender.Render()
 	} else {
 		n := tools.OptsInt(opts, "-n")
@@ -143,7 +143,7 @@ Examples:
 		if err != nil {
 			return err
 		}
-		evtRender := &nodesRender{G: nodes}
+		evtRender := &nodesRender{Nodes: nodes}
 		evtRender.Render()
 	}
 	return nil
