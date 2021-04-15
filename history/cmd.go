@@ -17,13 +17,13 @@ func Cmd(entry *config.Entry, params *cmd.Params) error {
 	usage := `The "history" command allows pruney to work with local shell command history
 
 usage: pruney history [-n=<count>]
-       pruney history log <index> -m=<message>
+       pruney history log <index> [-m=<message>]
        pruney history append (<command> | --stdin)
 
 Options:
   -c=<command>   Specify the command to be appended to the local history.
   -n=<count>     Limit the number of history shown. zero is unlimited [default: 25].
-  -m=<message>   Message to be added with a new event.
+  -m=<message>   Message to be added with a new event [default: ].
   --stdin        Read from the standard input.
   -h --help      Show this screen.
 
@@ -76,9 +76,11 @@ Examples(s):
 		if err != nil {
 			return err
 		}
-		if _, err := graph.AddCommandSnippet(entry, entry.ClientID, params.Agent, params.Version, item.Command, message); err != nil {
+		node, err := graph.AddCommandSnippet(entry, entry.ClientID, params.Agent, params.Version, item.Command, message)
+		if err != nil {
 			return err
 		}
+		fmt.Printf("logged a new snippet with id=%v\n", node.ID)
 	} else {
 		limit := tools.OptsInt(opts, "-n")
 		h, err := New()

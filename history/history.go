@@ -15,13 +15,13 @@ type Item struct {
 }
 
 type History interface {
-	// Retrieve all the items from history
+	// GetAll retrieves all the items from history
 	GetAll() ([]Item, error)
 
 	// Append an item to the history
 	Append(*Item) error
 
-	// Return the history item by index (zero based index)
+	// GetByIndex returns the history item by index (zero based index)
 	GetByIndex(index int) (*Item, error)
 }
 

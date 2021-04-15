@@ -27,9 +27,6 @@ func AddSnippet(entry *config.Entry, kind Kind, sessionID, agent, version, conte
 	if len(content) == 0 {
 		return nil, fmt.Errorf("content cannot be empty")
 	}
-	if len(description) == 0 {
-		description = tools.TrimLength(content, maxSummaryLen)
-	}
 	event, err := NewNode(kind, description, &TextDetails{Text: content}, NewMetadata(sessionID, agent, version))
 	if err != nil {
 		return nil, err
