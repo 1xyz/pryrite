@@ -15,15 +15,46 @@ type nodesRender struct {
 }
 
 const (
-	maxColumnLen = 40
+	// min. column length
+	minSummaryColLen = 10
+	// max column length for the summary column
+	maxSummaryColLen = 80
+	// total pad length. one column on either side
+	padLen = 2
+	// sample date column length w/ padding length
+	dateColLen = len("Apr 15 10:59AM") + padLen
+	// sample Kind col. len w/ padding length
+	kindColLen = len(graph.ClipboardCopy) + padLen
+	// id column length - a rough estimate
+	idColLen = 4 + padLen
 )
 
+// getSummaryColLen basically returns a value between [minSummaryColLen, maxSummaryColLen]
+func (nr *nodesRender) getSummaryColLen() int {
+	_, maxCols, err := tools.GetTermWindowSize()
+	if err != nil {
+		log.Err(err).Msg("tools.GetTermWindowSize()")
+		return minSummaryColLen
+	}
+	// allowedLen is the maximum columns allowed
+	allowedLen := maxCols - (dateColLen + kindColLen + padLen + idColLen + 6) // add 5 for column bars
+	if allowedLen < minSummaryColLen {
+		// this would make things unreadable, but we can revisit this
+		return minSummaryColLen
+	}
+	if allowedLen > maxSummaryColLen {
+		return maxSummaryColLen
+	}
+	return allowedLen
+}
+
 func (nr *nodesRender) Render() {
+	colLen := nr.getSummaryColLen()
 	t := table.NewWriter()
 	t.SetStyle(table.StyleBold)
 	t.SetOutputMirror(os.Stdout)
 	for _, e := range nr.G {
-		summary, err := getSummary(&e, maxColumnLen)
+		summary, err := getSummary(&e, colLen)
 		if err != nil {
 			log.Err(err).Msgf("getSummary = %v", err)
 		}
@@ -32,6 +63,7 @@ func (nr *nodesRender) Render() {
 			tools.FmtTime(e.OccurredAt),
 			summary,
 			e.Kind})
+		t.AppendRow(table.Row{})
 	}
 	t.AppendHeader(table.Row{"Id", "Date", "Summary", "Type"})
 	t.AppendSeparator()
@@ -50,7 +82,7 @@ func (er *eventRender) Render() {
 	t.AppendRow(table.Row{"Id", er.E.ID})
 	t.AppendRow(table.Row{"Kind", er.E.Kind})
 	t.AppendSeparator()
-	summary, err := getSummary(er.E, maxColumnLen)
+	summary, err := getSummary(er.E, maxSummaryColLen)
 	if err != nil {
 		log.Err(err).Msgf("getSummary")
 	}
