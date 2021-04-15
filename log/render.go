@@ -91,22 +91,28 @@ func (nr *nodeRender) Render() {
 		{"Date", tools.FmtTime(nr.Node.OccurredAt)},
 		{"Agent", nr.Node.Metadata.Agent},
 		{"Summary", summary},
+		{"CreatedBy", nr.Node.User.Username},
 	})
 	t.AppendSeparator()
 	t.Render()
 
 	if nr.renderDetail {
+		if len(nr.Node.Description) > 0 {
+			fmt.Println(nr.Node.Description)
+		}
 		d, err := nr.Node.DecodeDetails()
 		if err != nil {
 			fmt.Println(err.Error())
-		} else {
-			switch nr.Node.Kind {
-			case graph.PageOpen, graph.PageClose:
-				fmt.Println(d.GetTitle())
-				fmt.Println(d.GetUrl())
-			default:
-				fmt.Println(d.GetBody())
-			}
+			return
+		}
+		if len(d.GetTitle()) > 0 {
+			fmt.Printf("Title: %v\n", d.GetTitle())
+		}
+		if len(d.GetUrl()) > 0 {
+			fmt.Printf("URL: %s\n", d.GetUrl())
+		}
+		if len(d.GetBody()) > 0 {
+			fmt.Println(d.GetBody())
 		}
 	}
 }
