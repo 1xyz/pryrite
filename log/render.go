@@ -11,7 +11,7 @@ import (
 )
 
 type nodesRender struct {
-	G []graph.Node
+	Nodes []graph.Node
 }
 
 const (
@@ -30,7 +30,7 @@ const (
 )
 
 // getSummaryColLen basically returns a value between [minSummaryColLen, maxSummaryColLen]
-func (nr *nodesRender) getSummaryColLen() int {
+func getSummaryColLen() int {
 	_, maxCols, err := tools.GetTermWindowSize()
 	if err != nil {
 		log.Err(err).Msg("tools.GetTermWindowSize()")
@@ -49,11 +49,11 @@ func (nr *nodesRender) getSummaryColLen() int {
 }
 
 func (nr *nodesRender) Render() {
-	colLen := nr.getSummaryColLen()
+	colLen := getSummaryColLen()
 	t := table.NewWriter()
 	t.SetStyle(table.StyleBold)
 	t.SetOutputMirror(os.Stdout)
-	for _, e := range nr.G {
+	for _, e := range nr.Nodes {
 		summary, err := getSummary(&e, colLen)
 		if err != nil {
 			log.Err(err).Msgf("getSummary = %v", err)
@@ -70,38 +70,43 @@ func (nr *nodesRender) Render() {
 	t.Render()
 }
 
-type eventRender struct {
-	E            *graph.Node
+type nodeRender struct {
+	Node         *graph.Node
 	renderDetail bool
 }
 
-func (er *eventRender) Render() {
+func (nr *nodeRender) Render() {
 	t := table.NewWriter()
 	t.SetStyle(table.StyleBold)
 	t.SetOutputMirror(os.Stdout)
-	t.AppendRow(table.Row{"Id", er.E.ID})
-	t.AppendRow(table.Row{"Kind", er.E.Kind})
+	t.AppendRow(table.Row{"Id", nr.Node.ID})
+	t.AppendRow(table.Row{"Kind", nr.Node.Kind})
 	t.AppendSeparator()
-	summary, err := getSummary(er.E, maxSummaryColLen)
+	summary, err := getSummary(nr.Node, getSummaryColLen())
 	if err != nil {
 		log.Err(err).Msgf("getSummary")
 	}
 	t.AppendRows([]table.Row{
-		{"SessionID", er.E.Metadata.SessionID},
-		{"Date", tools.FmtTime(er.E.OccurredAt)},
-		{"CreatedOn", tools.FmtTime(er.E.CreatedAt)},
-		{"Agent", er.E.Metadata.Agent},
+		{"SessionID", nr.Node.Metadata.SessionID},
+		{"Date", tools.FmtTime(nr.Node.OccurredAt)},
+		{"Agent", nr.Node.Metadata.Agent},
 		{"Summary", summary},
 	})
 	t.AppendSeparator()
 	t.Render()
 
-	if er.renderDetail {
-		d, err := er.E.DecodeDetails()
+	if nr.renderDetail {
+		d, err := nr.Node.DecodeDetails()
 		if err != nil {
 			fmt.Println(err.Error())
 		} else {
-			fmt.Println(d.GetBody())
+			switch nr.Node.Kind {
+			case graph.PageOpen, graph.PageClose:
+				fmt.Println(d.GetTitle())
+				fmt.Println(d.GetUrl())
+			default:
+				fmt.Println(d.GetBody())
+			}
 		}
 	}
 }

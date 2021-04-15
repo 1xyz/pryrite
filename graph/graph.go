@@ -33,6 +33,17 @@ func (t *TextDetails) GetUrl() string              { return t.Url }
 func (t *TextDetails) GetBody() string             { return t.Text }
 func (t *TextDetails) EncodeJSON() ([]byte, error) { return json.Marshal(t) }
 
+type XmlDetails struct {
+	Title     string `json:"title,omitempty"`
+	Url       string `json:"url,omitempty"`
+	XMLString string `json:"xmlString,omitempty"`
+}
+
+func (t *XmlDetails) GetTitle() string            { return t.Title }
+func (t *XmlDetails) GetUrl() string              { return t.Url }
+func (t *XmlDetails) GetBody() string             { return t.XMLString }
+func (t *XmlDetails) EncodeJSON() ([]byte, error) { return json.Marshal(t) }
+
 type Metadata struct {
 	SessionID string `json:"SessionID"`
 	Agent     string `json:"Agent"`
@@ -98,6 +109,12 @@ func (e *Node) DecodeDetails() (Details, error) {
 	switch e.Kind {
 	case Command, AsciiCast, PageClose, PageOpen, TextSelect:
 		raw := TextDetails{}
+		if err := json.Unmarshal(e.Details, &raw); err != nil {
+			return nil, err
+		}
+		return &raw, nil
+	case ClipboardCopy:
+		raw := XmlDetails{}
 		if err := json.Unmarshal(e.Details, &raw); err != nil {
 			return nil, err
 		}
