@@ -129,11 +129,8 @@ Examples:
 		}
 		fmt.Printf("logged command with snippet id = %v\n", node.ID)
 	} else if tools.OptsBool(opts, "search") {
-		fmt.Printf("Opts = %v \n", opts)
 		queryRaw := tools.OptsStrSlice(opts, "<query>")
 		query := strings.Join(queryRaw, " ")
-		fmt.Printf("query = %v\n", query)
-
 		nodes, err := store.SearchNodes(query)
 		if err != nil {
 			return err
