@@ -15,7 +15,7 @@ func clipTo(d graph.Details) error {
 	} else {
 		text = d.GetTitle()
 	}
-	if len(text) > 0 {
+	if len(text) == 0 {
 		return fmt.Errorf("no body/title/url to copy")
 	}
 	return clipboard.WriteAll(text)

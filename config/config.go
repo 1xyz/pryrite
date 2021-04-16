@@ -12,6 +12,10 @@ var (
 	defaultConfigFile = os.ExpandEnv("$HOME/.pruney/pruney.yaml")
 )
 
+const (
+	defaultServiceURL = "https://flaming-fishtoot.herokuapp.com/"
+)
+
 type Entry struct {
 	Name       string `yaml:"name"`
 	ServiceUrl string `yaml:"service_url"`
@@ -163,6 +167,20 @@ func SetEntry(e *Entry) error {
 		return err
 	}
 	if err := cfg.Set(e); err != nil {
+		return err
+	}
+	return cfg.SaveFile(defaultConfigFile)
+}
+
+func CreateDefaultConfigIfEmpty() error {
+	cfg, err := Default()
+	if err != nil {
+		return err
+	}
+	if len(cfg.Entries) > 0 {
+		return nil
+	}
+	if err := cfg.Add("remote", defaultServiceURL); err != nil {
 		return err
 	}
 	return cfg.SaveFile(defaultConfigFile)
