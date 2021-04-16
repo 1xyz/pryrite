@@ -115,6 +115,10 @@ func RunCommand(params *cmd.Params) int {
 			return cmd.LogErr(params.Command, err)
 		}
 	} else {
+		// Try creating a default config, if not found
+		if err := config.CreateDefaultConfigIfEmpty(); err != nil {
+			return cmd.LogErr(params.Command, err)
+		}
 		fn, found := cmdFunctions[params.Command]
 		if !found {
 			fmt.Printf("command %s not found!\n", params.Command)
