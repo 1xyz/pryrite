@@ -26,7 +26,7 @@ jobs:
       env:
         RELEASE_TAG: ${{ steps.get_tag_name.outputs.VERSION }}
         GITHUB_USER: ${{ secrets.GH_USER }}
-        GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+        GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
       run: |
         gh --version
         gh -R aardlabs/terminal-poc release download ${RELEASE_TAG} -p *darwin*
