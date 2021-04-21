@@ -24,13 +24,13 @@ jobs:
           run: make release/linux
         
         - name: Zip linux build
-          run: zip -j pruney-linux-amd64.zip README.md bin/linux/*
+          run: zip -j aard-linux-amd64.zip README.md bin/linux/*
 
         - name: Build x64 darwin release
           run: make release/darwin
         
         - name: Zip darwin build
-          run: zip -j pruney-darwin-amd64.zip README.md bin/darwin/*
+          run: zip -j aard-darwin-amd64.zip README.md bin/darwin/*
 
         - name: Get tag name
           id: get_tag_name
@@ -56,8 +56,8 @@ jobs:
             GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           with:
             upload_url: ${{ steps.create_release.outputs.upload_url }}
-            asset_path: ./pruney-linux-amd64.zip
-            asset_name: pruney-linux-amd64-${{ steps.get_tag_name.outputs.VERSION }}.zip
+            asset_path: ./aard-linux-amd64.zip
+            asset_name: aard-linux-amd64-${{ steps.get_tag_name.outputs.VERSION }}.zip
             asset_content_type: application/zip
 
         - name: Upload darwin Release Asset
@@ -68,6 +68,6 @@ jobs:
             GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           with:
             upload_url: ${{ steps.create_release.outputs.upload_url }}
-            asset_path: ./pruney-darwin-amd64.zip
-            asset_name: pruney-darwin-amd64-${{ steps.get_tag_name.outputs.VERSION }}.zip
+            asset_path: ./aard-darwin-amd64.zip
+            asset_name: aard-darwin-amd64-${{ steps.get_tag_name.outputs.VERSION }}.zip
             asset_content_type: application/zip

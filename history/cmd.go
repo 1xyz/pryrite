@@ -14,11 +14,11 @@ import (
 )
 
 func Cmd(entry *config.Entry, params *cmd.Params) error {
-	usage := `The "history" command allows pruney to work with local shell command history
+	usage := `The "history" command allows one to work with local shell command history
 
-usage: pruney history [-n=<count>]
-       pruney history log <index> [-m=<message>]
-       pruney history append (<command> | --stdin)
+usage: aard history [-n=<count>]
+       aard history log <index> [-m=<message>]
+       aard history append (<command> | --stdin)
 
 Options:
   -c=<command>   Specify the command to be appended to the local history.
@@ -29,7 +29,7 @@ Options:
 
 Examples(s):
   # Show the last three entries from the local history.
-  $ pruney history -n 3
+  $ aard history -n 3
   ┏━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━┓
   ┃ INDEX ┃ DATE           ┃ COMMAND ┃
   ┃    90 ┃ Apr  1 2:11PM  ┃ ls -l   ┃
@@ -38,11 +38,11 @@ Examples(s):
   ┗━━━━━━━┻━━━━━━━━━━━━━━━━┻━━━━━━━━━┛
   # Note: the above result show last three history entries   
 
-  # Log a specific history entry, by index to the pruney remote log.
-  $ pruney history log 102 -m "list longform with hidden attrs"
+  # Log a specific history entry, by index to the aard remote log.
+  $ aard history log 102 -m "list longform with hidden attrs"
  
   # Append to the local history. Note: Intended to be call by shell hooks. 
-  $ pruney history append "ls -l " 
+  $ aard history append "ls -l " 
 `
 	opts, err := docopt.ParseArgs(usage, params.Argv, params.Version)
 	if err != nil {

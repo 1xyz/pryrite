@@ -8,12 +8,12 @@ import (
 )
 
 func Cmd(params *cmd.Params) error {
-	usage := `The "config" command provides options to configure pruney 
+	usage := `The "config" command provides options to configure aard 
 
-usage: pruney config add <name> --service-url=<url>
-       pruney config list
-       pruney config remove <name>
-       pruney config set-default <name>
+usage: aard config add <name> --service-url=<url>
+       aard config list
+       aard config remove <name>
+       aard config set-default <name>
 
 Options:
   --service-url=<url>  Service URL endpoint.
@@ -21,16 +21,16 @@ Options:
 
 Examples:
   Add a new configuration with the name "foobar" and service url: https://foobar.aardvarklabs.com:9443
-  $ pruney config add foobar --service-url=https://foobar.aardvarklabs.com:9443
+  $ aard config add foobar --service-url=https://foobar.aardvarklabs.com:9443
 
   List all configurations for this client
-  $ pruney config list
+  $ aard config list
 
   Remove an existing configuration with name "foobar"
-  $ pruney config remove foobar
+  $ aard config remove foobar
 
   Set the default configuration to "foobar"
-  $ pruney config set-default foobar
+  $ aard config set-default foobar
 `
 	opts, err := docopt.ParseArgs(usage, params.Argv, params.Version)
 	if err != nil {

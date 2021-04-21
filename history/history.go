@@ -80,7 +80,7 @@ func (h *localHistory) GetByIndex(index int) (*Item, error) {
 }
 
 var (
-	historyLogFile = os.ExpandEnv("$HOME/.pruney/history.json")
+	historyLogFile = os.ExpandEnv("$HOME/.aardvark/history.json")
 )
 
 func New() (History, error) {
