@@ -16,14 +16,14 @@ var (
 func Cmd(entry *config.Entry, params *cmd.Params) error {
 	usage := `The "auth" command provides options to authenticate with the remote service
 
-usage: pruney auth login <email>
+usage: aard auth login <email>
 
 Options:
    -h --help            Show this screen.
 
 Examples:
    # Login into the user via the specified e-mail
-   $ pruney auth login alan@turing.me
+   $ aard auth login alan@turing.me
 `
 	opts, err := docopt.ParseArgs(usage, params.Argv, params.Version)
 	if err != nil {

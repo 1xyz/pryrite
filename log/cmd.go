@@ -13,14 +13,14 @@ import (
 )
 
 func Cmd(entry *config.Entry, params *cmd.Params) error {
-	usage := `The "log" command allows you to work with snippet content from the remote pruney service
+	usage := `The "log" command allows you to work with snippet content from the remote  service
 
-usage: pruney log [-n=<count>]
-       pruney log add [-m message] (<content>|--file=<filename>|--stdin)
-       pruney log pbcopy <id>
-       pruney log pbpaste [-m message]
-       pruney log search <query>...
-       pruney log show <id> [--file=<filename>]
+usage: aard log [-n=<count>]
+       aard log add [-m message] (<content>|--file=<filename>|--stdin)
+       aard log pbcopy <id>
+       aard log pbpaste [-m message]
+       aard log search <query>...
+       aard log show <id> [--file=<filename>]
 
 Options:
   -m=<message>       Message to be added when creating a new snippet [default: ].
@@ -30,31 +30,31 @@ Options:
 
 Examples:
   List the most recent 5 snippets from the log.
-  $ pruney log -n 5
+  $ aard log -n 5
 
   Log a snippet with content and message.
-  $ pruney log add  -m "certbot manual nginx plugin" "certbot run -a manual -i nginx -d example.com"
+  $ aard log add  -m "certbot manual nginx plugin" "certbot run -a manual -i nginx -d example.com"
 
   Log a new snippet from the specified file.
-  $ pruney log add -m "main gist file" --file main.go
+  $ aard log add -m "main gist file" --file main.go
 
   Log a new snippet from stdin. In this example pipe the content of /tmp/example.log.
-  $ cat /tmp/example.log | pruney log add -m "Example log snippet" --stdin
+  $ cat /tmp/example.log | aard log add -m "Example log snippet" --stdin
 
   Copy the content of snippet with id 25 to your local clipboard.
-  $ pruney log pbcopy 25
+  $ aard log pbcopy 25
 
   Log the content of the clipboard as a new snippet.
-  $ pruney log pbpaste
+  $ aard log pbpaste
 
   Search for snippets that match the provided query.
-  $ pruney log search cerbot 
+  $ aard log search cerbot 
 
   Show a specific snippet logged with id 25 in detail.
-  $ pruney log show 25
+  $ aard log show 25
 
   Show a specific snippet with id 25 and write the snippet content to a file
-  $ pruney log show 25 --file=/tmp/event-25.txt
+  $ aard log show 25 --file=/tmp/event-25.txt
 `
 	opts, err := docopt.ParseArgs(usage, params.Argv, params.Version)
 	if err != nil {

@@ -32,4 +32,4 @@ jobs:
         gh -R aardlabs/terminal-poc release download ${RELEASE_TAG} -p *darwin*
         stat *darwin*
         echo "Release: ${RELEASE_TAG}" > changelog.md
-        gh -R aardlabs/homebrew-cli release create ${RELEASE_TAG} pruney-darwin-amd64*.zip -F changelog.md
+        gh -R aardlabs/homebrew-cli release create ${RELEASE_TAG} aard-darwin-amd64*.zip -F changelog.md

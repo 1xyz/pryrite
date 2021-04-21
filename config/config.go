@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	defaultConfigFile = os.ExpandEnv("$HOME/.pruney/pruney.yaml")
+	defaultConfigFile = os.ExpandEnv("$HOME/.aardvark/aard.yaml")
 )
 
 const (
@@ -150,7 +150,7 @@ func GetEntry(name string) (*Entry, error) {
 	if name == "" {
 		name = cfg.DefaultEntry
 		if name == "" {
-			return nil, fmt.Errorf("there is no default configuration. See pruney config --help to set a default configuration")
+			return nil, fmt.Errorf("there is no default configuration. See aard config --help to set a default configuration")
 		}
 	}
 

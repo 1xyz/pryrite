@@ -16,7 +16,7 @@ import (
 
 func setupLogfile() *os.File {
 	var fp *os.File
-	logFile := os.ExpandEnv("$HOME/.pruney/pruney.log")
+	logFile := os.ExpandEnv("$HOME/.aardvark/aard.log")
 	fp, err := tools.OpenFile(logFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND)
 	if err != nil {
 		tools.Log.Fatal().Err(err).Msgf("setupLogFile")
@@ -26,37 +26,37 @@ func setupLogfile() *os.File {
 }
 
 func main() {
-	usage := `usage: pruney [--version] [--verbose] [--help] <command> [<args>...]
+	usage := `usage: aard [--version] [--verbose] [--help] <command> [<args>...]
 options:
    -h, --help    Show this message.
-   --verbose     Enable verbose logging (logfile: $HOME/.pruney/pruney.log).
+   --verbose     Enable verbose logging (logfile: $HOME/.aard/aard.log).
 
 The commands are:
    auth          authenticate with the remote service.
-   config        provides options to configure pruney.
+   config        provides options to configure aard.
    history       work with your local shell history.
-   log           add & view snippets from the pruney service.
+   log           add & view snippets from the aard service.
    termcast      record/play an asciicast from your terminal.
 
-See 'pruney <command> --help' for more information on a specific command.
+See 'aard <command> --help' for more information on a specific command.
 
-These are common pruney commands used in various situations:
+These are common aard commands used in various situations:
 
 Configure and get started:
-   # Setup up pruney to talk to service 
-   $ pruney config add remote --service-url https://flaming-fishtoot.herokuapp.com/
+   # Setup up aard to talk to service 
+   $ aard config add remote --service-url https://flaming-fishtoot.herokuapp.com/
    
    # Login into the user via the specified e-mail
-   $ pruney auth login alan@turing.me
+   $ aard auth login alan@turing.me
    
 Examine the snippet log:
    # List the most recent snippets from the log.
-   pruney log
+   aard log
 
    # Search the log for snippets involving cerbot
-   pruney log search cerbot
+   aard log search cerbot
 
-See 'pruney <command> --help' for more information on a specific command.
+See 'aard <command> --help' for more information on a specific command.
 `
 	parser := &docopt.Parser{OptionsFirst: true}
 	args, err := parser.ParseArgs(usage, nil, version)

@@ -1,7 +1,7 @@
 GO=go
 GOFMT=gofmt
 DELETE=rm
-BINARY=pruney
+BINARY=aard
 BIN_DIR=bin
 BUILD_BINARY=$(BIN_DIR)/$(BINARY)
 # go source files, ignore vendor directory
