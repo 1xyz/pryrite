@@ -68,3 +68,15 @@ jobs:
             asset_path: ./pruney-darwin-amd64.zip
             asset_name: pruney-darwin-amd64-${{ steps.get_tag_name.outputs.VERSION }}.zip
             asset_content_type: application/zip
+
+        - name: Use gh to release to homebrew-cli repo
+          if: github.event.release.prerelease != true
+          env:
+            RELEASE_TAG: ${{ steps.get_tag_name.outputs.VERSION }}
+            GITHUB_USER: ${{ secrets.GH_USER }}
+            GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          run: |
+            gh --version
+            stat *darwin*
+            echo "Release: $RELEASE_TAG" > changelog.md
+            gh -R aardlabs/homebrew-cli release create ${RELEASE_TAG} pruney-darwin-amd64*.zip -F changelog.md
