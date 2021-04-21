@@ -1,0 +1,35 @@
+name: brew release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  homebrew-release:
+    runs-on: macOS-latest
+    steps:
+    - name: Checks if pre-release
+      if: github.event.release.prerelease == true
+      run: |
+        echo This is running against a pre-release.
+        echo Skipping all the next steps.
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
+
+    - name: Get tag name
+      id: get_tag_name
+      run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+
+    - name: Use gh to release to homebrew-cli repo
+      if: github.event.release.prerelease != true
+      env:
+        RELEASE_TAG: ${{ steps.get_tag_name.outputs.VERSION }}
+        GITHUB_USER: ${{ secrets.GH_USER }}
+        GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+      run: |
+        gh --version
+        gh -R aardlabs/terminal-poc release download ${RELEASE_TAG} -p *darwin*
+        stat *darwin*
+        echo "Release: ${RELEASE_TAG}" > changelog.md
+        gh -R aardlabs/homebrew-cli release create ${RELEASE_TAG} pruney-darwin-amd64*.zip -F changelog.md

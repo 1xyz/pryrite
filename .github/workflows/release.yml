@@ -40,7 +40,8 @@ jobs:
           id: create_release
           uses: actions/create-release@v1
           env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            GITHUB_USER: ${{ secrets.GH_USER }}
+            GITHUB_TOKEN: ${{ secrets.GH_PAT }}
           with:
             tag_name: ${{ github.ref }}
             release_name: Release ${{ github.ref }}
@@ -51,7 +52,8 @@ jobs:
           id: upload-release-asset-linux
           uses: actions/upload-release-asset@v1
           env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            GITHUB_USER: ${{ secrets.GH_USER }}
+            GITHUB_TOKEN: ${{ secrets.GH_PAT }}
           with:
             upload_url: ${{ steps.create_release.outputs.upload_url }}
             asset_path: ./pruney-linux-amd64.zip
@@ -62,21 +64,10 @@ jobs:
           id: upload-release-asset-darwin
           uses: actions/upload-release-asset@v1
           env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            GITHUB_USER: ${{ secrets.GH_USER }}
+            GITHUB_TOKEN: ${{ secrets.GH_PAT }}
           with:
             upload_url: ${{ steps.create_release.outputs.upload_url }}
             asset_path: ./pruney-darwin-amd64.zip
             asset_name: pruney-darwin-amd64-${{ steps.get_tag_name.outputs.VERSION }}.zip
             asset_content_type: application/zip
-
-        - name: Use gh to release to homebrew-cli repo
-          if: github.event.release.prerelease != true
-          env:
-            RELEASE_TAG: ${{ steps.get_tag_name.outputs.VERSION }}
-            GITHUB_USER: ${{ secrets.GH_USER }}
-            GITHUB_TOKEN: ${{ secrets.GH_PAT }}
-          run: |
-            gh --version
-            stat *darwin*
-            echo "Release: $RELEASE_TAG" > changelog.md
-            gh -R aardlabs/homebrew-cli release create ${RELEASE_TAG} pruney-darwin-amd64*.zip -F changelog.md
