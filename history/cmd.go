@@ -103,7 +103,12 @@ Examples(s):
 func appendHistory(cmd string) error {
 	cmd = strings.TrimSpace(cmd)
 	if len(cmd) == 0 {
-		return fmt.Errorf("empty command provided")
+		// ignore this. zsh sends an empty string
+		return nil
+	}
+	if cmd == "aard history" {
+		// skip inserting the history command
+		return nil
 	}
 	h, err := New()
 	if err != nil {
