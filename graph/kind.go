@@ -10,4 +10,5 @@ const (
 	PageClose          = "PageClose"
 	TextSelect         = "TextSelect"
 	ClipboardCopy      = "ClipboardCopy"
+	Text               = "Text"
 )

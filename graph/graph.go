@@ -107,7 +107,7 @@ func (e *Node) EncodeDetails(d Details) error {
 
 func (e *Node) DecodeDetails() (Details, error) {
 	switch e.Kind {
-	case Command, AsciiCast, PageClose, PageOpen, TextSelect:
+	case Command, AsciiCast, PageClose, PageOpen, TextSelect, Text:
 		raw := TextDetails{}
 		if err := json.Unmarshal(e.Details, &raw); err != nil {
 			return nil, err
