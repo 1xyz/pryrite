@@ -10,20 +10,8 @@ import (
 	"github.com/aardlabs/terminal-poc/log"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/docopt/docopt-go"
-	"github.com/rs/zerolog"
 	"os"
 )
-
-func setupLogfile() *os.File {
-	var fp *os.File
-	logFile := os.ExpandEnv("$HOME/.aardvark/aard.log")
-	fp, err := tools.OpenFile(logFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND)
-	if err != nil {
-		tools.Log.Fatal().Err(err).Msgf("setupLogFile")
-	}
-
-	return fp
-}
 
 func main() {
 	usage := `usage: aard [--version] [--verbose] [--help] <command> [<args>...]
@@ -61,17 +49,18 @@ See 'aard <command> --help' for more information on a specific command.
 	parser := &docopt.Parser{OptionsFirst: true}
 	args, err := parser.ParseArgs(usage, nil, version)
 	if err != nil {
-		tools.Log.Fatal().Err(err).Msgf("parser.ParseArgs")
+		fmt.Printf("parse error = %v", err)
 	}
 
-	// setup logging
-	logFp := setupLogfile()
-	defer tools.CloseFile(logFp)
-	level := zerolog.InfoLevel
-	if tools.OptsBool(args, "--verbose") {
-		level = zerolog.DebugLevel
+	wr, err := tools.OpenLogger(tools.OptsBool(args, "--verbose"))
+	if err != nil {
+		tools.Log.Fatal().Err(err).Msgf("tools.OpenLogger")
 	}
-	tools.InitLogger(logFp, level)
+	defer func() {
+		if err := wr.Close(); err != nil {
+			fmt.Printf("wr.close %v", err)
+		}
+	}()
 
 	c := args["<command>"].(string)
 	cArgs := args["<args>"].([]string)
