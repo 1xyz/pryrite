@@ -9,11 +9,11 @@ import (
 )
 
 var (
-	defaultConfigFile = os.ExpandEnv("$HOME/.aardvark/aard.yaml")
+	DefaultConfigFile = os.ExpandEnv("$HOME/.aardvark/aard.yaml")
 )
 
 const (
-	defaultServiceURL = "https://flaming-fishtoot.herokuapp.com/"
+	DefaultServiceURL = "https://flaming-fishtoot.herokuapp.com/"
 )
 
 type Entry struct {
@@ -138,7 +138,7 @@ func fileSize(fp *os.File) (int64, error) {
 }
 
 func Default() (*Config, error) {
-	return New(defaultConfigFile)
+	return New(DefaultConfigFile)
 }
 
 func GetEntry(name string) (*Entry, error) {
@@ -150,7 +150,7 @@ func GetEntry(name string) (*Entry, error) {
 	if name == "" {
 		name = cfg.DefaultEntry
 		if name == "" {
-			return nil, fmt.Errorf("there is no default configuration. See aard config --help to set a default configuration")
+			return nil, fmt.Errorf("there is no default configuration. See aard Config --help to set a default configuration")
 		}
 	}
 
@@ -169,7 +169,7 @@ func SetEntry(e *Entry) error {
 	if err := cfg.Set(e); err != nil {
 		return err
 	}
-	return cfg.SaveFile(defaultConfigFile)
+	return cfg.SaveFile(DefaultConfigFile)
 }
 
 func CreateDefaultConfigIfEmpty() error {
@@ -180,8 +180,8 @@ func CreateDefaultConfigIfEmpty() error {
 	if len(cfg.Entries) > 0 {
 		return nil
 	}
-	if err := cfg.Add("remote", defaultServiceURL); err != nil {
+	if err := cfg.Add("remote", DefaultServiceURL); err != nil {
 		return err
 	}
-	return cfg.SaveFile(defaultConfigFile)
+	return cfg.SaveFile(DefaultConfigFile)
 }

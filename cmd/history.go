@@ -1,10 +1,10 @@
-package history
+package cmd
 
 import (
 	"fmt"
-	"github.com/aardlabs/terminal-poc/cmd"
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/graph"
+	"github.com/aardlabs/terminal-poc/history"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/docopt/docopt-go"
 	"io/ioutil"
@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-func Cmd(entry *config.Entry, params *cmd.Params) error {
+func HistoryCmd(entry *config.Entry, params *Params) error {
 	usage := `The "history" command allows one to work with local shell command history
 
 usage: aard history [-n=<count>]
@@ -68,7 +68,7 @@ Examples(s):
 		}
 		index := tools.OptsInt(opts, "<index>")
 		message := tools.OptsStr(opts, "-m")
-		h, err := New()
+		h, err := history.New()
 		if err != nil {
 			return err
 		}
@@ -83,7 +83,7 @@ Examples(s):
 		fmt.Printf("logged a new snippet with id=%v\n", node.ID)
 	} else {
 		limit := tools.OptsInt(opts, "-n")
-		h, err := New()
+		h, err := history.New()
 		if err != nil {
 			return err
 		}
@@ -91,7 +91,7 @@ Examples(s):
 		if err != nil {
 			return err
 		}
-		hr := &historyRender{
+		hr := &history.HistoryRender{
 			H:     items,
 			Limit: limit,
 		}
@@ -110,11 +110,11 @@ func appendHistory(cmd string) error {
 		// skip inserting the history command
 		return nil
 	}
-	h, err := New()
+	h, err := history.New()
 	if err != nil {
 		return err
 	}
-	item := &Item{
+	item := &history.Item{
 		CreatedAt: time.Now().UTC(),
 		Command:   cmd,
 	}

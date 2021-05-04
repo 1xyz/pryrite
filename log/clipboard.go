@@ -6,7 +6,7 @@ import (
 	"github.com/atotto/clipboard"
 )
 
-func clipTo(d graph.Details) error {
+func ClipTo(d graph.Details) error {
 	text := ""
 	if body := d.GetBody(); len(body) > 0 {
 		text = body
@@ -21,6 +21,6 @@ func clipTo(d graph.Details) error {
 	return clipboard.WriteAll(text)
 }
 
-func getClip() (string, error) {
+func GetClip() (string, error) {
 	return clipboard.ReadAll()
 }

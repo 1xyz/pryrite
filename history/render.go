@@ -6,12 +6,12 @@ import (
 	"os"
 )
 
-type historyRender struct {
+type HistoryRender struct {
 	H     []Item
 	Limit int
 }
 
-func (hr *historyRender) Render() {
+func (hr *HistoryRender) Render() {
 	t := table.NewWriter()
 	t.SetStyle(table.StyleBold)
 	t.SetOutputMirror(os.Stdout)

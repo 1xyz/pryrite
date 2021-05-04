@@ -1,8 +1,8 @@
-package capture
+package cmd
 
 import (
 	"fmt"
-	"github.com/aardlabs/terminal-poc/cmd"
+	"github.com/aardlabs/terminal-poc/capture"
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/tools"
@@ -10,7 +10,7 @@ import (
 	"os"
 )
 
-func Cmd(entry *config.Entry, params *cmd.Params) error {
+func CaptureCmd(entry *config.Entry, params *Params) error {
 	usage := `The "termcast" command provides capture/play commands terminal stdout as an asciicast
 
 usage: aard termcast record --title=<title> [--file=<filename>] 
@@ -52,7 +52,7 @@ Examples:
 			return fmt.Errorf("unknown shell")
 		}
 		fmt.Printf("Type exit to end the cast")
-		if err := Capture(title, filename, shell); err != nil {
+		if err := capture.Capture(title, filename, shell); err != nil {
 			return err
 		}
 		if _, err := graph.AddSnippetFromFile(entry, graph.AsciiCast, entry.ClientID, params.Agent, params.Version, filename, title); err != nil {
@@ -83,7 +83,7 @@ Examples:
 			}
 		}
 
-		if err := Play(filename); err != nil {
+		if err := capture.Play(filename); err != nil {
 			return err
 		}
 		fmt.Printf("Done!\n")

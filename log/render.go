@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-type nodesRender struct {
+type NodesRender struct {
 	Nodes []graph.Node
 }
 
@@ -48,7 +48,7 @@ func getSummaryColLen() int {
 	return allowedLen
 }
 
-func (nr *nodesRender) Render() {
+func (nr *NodesRender) Render() {
 	colLen := getSummaryColLen()
 	t := table.NewWriter()
 	t.SetStyle(table.StyleBold)
@@ -70,12 +70,12 @@ func (nr *nodesRender) Render() {
 	t.Render()
 }
 
-type nodeRender struct {
+type NodeRender struct {
 	Node         *graph.Node
-	renderDetail bool
+	RenderDetail bool
 }
 
-func (nr *nodeRender) Render() {
+func (nr *NodeRender) Render() {
 	t := table.NewWriter()
 	t.SetStyle(table.StyleBold)
 	t.SetOutputMirror(os.Stdout)
@@ -96,7 +96,7 @@ func (nr *nodeRender) Render() {
 	t.AppendSeparator()
 	t.Render()
 
-	if nr.renderDetail {
+	if nr.RenderDetail {
 		if len(nr.Node.Description) > 0 {
 			fmt.Println(nr.Node.Description)
 		}
@@ -118,7 +118,7 @@ func (nr *nodeRender) Render() {
 }
 
 func getSummary(n *graph.Node, columnLen int) (string, error) {
-	ns := &nodeSummary{
+	ns := &NodeSummary{
 		b:         strings.Builder{},
 		n:         n,
 		columnLen: columnLen,
@@ -129,13 +129,13 @@ func getSummary(n *graph.Node, columnLen int) (string, error) {
 	return ns.b.String(), nil
 }
 
-type nodeSummary struct {
+type NodeSummary struct {
 	b         strings.Builder
 	n         *graph.Node
 	columnLen int
 }
 
-func (ns *nodeSummary) createSummary() error {
+func (ns *NodeSummary) createSummary() error {
 	if err := ns.append(ns.n.Description); err != nil {
 		return err
 	}
@@ -146,7 +146,7 @@ func (ns *nodeSummary) createSummary() error {
 	return ns.appendAll(d.GetTitle(), d.GetUrl(), d.GetBody())
 }
 
-func (ns *nodeSummary) appendAll(vals ...string) error {
+func (ns *NodeSummary) appendAll(vals ...string) error {
 	for _, s := range vals {
 		if err := ns.append(s); err != nil {
 			return err
@@ -155,7 +155,7 @@ func (ns *nodeSummary) appendAll(vals ...string) error {
 	return nil
 }
 
-func (ns *nodeSummary) append(s string) error {
+func (ns *NodeSummary) append(s string) error {
 	if len(strings.TrimSpace(s)) == 0 {
 		return nil
 	}
