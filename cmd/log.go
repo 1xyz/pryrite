@@ -1,10 +1,10 @@
-package log
+package cmd
 
 import (
 	"fmt"
-	"github.com/aardlabs/terminal-poc/cmd"
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/graph"
+	"github.com/aardlabs/terminal-poc/log"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/docopt/docopt-go"
 	"io/ioutil"
@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-func Cmd(entry *config.Entry, params *cmd.Params) error {
+func LogCmd(entry *config.Entry, params *Params) error {
 	usage := `The "log" command allows you to work with snippet content from the remote  service
 
 usage: aard log [-n=<count>]
@@ -60,7 +60,7 @@ Examples:
 	if err != nil {
 		tools.Log.Fatal().Msgf("error parsing arguments. err=%v", err)
 	}
-	tools.Log.Debug().Msgf("events.Cmd Opts = %v", opts)
+	tools.Log.Debug().Msgf("events.CaptureCmd Opts = %v", opts)
 	store := graph.NewStore(entry)
 	if tools.OptsBool(opts, "show") {
 		id := tools.OptsStr(opts, "<id>")
@@ -77,7 +77,7 @@ Examples:
 				return err
 			}
 		}
-		evtRender := &nodeRender{Node: event, renderDetail: renderDetail}
+		evtRender := &log.NodeRender{Node: event, RenderDetail: renderDetail}
 		evtRender.Render()
 	} else if tools.OptsBool(opts, "add") {
 		//fmt.Printf("Opts = %v\n", opts)
@@ -113,12 +113,12 @@ Examples:
 		if err != nil {
 			return err
 		}
-		if err := clipTo(d); err != nil {
+		if err := log.ClipTo(d); err != nil {
 			return fmt.Errorf("clipTo err = %v", err)
 		}
 		fmt.Printf("copied to clipboard!\n")
 	} else if tools.OptsBool(opts, "pbpaste") {
-		content, err := getClip()
+		content, err := log.GetClip()
 		if err != nil {
 			return fmt.Errorf("getClip err = %v", err)
 		}
@@ -135,7 +135,7 @@ Examples:
 		if err != nil {
 			return err
 		}
-		evtRender := &nodesRender{Nodes: nodes}
+		evtRender := &log.NodesRender{Nodes: nodes}
 		evtRender.Render()
 	} else {
 		n := tools.OptsInt(opts, "-n")
@@ -143,7 +143,7 @@ Examples:
 		if err != nil {
 			return err
 		}
-		evtRender := &nodesRender{Nodes: nodes}
+		evtRender := &log.NodesRender{Nodes: nodes}
 		evtRender.Render()
 	}
 	return nil

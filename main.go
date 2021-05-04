@@ -2,12 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/aardlabs/terminal-poc/auth"
-	"github.com/aardlabs/terminal-poc/capture"
 	"github.com/aardlabs/terminal-poc/cmd"
 	"github.com/aardlabs/terminal-poc/config"
-	"github.com/aardlabs/terminal-poc/history"
-	"github.com/aardlabs/terminal-poc/log"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/docopt/docopt-go"
 	"os"
@@ -83,10 +79,9 @@ See 'aard <command> --help' for more information on a specific command.
 type cmdFunc func(*config.Entry, *cmd.Params) error
 
 var cmdFunctions = map[string]cmdFunc{
-	"auth":     auth.Cmd,
-	"termcast": capture.Cmd,
-	"log":      log.Cmd,
-	"history":  history.Cmd,
+	"auth":     cmd.AuthCmd,
+	"termcast": cmd.CaptureCmd,
+	"log":      cmd.LogCmd,
 }
 
 // RunCommand runs a specific command and the provided arguments
@@ -94,13 +89,13 @@ var cmdFunctions = map[string]cmdFunc{
 // Ref: https://tldp.org/LDP/abs/html/exitcodes.html
 func RunCommand(params *cmd.Params) int {
 	if params.Command == "config" {
-		if err := config.Cmd(params); err != nil {
+		if err := cmd.ConfigCmd(params); err != nil {
 			return cmd.LogErr(params.Command, err)
 		}
 	} else if params.Command == "history" {
 		// history should continue to work if there is not config
 		entry, _ := config.GetEntry("")
-		if err := history.Cmd(entry, params); err != nil {
+		if err := cmd.HistoryCmd(entry, params); err != nil {
 			return cmd.LogErr(params.Command, err)
 		}
 	} else {

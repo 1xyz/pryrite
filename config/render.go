@@ -5,15 +5,15 @@ import (
 	"os"
 )
 
-type tableRender struct {
-	config *Config
+type TableRender struct {
+	Config *Config
 }
 
-func (tr *tableRender) Render() {
+func (tr *TableRender) Render() {
 	data := make([]table.Row, 0)
-	for _, entry := range tr.config.Entries {
+	for _, entry := range tr.Config.Entries {
 		defaultStr := "[ ]"
-		if entry.Name == tr.config.DefaultEntry {
+		if entry.Name == tr.Config.DefaultEntry {
 			defaultStr = "[*]"
 		}
 		row := table.Row{entry.Name, entry.ServiceUrl, entry.User, defaultStr}

@@ -1,13 +1,13 @@
-package config
+package cmd
 
 import (
 	"fmt"
-	"github.com/aardlabs/terminal-poc/cmd"
+	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/docopt/docopt-go"
 )
 
-func Cmd(params *cmd.Params) error {
+func ConfigCmd(params *Params) error {
 	usage := `The "config" command provides options to configure aard 
 
 usage: aard config add <name> --service-url=<url>
@@ -37,7 +37,7 @@ Examples:
 		tools.Log.Fatal().Msgf("error parsing arguments. err=%v", err)
 	}
 
-	cfg, err := Default()
+	cfg, err := config.Default()
 	if err != nil {
 		return err
 	}
@@ -65,12 +65,12 @@ Examples:
 	}
 
 	if doSave {
-		if err := cfg.SaveFile(defaultConfigFile); err != nil {
+		if err := cfg.SaveFile(config.DefaultConfigFile); err != nil {
 			return err
 		}
 	}
 
-	tr := &tableRender{config: cfg}
+	tr := &config.TableRender{Config: cfg}
 	tr.Render()
 	return nil
 }
