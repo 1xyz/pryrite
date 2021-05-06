@@ -72,19 +72,19 @@ PowerShell:
 		switch args[0] {
 		case "bash":
 			if err := cmd.Root().GenBashCompletion(os.Stdout); err != nil {
-				tools.LogErrExit("GenBashCompletion", err)
+				tools.LogStderrExit("GenBashCompletion", err)
 			}
 		case "zsh":
 			if err := cmd.Root().GenZshCompletion(os.Stdout); err != nil {
-				tools.LogErrExit("GenZshCompletion", err)
+				tools.LogStderrExit("GenZshCompletion", err)
 			}
 		case "fish":
 			if err := cmd.Root().GenFishCompletion(os.Stdout, true); err != nil {
-				tools.LogErrExit("GenFishCompletion", err)
+				tools.LogStderrExit("GenFishCompletion", err)
 			}
 		case "powershell":
 			if err := cmd.Root().GenPowerShellCompletionWithDesc(os.Stdout); err != nil {
-				tools.LogErrExit("GenPowerShellCompletionWithDesc", err)
+				tools.LogStderrExit("GenPowerShellCompletionWithDesc", err)
 			}
 		}
 	},

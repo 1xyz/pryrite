@@ -3,6 +3,8 @@ package kmd
 import (
 	"fmt"
 	"github.com/MakeNowJust/heredoc"
+	"github.com/aardlabs/terminal-poc/config"
+	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/spf13/cobra"
 )
 
@@ -10,7 +12,7 @@ type ConfigAddOptions struct {
 	ServiceURL string // Reference to the Service's URL
 }
 
-func NewCmdConfigAdd() *cobra.Command {
+func NewCmdConfigAdd(cfg *config.Config) *cobra.Command {
 	opts := &ConfigAddOptions{}
 	cmd := &cobra.Command{
 		Use:   "add <name>",
@@ -22,8 +24,16 @@ func NewCmdConfigAdd() *cobra.Command {
 		`),
 		Args: MinimumArgs(1, "could not add configuration: no name provided"),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			fmt.Println(args[0])
-			fmt.Println(opts.ServiceURL)
+			name := args[0]
+			tools.Log.Info().Msgf("Addconfig name=%s, serviceURL=%s",
+				name, opts.ServiceURL)
+			if err := cfg.Add(name, opts.ServiceURL); err != nil {
+				return err
+			}
+			if err := cfg.SaveFile(config.DefaultConfigFile); err != nil {
+				return err
+			}
+			tools.LogStdout("configuration added!")
 			return nil
 		},
 	}
@@ -33,7 +43,7 @@ func NewCmdConfigAdd() *cobra.Command {
 	return cmd
 }
 
-func NewCmdConfigList() *cobra.Command {
+func NewCmdConfigList(cfg *config.Config) *cobra.Command {
 	cmd := &cobra.Command{
 		DisableFlagsInUseLine: true,
 
@@ -46,14 +56,48 @@ func NewCmdConfigList() *cobra.Command {
 			   $ aard config list
 		`),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			fmt.Println("listing")
+			tr := &config.TableRender{Config: cfg}
+			tr.Render()
 			return nil
 		},
 	}
 	return cmd
 }
 
-func NewCmdConfigDelete() *cobra.Command {
+func NewCmdConfigActivate(cfg *config.Config) *cobra.Command {
+	cmd := &cobra.Command{
+		DisableFlagsInUseLine: true,
+
+		Use:     "activate <name>",
+		Short:   "Activates an existing named configuration.",
+		Aliases: []string{"ls"},
+		Example: heredoc.Doc(`
+			To activate an existing named configuration, run::
+
+			   $ aard config activate my-config
+
+            To list all configurations, run::
+
+			   $ aard config list
+		`),
+		Args: MinimumArgs(1, "could not activate configuration: no name provided"),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			name := args[0]
+			tools.Log.Info().Msgf("config activate called name = %s", name)
+			if err := cfg.SetDefault(name); err != nil {
+				return err
+			}
+			if err := cfg.SaveFile(config.DefaultConfigFile); err != nil {
+				return err
+			}
+			tools.LogStdout(fmt.Sprintf("Configuration %s is active", name))
+			return nil
+		},
+	}
+	return cmd
+}
+
+func NewCmdConfigDelete(cfg *config.Config) *cobra.Command {
 	cmd := &cobra.Command{
 		DisableFlagsInUseLine: true,
 
@@ -66,26 +110,42 @@ func NewCmdConfigDelete() *cobra.Command {
             aard config activate another one.
         `),
 		Example: heredoc.Doc(`
-			To delete a named configuration, run:
+            To delete a named configuration, run:
 
-               $ aard config delete my_config
+              $ aard config delete my_config
 		`),
 		Args: MinimumArgs(1, "could not delete configuration: no name provided"),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			fmt.Println("listing")
+			name := args[0]
+			tools.Log.Info().Msgf("config delete name=%s", name)
+			entry, found := cfg.Get(name)
+			if !found {
+				return fmt.Errorf("no configuration entry found with name = %s", name)
+			}
+			if entry.Name == cfg.DefaultEntry {
+				return fmt.Errorf("the specified configuration entry is active and cannot be deleted")
+			}
+			if err := cfg.Del(name); err != nil {
+				return err
+			}
+			if err := cfg.SaveFile(config.DefaultConfigFile); err != nil {
+				return err
+			}
+			tools.LogStdout("configuration deleted!")
 			return nil
 		},
 	}
 	return cmd
 }
 
-func NewCmdConfig() *cobra.Command {
+func NewCmdConfig(cfg *config.Config) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "config",
 		Short: "Manage the set of aard named configurations.",
 	}
-	cmd.AddCommand(NewCmdConfigAdd())
-	cmd.AddCommand(NewCmdConfigList())
-	cmd.AddCommand(NewCmdConfigDelete())
+	cmd.AddCommand(NewCmdConfigAdd(cfg))
+	cmd.AddCommand(NewCmdConfigList(cfg))
+	cmd.AddCommand(NewCmdConfigDelete(cfg))
+	cmd.AddCommand(NewCmdConfigActivate(cfg))
 	return cmd
 }

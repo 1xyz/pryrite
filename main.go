@@ -21,15 +21,14 @@ func main() {
 	}()
 
 	if err := config.CreateDefaultConfigIfEmpty(); err != nil {
-		tools.LogErrExit("CreateDefaultConfig", err)
+		tools.LogStderrExit("CreateDefaultConfig", err)
 	}
 	cfg, err := config.Default()
 	if err != nil {
-		tools.LogErrExit("config.Default", err)
+		tools.LogStderrExit("config.Default", err)
 	}
-	if err := kmd.Execute(cfg); err != nil {
-		tools.LogErrExit("command failed", err)
-	}
+	// the error is handled by cobra (so let us not handle it)
+	_ := kmd.Execute(cfg)
 }
 
 //
