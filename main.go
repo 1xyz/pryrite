@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	verbose := false
+	verbose := true
 	wr, err := tools.OpenLogger(verbose)
 	if err != nil {
 		tools.Log.Fatal().Err(err).Msgf("tools.OpenLogger")
@@ -28,7 +28,7 @@ func main() {
 		tools.LogStderrExit("config.Default", err)
 	}
 	// the error is handled by cobra (so let us not handle it)
-	kmd.Execute(cfg)
+	kmd.Execute(cfg, version)
 }
 
 //

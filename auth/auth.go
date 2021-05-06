@@ -27,6 +27,10 @@ func LogoutUser(entry *config.Entry) error {
 	return config.SetEntry(entry)
 }
 
+func GetLoggedInUser(entry *config.Entry) (string, bool) {
+	return entry.User, entry.User != ""
+}
+
 // isEmailValid checks if the email provided passes the required structure and length.
 func isEmailValid(e string) bool {
 	if len(e) < 3 && len(e) > 254 {
