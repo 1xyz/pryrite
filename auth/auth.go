@@ -18,11 +18,13 @@ func AuthUser(entry *config.Entry, email string) error {
 
 	entry.User = email
 	entry.AuthScheme = "Silly"
-	if err := config.SetEntry(entry); err != nil {
-		return nil
-	}
+	return config.SetEntry(entry)
+}
 
-	return nil
+func LogoutUser(entry *config.Entry) error {
+	entry.User = ""
+	entry.AuthScheme = ""
+	return config.SetEntry(entry)
 }
 
 // isEmailValid checks if the email provided passes the required structure and length.

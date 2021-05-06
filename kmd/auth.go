@@ -3,10 +3,13 @@ package kmd
 import (
 	"fmt"
 	"github.com/MakeNowJust/heredoc"
+	"github.com/aardlabs/terminal-poc/auth"
+	"github.com/aardlabs/terminal-poc/config"
+	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/spf13/cobra"
 )
 
-func NewCmdAuthLogin() *cobra.Command {
+func NewCmdAuthLogin(cfg *config.Config) *cobra.Command {
 	cmd := &cobra.Command{
 		DisableFlagsInUseLine: true,
 
@@ -17,17 +20,30 @@ func NewCmdAuthLogin() *cobra.Command {
 			In order to login to this service, run:
 
               $ aard auth login alan@turing.me
+
+            In order to view the current logged in user, run:
+
+              $ aard config list 
 		`),
 		Args: MinimumArgs(1, "could not login: no email provided"),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			fmt.Println(args[0])
+			email := args[0]
+			tools.Log.Info().Msgf("auth login email=%s", email)
+			entry, found := cfg.GetDefaultEntry()
+			if !found {
+				return fmt.Errorf("a active configuration is not found")
+			}
+			if err := auth.AuthUser(entry, email); err != nil {
+				return err
+			}
+			tools.LogStdout(fmt.Sprintf("user %s logged in", email))
 			return nil
 		},
 	}
 	return cmd
 }
 
-func NewCmdAuthLogout() *cobra.Command {
+func NewCmdAuthLogout(cfg *config.Config) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "logout",
 		Short: "Logout an authorized user",
@@ -35,22 +51,33 @@ func NewCmdAuthLogout() *cobra.Command {
 			To logout the current logged in user, run: 
 
               $ aard auth logout
+
+            In order to view the current logged in user, run:
+
+              $ aard config list 
 		`),
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			fmt.Println("Logged out")
+			entry, found := cfg.GetDefaultEntry()
+			if !found {
+				return fmt.Errorf("a active configuration is not found")
+			}
+			if err := auth.LogoutUser(entry); err != nil {
+				return err
+			}
+			tools.LogStdout(fmt.Sprintf("user logged out"))
 			return nil
 		},
 	}
 	return cmd
 }
 
-func NewCmdAuth() *cobra.Command {
+func NewCmdAuth(cfg *config.Config) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "auth",
 		Short: "Manage credentials for a user",
 	}
-	cmd.AddCommand(NewCmdAuthLogin())
-	cmd.AddCommand(NewCmdAuthLogout())
+	cmd.AddCommand(NewCmdAuthLogin(cfg))
+	cmd.AddCommand(NewCmdAuthLogout(cfg))
 	return cmd
 }

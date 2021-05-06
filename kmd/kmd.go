@@ -11,7 +11,7 @@ func NewCmdRoot(cfg *config.Config) *cobra.Command {
 		Short: "Work seamlessly with the aard service from the command line",
 	}
 	rootCmd.AddCommand(NewCmdSnippetList())
-	rootCmd.AddCommand(NewCmdAuth())
+	rootCmd.AddCommand(NewCmdAuth(cfg))
 	rootCmd.AddCommand(NewCmdConfig(cfg))
 	rootCmd.AddCommand(completionCmd)
 	return rootCmd

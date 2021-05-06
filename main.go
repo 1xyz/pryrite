@@ -28,7 +28,7 @@ func main() {
 		tools.LogStderrExit("config.Default", err)
 	}
 	// the error is handled by cobra (so let us not handle it)
-	_ := kmd.Execute(cfg)
+	kmd.Execute(cfg)
 }
 
 //
