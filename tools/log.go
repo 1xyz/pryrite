@@ -114,3 +114,12 @@ func TrimLength(s string, maxLen int) string {
 func FmtTime(t time.Time) string {
 	return t.In(time.Local).Format("Jan _2 3:04PM")
 }
+
+func LogErrExit(message string, err error) {
+	Log.Err(err).Msgf("%s. error: %v.", message, err)
+	_, fErr := fmt.Fprintf(os.Stderr, "%s. error: %v.", err)
+	if fErr != nil {
+		panic(fErr)
+	}
+	os.Exit(1)
+}
