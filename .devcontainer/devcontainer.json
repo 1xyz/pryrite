@@ -1,0 +1,10 @@
+{
+    "name": "Terminal PoC",
+    "dockerComposeFile": "docker-compose.yml",
+    "service": "app",
+    "workspaceFolder": "/app",
+    "shutdownAction": "stopCompose",
+    "extensions": [
+		"golang.go",
+	]
+}
