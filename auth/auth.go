@@ -2,6 +2,7 @@ package auth
 
 import (
 	"fmt"
+	"github.com/aardlabs/terminal-poc/tools"
 	"net/url"
 
 	"github.com/aardlabs/terminal-poc/config"
@@ -10,7 +11,7 @@ import (
 
 func AuthUser(entry *config.Entry, serviceUrl string) error {
 	if serviceUrl == "" {
-		serviceUrl = config.DefaultServiceURL
+		serviceUrl = entry.ServiceUrl
 	}
 
 	loginUrl, err := url.Parse(serviceUrl)
@@ -19,10 +20,10 @@ func AuthUser(entry *config.Entry, serviceUrl string) error {
 	}
 
 	loginUrl.Path = "/api/v1/login"
-
+	tools.Log.Info().Msgf("AuthUser serviceURL=%s loginURL=%s", serviceUrl, loginUrl)
 	events, err := sseclient.OpenURL(loginUrl.String())
 	if err != nil {
-		return err
+		return fmt.Errorf("authUser err = %v", err)
 	}
 
 	var token string
