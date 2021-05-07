@@ -37,6 +37,10 @@ func (c *Config) Get(name string) (*Entry, bool) {
 	return &c.Entries[index], found
 }
 
+func (c *Config) GetDefaultEntry() (*Entry, bool) {
+	return c.Get(c.DefaultEntry)
+}
+
 func (c *Config) Set(e *Entry) error {
 	index, found := c.getIndex(e.Name)
 	if !found {

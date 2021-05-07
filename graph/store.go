@@ -3,6 +3,7 @@ package graph
 import (
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/go-resty/resty/v2"
@@ -10,8 +11,8 @@ import (
 )
 
 type Store interface {
-	// GetNodes returns the most recent n events
-	GetNodes(n int) ([]Node, error)
+	// GetNodes returns the most recent n entries
+	GetNodes(limit int) ([]Node, error)
 
 	// GetNode returns the Node associated with this id
 	GetNode(id string) (*Node, error)
@@ -26,37 +27,37 @@ type Store interface {
 // remoteStore represents the remote event store backed by the service
 type remoteStore struct {
 	configEntry *config.Entry
+	m           *Metadata
 }
 
-func NewStore(configEntry *config.Entry) Store {
+func NewStore(configEntry *config.Entry, metadata *Metadata) Store {
 	return &remoteStore{
 		configEntry: configEntry,
+		m:           metadata,
 	}
 }
 
-type getEventsResponse struct {
+type getNodesResponse struct {
 	N []Node `json:"Nodes"`
 }
 
-func (r *remoteStore) GetNodes(n int) ([]Node, error) {
+func (r *remoteStore) GetNodes(limit int) ([]Node, error) {
 	client := r.newHTTPClient(false)
 	req := client.R().
+		SetHeader("Accept", "application/json").
 		SetQueryParams(map[string]string{
-			//"Kind":  "PageOpen", // query either PageOpen or PageClose events for now
-			"Limit": strconv.Itoa(n),
-		}).
-		SetHeader("Accept", "application/json")
+			"Limit": strconv.Itoa(limit),
+		})
 	resp, err := req.Get("/api/v1/nodes")
 	if err != nil {
-		return nil, fmt.Errorf("http.get err: %v req: %s", err, req.URL)
+		return nil, err
 	}
-
-	result := getEventsResponse{N: []Node{}}
+	if err := checkHTTP2XX("getNodes(%s)", resp.StatusCode()); err != nil {
+		return nil, err
+	}
+	result := getNodesResponse{N: []Node{}}
 	if err := json.NewDecoder(resp.RawBody()).Decode(&result); err != nil {
-		return nil, fmt.Errorf("json.Decode err: %v", err)
-	}
-	if err := checkHTTP2XX(resp.StatusCode()); err != nil {
-		return nil, fmt.Errorf("checkHTTP2XX url: %s err: %v", req.URL, err)
+		return nil, &Error{"GetNodes", err}
 	}
 	return result.N, nil
 }
@@ -70,60 +71,59 @@ func (r *remoteStore) GetNode(id string) (*Node, error) {
 	if err != nil {
 		return nil, fmt.Errorf("http.get err: %v", err)
 	}
-	result := getEventsResponse{N: []Node{}}
-	if err := json.NewDecoder(resp.RawBody()).Decode(&result); err != nil {
-		return nil, fmt.Errorf("json.Decode err: %v", err)
-	}
-	if len(result.N) == 0 {
-		return nil, fmt.Errorf("no entry found with id = %s", id)
-	}
-	if err := checkHTTP2XX(resp.StatusCode()); err != nil {
-		return nil, fmt.Errorf("checkHTTP2XX url: %s err: %v", req.URL, err)
-	}
-	return &result.N[0], nil
-}
-
-func (r *remoteStore) AddNode(e *Node) (*Node, error) {
-	client := r.newHTTPClient(true)
-
-	result := Node{}
-	resp, err := client.R().
-		SetHeader("Content-Type", "application/json").
-		SetBody(e).
-		SetResult(&result).
-		Post("/api/v1/nodes")
-	if err != nil {
-		return nil, fmt.Errorf("http.post err: %v", err)
-	}
-	if err := checkHTTP2XX(resp.StatusCode()); err != nil {
+	if err := checkHTTP2XX(fmt.Sprintf("getNode(%s)", id), resp.StatusCode()); err != nil {
 		return nil, err
+	}
+	result := Node{}
+	if err := json.NewDecoder(resp.RawBody()).Decode(&result); err != nil {
+		return nil, &Error{"GetNode", err}
 	}
 	return &result, nil
 }
 
-func (r *remoteStore) SearchNodes(query string) ([]Node, error) {
-	client := r.newHTTPClient(false)
-	const limit = 25
-	req := client.R().
-		SetQueryParams(map[string]string{
-			//"Kind":  "PageOpen", // query either PageOpen or PageClose events for now
-			"Q":     query,
-			"Limit": strconv.Itoa(limit),
-		}).
-		SetHeader("Accept", "application/json")
-	resp, err := req.Get("/api/v1/search/nodes")
-	if err != nil {
-		return nil, fmt.Errorf("http.get err: %v req: %s", err, req.URL)
-	}
+func (r *remoteStore) AddNode(e *Node) (*Node, error) {
+	return nil, nil
+	//client := r.newHTTPClient(true)
+	//
+	//result := Node{}
+	//resp, err := client.R().
+	//	SetHeader("Content-Type", "application/json").
+	//	SetBody(e).
+	//	SetResult(&result).
+	//	Post("/api/v1/nodes")
+	//if err != nil {
+	//	return nil, fmt.Errorf("http.post err: %v", err)
+	//}
+	//if err := checkHTTP2XX(resp.StatusCode()); err != nil {
+	//	return nil, err
+	//}
+	//return &result, nil
+}
 
-	result := getEventsResponse{N: []Node{}}
-	if err := json.NewDecoder(resp.RawBody()).Decode(&result); err != nil {
-		return nil, fmt.Errorf("json.Decode err: %v", err)
-	}
-	if err := checkHTTP2XX(resp.StatusCode()); err != nil {
-		return nil, fmt.Errorf("checkHTTP2XX url: %s err: %v", req.URL, err)
-	}
-	return result.N, nil
+func (r *remoteStore) SearchNodes(query string) ([]Node, error) {
+	return nil, nil
+	//client := r.newHTTPClient(false)
+	//const limit = 25
+	//req := client.R().
+	//	SetQueryParams(map[string]string{
+	//		//"Kind":  "PageOpen", // query either PageOpen or PageClose events for now
+	//		"Q":     query,
+	//		"Limit": strconv.Itoa(limit),
+	//	}).
+	//	SetHeader("Accept", "application/json")
+	//resp, err := req.Get("/api/v1/search/nodes")
+	//if err != nil {
+	//	return nil, fmt.Errorf("http.get err: %v req: %s", err, req.URL)
+	//}
+	//
+	//result := getNodesResponse{N: []Node{}}
+	//if err := json.NewDecoder(resp.RawBody()).Decode(&result); err != nil {
+	//	return nil, fmt.Errorf("json.Decode err: %v", err)
+	//}
+	//if err := checkHTTP2XX(resp.StatusCode()); err != nil {
+	//	return nil, fmt.Errorf("checkHTTP2XX url: %s err: %v", req.URL, err)
+	//}
+	//return result.N, nil
 }
 
 func (r *remoteStore) newHTTPClient(parseResponse bool) *resty.Client {
@@ -138,9 +138,12 @@ func (r *remoteStore) newHTTPClient(parseResponse bool) *resty.Client {
 	return client
 }
 
-func checkHTTP2XX(statusCode int) error {
+func checkHTTP2XX(message string, statusCode int) error {
 	if statusCode < 200 || statusCode > 299 {
-		return fmt.Errorf("service returned non-2XX status code %d", statusCode)
+		return &HttpError{
+			Err:      errors.New(message),
+			HTTPCode: statusCode,
+		}
 	}
 	return nil
 }

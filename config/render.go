@@ -23,7 +23,7 @@ func (tr *TableRender) Render() {
 	t := table.NewWriter()
 	t.SetStyle(table.StyleBold)
 	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"Name", "Service URL", "User", "Default?"})
+	t.AppendHeader(table.Row{"Name", "Service URL", "User", "Active?"})
 	t.AppendRows(data)
 	t.AppendSeparator()
 	t.Render()

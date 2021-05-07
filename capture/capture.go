@@ -84,7 +84,7 @@ func Capture(title, filename, cmdName string, args ...string) error {
 		}
 	}()
 	if err := cmd.Wait(); err != nil {
-		tools.Log.Error().Msgf("cmd.wait err = %v", err)
+		tools.Log.Error().Msgf("kmd.wait err = %v", err)
 		return err
 	}
 	return nil
