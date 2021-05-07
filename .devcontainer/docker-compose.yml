@@ -1,0 +1,15 @@
+---
+version: '2'
+services:
+  app:
+    image: golang:1.16-buster
+    command: sleep infinity
+    volumes:
+      # Mounts the project folder. The target path inside the container
+      # should match should match what your application expects. In this case, the
+      # compose file is in a sub-folder, so we will mount '..'. We'll then reference this
+      # as the workspaceFolder in '.devcontainer/devcontainer.json' so VS Code starts here.
+      - ..:/app
+
+      # This lets you avoid setting up Git again in the container
+      - ~/.gitconfig:/root/.gitconfig

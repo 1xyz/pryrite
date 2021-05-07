@@ -10,36 +10,37 @@ import (
 )
 
 func NewCmdAuthLogin(cfg *config.Config) *cobra.Command {
+	serviceURL := ""
 	cmd := &cobra.Command{
-		DisableFlagsInUseLine: true,
-
-		Use:   "login <email>",
-		Short: "Login an authorized user to the aard service",
-		Long:  heredoc.Doc(`Authorizes the user to access the service via credentials`),
+		Use:   "login",
+		Short: "Login an authorized user to the aard service.",
+		Long:  heredoc.Doc(`Authorizes the user to access the service.`),
 		Example: heredoc.Doc(`
 			In order to login to this service, run:
 
-              $ aard auth login alan@turing.me
+              $ aard auth login
 
             In order to view the current logged in user, run:
 
-              $ aard config list 
+              $ aard config list
 		`),
-		Args: MinimumArgs(1, "could not login: no email provided"),
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			email := args[0]
-			tools.Log.Info().Msgf("auth login email=%s", email)
+			tools.Log.Info().Msgf("auth login serviceURL=%s", serviceURL)
 			entry, found := cfg.GetDefaultEntry()
 			if !found {
 				return fmt.Errorf("a active configuration is not found")
 			}
-			if err := auth.AuthUser(entry, email); err != nil {
+			if err := auth.AuthUser(entry, serviceURL); err != nil {
 				return err
 			}
-			tools.LogStdout(fmt.Sprintf("user %s logged in", email))
+			tools.LogStdout(fmt.Sprintf("user logged in"))
 			return nil
 		},
 	}
+	cmd.Flags().StringVar(&serviceURL,
+		"service-url", "",
+		"URL for the aard service")
 	return cmd
 }
 

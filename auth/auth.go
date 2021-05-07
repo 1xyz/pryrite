@@ -2,22 +2,46 @@ package auth
 
 import (
 	"fmt"
+	"github.com/aardlabs/terminal-poc/tools"
+	"net/url"
+
 	"github.com/aardlabs/terminal-poc/config"
-	"regexp"
+	"github.com/peterhellberg/sseclient"
 )
 
-var (
-	emailRegex = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
-)
-
-func AuthUser(entry *config.Entry, email string) error {
-	// Ref: validate email -- https://golangcode.com/validate-an-email-address/
-	if !isEmailValid(email) {
-		return fmt.Errorf("email %v is not valid", email)
+func AuthUser(entry *config.Entry, serviceUrl string) error {
+	if serviceUrl == "" {
+		serviceUrl = entry.ServiceUrl
 	}
 
-	entry.User = email
-	entry.AuthScheme = "Silly"
+	loginUrl, err := url.Parse(serviceUrl)
+	if err != nil {
+		return err
+	}
+
+	loginUrl.Path = "/api/v1/login"
+	tools.Log.Info().Msgf("AuthUser serviceURL=%s loginURL=%s", serviceUrl, loginUrl)
+	events, err := sseclient.OpenURL(loginUrl.String())
+	if err != nil {
+		return fmt.Errorf("authUser err = %v", err)
+	}
+
+	var token string
+	for event := range events {
+		if url, ok := event.Data["authorize_url"]; ok {
+			fmt.Println("Please open this link to authorize this app:", url)
+		} else if t, ok := event.Data["bearer_token"]; ok {
+			fmt.Println("Authorization is complete!")
+			token = t.(string)
+			break
+		} else {
+			fmt.Println("Unknown event", event.Name, event.Data)
+		}
+	}
+
+	entry.ServiceUrl = serviceUrl
+	entry.User = token
+	entry.AuthScheme = "Bearer"
 	return config.SetEntry(entry)
 }
 
@@ -29,12 +53,4 @@ func LogoutUser(entry *config.Entry) error {
 
 func GetLoggedInUser(entry *config.Entry) (string, bool) {
 	return entry.User, entry.User != ""
-}
-
-// isEmailValid checks if the email provided passes the required structure and length.
-func isEmailValid(e string) bool {
-	if len(e) < 3 && len(e) > 254 {
-		return false
-	}
-	return emailRegex.MatchString(e)
 }
