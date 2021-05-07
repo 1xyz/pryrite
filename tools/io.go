@@ -11,7 +11,7 @@ func OpenFile(filename string, flag int) (*os.File, error) {
 	if err := EnsureDir(filepath.Dir(filename)); err != nil {
 		return nil, err
 	}
-	fp, err := os.OpenFile(filename, flag, 0644)
+	fp, err := os.OpenFile(filename, flag, 0600)
 	if err != nil {
 		return nil, fmt.Errorf("os.open %s err = %v", filename, err)
 	}

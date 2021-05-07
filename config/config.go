@@ -2,10 +2,11 @@ package config
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/google/uuid"
 	"gopkg.in/yaml.v2"
-	"os"
 )
 
 var (
@@ -13,7 +14,7 @@ var (
 )
 
 const (
-	DefaultServiceURL = "https://flaming-fishtoot.herokuapp.com/"
+	DefaultServiceURL = "https://aard.app/"
 )
 
 type Entry struct {
