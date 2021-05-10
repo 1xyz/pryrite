@@ -18,11 +18,12 @@ const (
 )
 
 type Entry struct {
-	Name       string `yaml:"name"`
-	ServiceUrl string `yaml:"service_url"`
-	AuthScheme string `yaml:"auth_scheme"`
-	User       string `yaml:"user"`
-	ClientID   string `yaml:"client_id"`
+	Name         string `yaml:"name"`
+	ServiceUrl   string `yaml:"service_url"`
+	AuthScheme   string `yaml:"auth_scheme"`
+	User         string `yaml:"user"`
+	ClientID     string `yaml:"client_id"`
+	SkipSSLCheck bool   `yaml:"skip_ssl_check"`
 }
 
 type Config struct {

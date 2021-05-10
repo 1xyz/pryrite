@@ -1,15 +1,21 @@
 package auth
 
 import (
+	"crypto/tls"
 	"fmt"
 	"github.com/aardlabs/terminal-poc/tools"
+	"net/http"
 	"net/url"
+	"time"
 
+	"github.com/1xyz/sseclient"
 	"github.com/aardlabs/terminal-poc/config"
-	"github.com/peterhellberg/sseclient"
 )
 
+const ClientTimeout = 30 * time.Second
+
 func AuthUser(entry *config.Entry, serviceUrl string) error {
+	tools.Log.Info().Msgf("AuthUser entry=%v, serviceUR=%s", entry, serviceUrl)
 	if serviceUrl == "" {
 		serviceUrl = entry.ServiceUrl
 	}
@@ -21,7 +27,16 @@ func AuthUser(entry *config.Entry, serviceUrl string) error {
 
 	loginUrl.Path = "/api/v1/login"
 	tools.Log.Info().Msgf("AuthUser serviceURL=%s loginURL=%s", serviceUrl, loginUrl)
-	events, err := sseclient.OpenURL(loginUrl.String())
+
+	if entry.SkipSSLCheck {
+		tools.LogStdout("Warning: SSL check is disabled")
+	}
+	client := &http.Client{
+		Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: entry.SkipSSLCheck}},
+		Timeout:   ClientTimeout}
+
+	events, err := sseclient.HttpClientOpenURL(client, loginUrl.String())
+	//events, err := sseclient.OpenURL(loginUrl.String())
 	if err != nil {
 		return fmt.Errorf("authUser err = %v", err)
 	}

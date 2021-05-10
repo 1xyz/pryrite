@@ -6,13 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"github.com/aardlabs/terminal-poc/config"
+	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/go-resty/resty/v2"
 	"strconv"
 )
 
 type Store interface {
 	// GetNodes returns the most recent n entries
-	GetNodes(limit int) ([]Node, error)
+	GetNodes(limit int, kind Kind) ([]Node, error)
 
 	// GetNode returns the Node associated with this id
 	GetNode(id string) (*Node, error)
@@ -41,12 +42,17 @@ type getNodesResponse struct {
 	N []Node `json:"Nodes"`
 }
 
-func (r *remoteStore) GetNodes(limit int) ([]Node, error) {
+func (r *remoteStore) GetNodes(limit int, kind Kind) ([]Node, error) {
 	client := r.newHTTPClient(false)
+	kindStr := string(kind)
+	if kind == Unknown {
+		kindStr = ""
+	}
 	req := client.R().
 		SetHeader("Accept", "application/json").
 		SetQueryParams(map[string]string{
 			"Limit": strconv.Itoa(limit),
+			"Kind":  kindStr,
 		})
 	resp, err := req.Get("/api/v1/nodes")
 	if err != nil {
@@ -81,23 +87,22 @@ func (r *remoteStore) GetNode(id string) (*Node, error) {
 	return &result, nil
 }
 
-func (r *remoteStore) AddNode(e *Node) (*Node, error) {
-	return nil, nil
-	//client := r.newHTTPClient(true)
-	//
-	//result := Node{}
-	//resp, err := client.R().
-	//	SetHeader("Content-Type", "application/json").
-	//	SetBody(e).
-	//	SetResult(&result).
-	//	Post("/api/v1/nodes")
-	//if err != nil {
-	//	return nil, fmt.Errorf("http.post err: %v", err)
-	//}
-	//if err := checkHTTP2XX(resp.StatusCode()); err != nil {
-	//	return nil, err
-	//}
-	//return &result, nil
+func (r *remoteStore) AddNode(n *Node) (*Node, error) {
+	client := r.newHTTPClient(true)
+
+	result := Node{}
+	resp, err := client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(n).
+		SetResult(&result).
+		Post("/api/v1/nodes")
+	if err != nil {
+		return nil, fmt.Errorf("http.post err: %v", err)
+	}
+	if err := checkHTTP2XX(fmt.Sprintf("addNode(%v)", n), resp.StatusCode()); err != nil {
+		return nil, err
+	}
+	return &result, nil
 }
 
 func (r *remoteStore) SearchNodes(query string) ([]Node, error) {
@@ -127,8 +132,13 @@ func (r *remoteStore) SearchNodes(query string) ([]Node, error) {
 }
 
 func (r *remoteStore) newHTTPClient(parseResponse bool) *resty.Client {
+	skipSSLCheck := r.configEntry.SkipSSLCheck
+	if skipSSLCheck {
+		tools.LogStdout("Warning! SSL check is disabled")
+	}
+
 	client := resty.New()
-	client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
+	client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: skipSSLCheck})
 	client.SetDoNotParseResponse(!parseResponse)
 	client.SetHostURL(r.configEntry.ServiceUrl)
 	client.SetTimeout(clientTimeout)
