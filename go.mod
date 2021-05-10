@@ -3,6 +3,7 @@ module github.com/aardlabs/terminal-poc
 go 1.16
 
 require (
+	github.com/1xyz/sseclient v0.0.0-20210510204826-9b958fd4e77e
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/MichaelMure/go-term-markdown v0.1.4
 	github.com/atotto/clipboard v0.1.4
@@ -11,7 +12,6 @@ require (
 	github.com/go-resty/resty/v2 v2.5.0
 	github.com/google/uuid v1.2.0
 	github.com/jedib0t/go-pretty/v6 v6.1.0
-	github.com/peterhellberg/sseclient v0.0.0-20190910165922-d1094337c01e // indirect
 	github.com/rs/zerolog v1.21.0
 	github.com/spf13/cobra v1.1.3
 	golang.org/x/sys v0.0.0-20210320140829-1e4c9ba3b0c4 // indirect

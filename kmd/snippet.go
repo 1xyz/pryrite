@@ -1,17 +1,20 @@
 package kmd
 
 import (
+	"fmt"
 	"github.com/MakeNowJust/heredoc"
+	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/snippet"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/spf13/cobra"
+	"strings"
 )
 
 type SnippetListOpts struct {
-	Limit  int
-	Kind   int
-	User   string
-	IsMine bool
+	Limit       int
+	ShowAllKind bool
+	User        string
+	IsMine      bool
 }
 
 func NewCmdSnippetList(gCtx *snippet.Context) *cobra.Command {
@@ -34,8 +37,8 @@ func NewCmdSnippetList(gCtx *snippet.Context) *cobra.Command {
             To list the most recent "n=100" snippets, run:
               $ aard list -n 100
 
-            To list all kind of snippets that include non-command snippets, run:
-              $ aard list --kind=all
+            To list all kinds of snippets that include non-command snippets, run:
+              $ aard list --all-kinds
 
             To filter the snippets listed to those created by specific user, run:
               $ aard list --user=alanturing
@@ -50,18 +53,24 @@ func NewCmdSnippetList(gCtx *snippet.Context) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			limit := opts.Limit
 			tools.Log.Info().Msgf("list Limit=%d", limit)
-			nodes, err := snippet.GetSnippetNodes(gCtx, limit)
+			kind := graph.Command
+			if opts.ShowAllKind {
+				kind = graph.Unknown
+			}
+			nodes, err := snippet.GetSnippetNodes(gCtx, limit, kind)
 			if err != nil {
 				return err
 			}
-			if err := snippet.RenderSnippetNodes(nodes); err != nil {
+			if err := snippet.RenderSnippetNodes(gCtx.Config, nodes, kind); err != nil {
 				return err
 			}
 			return nil
 		},
 	}
 	cmd.Flags().IntVarP(&opts.Limit, "limit", "n",
-		10, "Limit the number of results to display")
+		100, "Limit the number of results to display")
+	cmd.Flags().BoolVarP(&opts.ShowAllKind, "all-kinds", "a",
+		false, "include all kinds of snippets")
 	return cmd
 }
 
@@ -93,9 +102,45 @@ func NewCmdSnippetDesc(gCtx *snippet.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if err := snippet.RenderSnippetNode(n, true /*show content*/); err != nil {
+			if err := snippet.RenderSnippetNode(gCtx.Config, n, true /*show content*/); err != nil {
 				return err
 			}
+			return nil
+		},
+	}
+	return cmd
+}
+
+func NewCmdSnippetAdd(gCtx *snippet.Context) *cobra.Command {
+	cmd := &cobra.Command{
+		DisableFlagParsing: true,
+
+		Use:   "add <content>...",
+		Short: "Add a snippet with the specified content",
+		Long: heredoc.Doc(`
+              aard add,
+
+              Here, <content> can be any content (typically a shell commend) that you want to be saved.
+        `),
+		Aliases: []string{"save", "stash"},
+		Example: heredoc.Doc(`
+            To save a specified command , run:
+              $ aard add docker-compose run --rm --service-ports development bash
+		`),
+		Args: MinimumArgs(1, "no content specified"),
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			return IsUserLoggedIn(gCtx.Config)
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			content := strings.Join(args, " ")
+			tools.Log.Info().Msgf("add content=%s", content)
+			n, err := snippet.AddSnippetNode(gCtx, content)
+			if err != nil {
+				return err
+			}
+
+			tools.Log.Info().Msgf("AddSnippetNode n.ID = %s", n.ID)
+			fmt.Printf("Added a new node with id = %s\n", n.ID)
 			return nil
 		},
 	}

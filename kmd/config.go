@@ -33,7 +33,7 @@ func NewCmdConfigAdd(cfg *config.Config) *cobra.Command {
 			if err := cfg.SaveFile(config.DefaultConfigFile); err != nil {
 				return err
 			}
-			tools.LogStdout("configuration added!")
+			tools.LogStdout(fmt.Sprintf("configuration added with name = %s", name))
 			return nil
 		},
 	}

@@ -4,11 +4,11 @@ type Kind string
 
 const (
 	Unknown       Kind = "Unknown"
-	Command            = "Command"
-	AsciiCast          = "AsciiCast"
-	PageOpen           = "PageOpen"
-	PageClose          = "PageClose"
-	TextSelect         = "TextSelect"
-	ClipboardCopy      = "ClipboardCopy"
-	Text               = "Text"
+	Command       Kind = "Command"
+	AsciiCast     Kind = "AsciiCast"
+	PageOpen      Kind = "PageOpen"
+	PageClose     Kind = "PageClose"
+	TextSelect    Kind = "TextSelect"
+	ClipboardCopy Kind = "ClipboardCopy"
+	Text          Kind = "Text"
 )

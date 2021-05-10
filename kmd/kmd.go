@@ -16,6 +16,7 @@ func NewCmdRoot(cfg *config.Config, version string) *cobra.Command {
 	gCtx := NewGraphContext(cfg, version)
 	rootCmd.AddCommand(NewCmdSnippetList(gCtx))
 	rootCmd.AddCommand(NewCmdSnippetDesc(gCtx))
+	rootCmd.AddCommand(NewCmdSnippetAdd(gCtx))
 	rootCmd.AddCommand(NewCmdAuth(cfg))
 	rootCmd.AddCommand(NewCmdConfig(cfg))
 	rootCmd.AddCommand(completionCmd)
