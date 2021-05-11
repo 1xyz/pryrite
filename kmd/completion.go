@@ -1,42 +1,41 @@
-/*
-Copyright © 2021 NAME HERE <EMAIL ADDRESS>
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
 package kmd
 
 import (
+	"errors"
+	"github.com/MakeNowJust/heredoc"
 	"github.com/aardlabs/terminal-poc/tools"
 	"os"
 
 	"github.com/spf13/cobra"
 )
 
-// completionCmd represents the completion command
-var completionCmd = &cobra.Command{
-	Use:   "completion [bash|zsh|fish|powershell]",
-	Short: "Generate completion script",
-	Long: `To load completions:
+func NewCmdCompletion() *cobra.Command {
+	var shellType string
 
+	// completionCmd represents the completion command
+	completionCmd := &cobra.Command{
+		Hidden: true,
+		Use:    "completion [bash|zsh|fish|powershell]",
+		Short:  "Generate completion script",
+		Long: heredoc.Docf(`
+Generate shell completion scripts for the CLI commands.
+
+When installing the CLI through a package manager, it's possible that
+no additional shell configuration is necessary to gain completion support.
+For Homebrew, see https://docs.brew.sh/Shell-Completion
+
+If you need to set up completions manually, follow the instructions below. The exact
+config file locations might vary based on your system. Make sure to restart your
+shell before testing whether completions are working.:
 Bash:
 
-  $ source <(kobra completion bash)
+  $ source <(aard completion -s bash)
 
   # To load completions for each session, execute once:
   # Linux:
-  $ kobra completion bash > /etc/bash_completion.d/kobra
+  $ aard completion -s bash > /etc/bash_completion.d/aard
   # macOS:
-  $ kobra completion bash > /usr/local/etc/bash_completion.d/kobra
+  $ aard completion -s bash > /usr/local/etc/bash_completion.d/aard
 
 Zsh:
 
@@ -46,46 +45,56 @@ Zsh:
   $ echo "autoload -U compinit; compinit" >> ~/.zshrc
 
   # To load completions for each session, execute once:
-  $ kobra completion zsh > "${fpath[1]}/_kobra"
+  $ aard completion -s zsh > "${fpath[1]}/_aard"
 
   # You will need to start a new shell for this setup to take effect.
 
 fish:
 
-  $ kobra completion fish | source
+  $ aard completion -s fish | source
 
   # To load completions for each session, execute once:
-  $ kobra completion fish > ~/.config/fish/completions/kobra.fish
+  $ aard completion -s fish > ~/.config/fish/completions/aard.fish
 
 PowerShell:
 
-  PS> kobra completion powershell | Out-String | Invoke-Expression
+  PS> aard completion -s powershell | Out-String | Invoke-Expression
 
   # To load completions for every new session, run:
-  PS> kobra completion powershell > kobra.ps1
+  PS> aard completion -s powershell > aard.ps1
   # and source this file from your PowerShell profile.
-`,
-	DisableFlagsInUseLine: true,
-	ValidArgs:             []string{"bash", "zsh", "fish", "powershell"},
-	Args:                  cobra.ExactValidArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
-		switch args[0] {
-		case "bash":
-			if err := cmd.Root().GenBashCompletion(os.Stdout); err != nil {
-				tools.LogStderrExit("GenBashCompletion", err)
+`),
+		DisableFlagsInUseLine: false,
+		Args:                  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if shellType == "" {
+				return &FlagError{Err: errors.New("error: the value for `--shell` is required")}
 			}
-		case "zsh":
-			if err := cmd.Root().GenZshCompletion(os.Stdout); err != nil {
-				tools.LogStderrExit("GenZshCompletion", err)
+
+			switch shellType {
+			case "bash":
+				if err := cmd.Root().GenBashCompletion(os.Stdout); err != nil {
+					tools.LogStderrExit("GenBashCompletion", err)
+				}
+			case "zsh":
+				if err := cmd.Root().GenZshCompletion(os.Stdout); err != nil {
+					tools.LogStderrExit("GenZshCompletion", err)
+				}
+			case "fish":
+				if err := cmd.Root().GenFishCompletion(os.Stdout, true); err != nil {
+					tools.LogStderrExit("GenFishCompletion", err)
+				}
+			case "powershell":
+				if err := cmd.Root().GenPowerShellCompletionWithDesc(os.Stdout); err != nil {
+					tools.LogStderrExit("GenPowerShellCompletionWithDesc", err)
+				}
 			}
-		case "fish":
-			if err := cmd.Root().GenFishCompletion(os.Stdout, true); err != nil {
-				tools.LogStderrExit("GenFishCompletion", err)
-			}
-		case "powershell":
-			if err := cmd.Root().GenPowerShellCompletionWithDesc(os.Stdout); err != nil {
-				tools.LogStderrExit("GenPowerShellCompletionWithDesc", err)
-			}
-		}
-	},
+			return nil
+		},
+	}
+
+	completionCmd.Flags().StringVarP(&shellType, "shell",
+		"s", "", "Shell type: {bash|zsh|fish|powershell}")
+
+	return completionCmd
 }
