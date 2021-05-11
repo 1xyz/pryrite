@@ -7,6 +7,8 @@ import (
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/tools"
 	"net/http"
+	"net/url"
+	"strings"
 )
 
 func NewContext(c *config.Config, agent string) *Context {
@@ -24,6 +26,10 @@ type Context struct {
 }
 
 func GetSnippetNode(ctx *Context, id string) (*graph.Node, error) {
+	id, err := getID(id)
+	if err != nil {
+		return nil, err
+	}
 	entry, found := ctx.Config.GetDefaultEntry()
 	if !found {
 		return nil, fmt.Errorf("default config is nil")
@@ -96,4 +102,17 @@ func handleGraphHTTPErr(ghe *graph.HttpError, ctxMessage string) error {
 		return fmt.Errorf("snippet not found")
 	}
 	return fmt.Errorf("%s code = %v", ctxMessage, ghe.HTTPCode)
+}
+
+func getID(idOrURL string) (string, error) {
+	idOrURL = strings.TrimSpace(idOrURL)
+	u, err := url.Parse(idOrURL)
+	if err != nil {
+		return "", err
+	}
+	tokens := strings.Split(u.Path, "/")
+	if len(tokens) == 0 || len(idOrURL) == 0 {
+		return "", fmt.Errorf("empty id")
+	}
+	return tokens[len(tokens)-1], nil
 }
