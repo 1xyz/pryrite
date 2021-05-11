@@ -50,6 +50,28 @@ func GetSnippetNode(ctx *Context, id string) (*graph.Node, error) {
 	return n, nil
 }
 
+func SearchSnippetNodes(ctx *Context, query string, limit int, kind graph.Kind) ([]graph.Node, error) {
+	entry, found := ctx.Config.GetDefaultEntry()
+	if !found {
+		return nil, fmt.Errorf("default config is nil")
+	}
+
+	ctxMsg := fmt.Sprintf("SearchSnippetNodes query=%s(limit=%d, kind=%v)", query, limit, kind)
+	store := graph.NewStore(entry, ctx.Metadata)
+	n, err := store.SearchNodes(query, limit, kind)
+	if err != nil {
+		var ghe *graph.HttpError
+		if errors.As(err, &ghe) {
+			return nil, handleGraphHTTPErr(ghe, ctxMsg)
+		}
+		tools.Log.Err(err).Msg(ctxMsg)
+		return nil, err
+	}
+
+	tools.Log.Info().Msgf("%s, %d nodes found", ctxMsg, len(n))
+	return n, nil
+}
+
 func GetSnippetNodes(ctx *Context, limit int, kind graph.Kind) ([]graph.Node, error) {
 	entry, found := ctx.Config.GetDefaultEntry()
 	if !found {
