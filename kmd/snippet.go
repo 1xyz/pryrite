@@ -21,7 +21,7 @@ func NewCmdSnippetList(gCtx *snippet.Context) *cobra.Command {
 	opts := &SnippetListOpts{}
 	cmd := &cobra.Command{
 		Use:   "list",
-		Short: "List snippets",
+		Short: "List available snippets",
 		Long: heredoc.Doc(`
               aard list, lists all snippets which are visible to the current
               logged-in user. This includes both a user's own snippets as well
@@ -39,12 +39,6 @@ func NewCmdSnippetList(gCtx *snippet.Context) *cobra.Command {
 
             To list all kinds of snippets that include non-command snippets, run:
               $ aard list --all-kinds
-
-            To filter the snippets listed to those created by specific user, run:
-              $ aard list --user=alanturing
-
-            To filter the snippets listed to those created by me, run:
-              $ aard list --mine
 		`),
 		Args: cobra.NoArgs,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
@@ -111,27 +105,32 @@ func NewCmdSnippetDesc(gCtx *snippet.Context) *cobra.Command {
 	return cmd
 }
 
-func NewCmdSnippetAdd(gCtx *snippet.Context) *cobra.Command {
+func NewCmdSnippetSave(gCtx *snippet.Context) *cobra.Command {
 	cmd := &cobra.Command{
-		DisableFlagParsing: true,
+		DisableFlagParsing:    true,
+		DisableFlagsInUseLine: true,
 
-		Use:   "add <content>...",
-		Short: "Add a snippet with the specified content",
+		Use:   "save <content>...",
+		Short: "Save a snippet with the specified content",
 		Long: heredoc.Doc(`
-              aard add,
+              aard save <content>, save content to the remote service.
 
               Here, <content> can be any content (typically a shell commend) that you want to be saved.
         `),
 		Aliases: []string{"save", "stash"},
 		Example: heredoc.Doc(`
-            To save a specified command , run:
-              $ aard add docker-compose run --rm --service-ports development bash
+            To save a specified docker command, run:
+
+              $ aard save docker-compose run --rm --service-ports development bash
 		`),
 		Args: MinimumArgs(1, "no content specified"),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			return IsUserLoggedIn(gCtx.Config)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if args[0] == "--help" {
+				return fmt.Errorf("run aard help save for more information")
+			}
 			content := strings.Join(args, " ")
 			tools.Log.Info().Msgf("add content=%s", content)
 			n, err := snippet.AddSnippetNode(gCtx, content)
