@@ -39,6 +39,10 @@ func RenderSnippetNode(cfg *config.Config, n *graph.Node, showContent bool) erro
 }
 
 func RenderSnippetNodes(cfg *config.Config, nodes []graph.Node, kind graph.Kind) error {
+	if len(nodes) == 0 {
+		tools.LogStdout("No results found!")
+		return nil
+	}
 	nr := &nodesRender{Nodes: nodes, kind: kind, serviceURL: getServiceURL(cfg)}
 	nr.Render()
 	return nil

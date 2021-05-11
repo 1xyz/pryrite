@@ -17,6 +17,58 @@ type SnippetListOpts struct {
 	IsMine      bool
 }
 
+func NewCmdSnippetSearch(gCtx *snippet.Context) *cobra.Command {
+	opts := &SnippetListOpts{}
+	cmd := &cobra.Command{
+		Use:   "search",
+		Short: "Search available snippets",
+		Long: heredoc.Doc(`
+              aard search, searches all snippets which are visible to the current
+              logged-in user. This includes both a user's own snippets as well
+              as snippet shared. 
+
+              By default, only "command" snippets are searched. This can be changed
+              by using the --kind=all flag.
+        `),
+		Example: heredoc.Doc(`
+            To search snippets for the term certutil, run: 
+              $ aard search "certutil"
+
+            To limit the search result to 10 entries, run:
+              $ aard search "certutil" -n 10
+
+            To include all kinds of snippets that include non-command snippets, run:
+              $ aard search certutil --all-kinds
+		`),
+		Args: MinimumArgs(1, "You need to specify a search query"),
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			return IsUserLoggedIn(gCtx.Config)
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			query := args[0]
+			limit := opts.Limit
+			kind := graph.Command
+			if opts.ShowAllKind {
+				kind = graph.Unknown
+			}
+			tools.Log.Info().Msgf("search query=%s Limit=%d Kind=%v", query, limit, kind)
+			nodes, err := snippet.SearchSnippetNodes(gCtx, query, limit, kind)
+			if err != nil {
+				return err
+			}
+			if err := snippet.RenderSnippetNodes(gCtx.Config, nodes, kind); err != nil {
+				return err
+			}
+			return nil
+		},
+	}
+	cmd.Flags().IntVarP(&opts.Limit, "limit", "n",
+		100, "Limit the number of results to display")
+	cmd.Flags().BoolVarP(&opts.ShowAllKind, "all-kinds", "a",
+		false, "include all kinds of snippets")
+	return cmd
+}
+
 func NewCmdSnippetList(gCtx *snippet.Context) *cobra.Command {
 	opts := &SnippetListOpts{}
 	cmd := &cobra.Command{
