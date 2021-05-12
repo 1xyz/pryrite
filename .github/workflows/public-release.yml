@@ -19,7 +19,7 @@ jobs:
 
     - name: Get tag name
       id: get_tag_name
-      run: echo ::set-output name=VERSION::$(cat version.txt)')
+      run: echo ::set-output name=VERSION::$(cat version.txt)
 
     - name: Use gh to release to cli-release repo
       if: github.event.release.prerelease != true

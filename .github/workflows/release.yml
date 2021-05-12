@@ -21,6 +21,10 @@ jobs:
         - name: Check out code into the Go module directory
           uses: actions/checkout@v2
 
+        - name: Get tag name
+          id: get_tag_name
+          run: echo ::set-output name=VERSION::$(cat version.txt)
+
         - name: Build x64 linux release
           run: make release/linux
 
@@ -32,10 +36,6 @@ jobs:
 
         - name: Zip darwin build
           run: zip -j aard-darwin-amd64.zip README.md bin/darwin/*
-
-        - name: Get tag name
-          id: get_tag_name
-          run: echo ::set-output name=VERSION::$(cat version.txt)')
 
         - name: Create Release
           id: create_release
