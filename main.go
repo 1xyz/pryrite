@@ -1,12 +1,16 @@
 package main
 
 import (
+	_ "embed"
 	"fmt"
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/kmd"
 	"github.com/aardlabs/terminal-poc/tools"
 	"os"
 )
+
+//go:embed version.txt
+var version string
 
 func main() {
 	verbose := true

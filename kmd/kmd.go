@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/snippet"
+	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/spf13/cobra"
 )
 
@@ -12,6 +13,14 @@ func NewCmdRoot(cfg *config.Config, version string) *cobra.Command {
 		Use:          "aard",
 		Short:        "Work seamlessly with the aard service from the command line",
 		SilenceUsage: true,
+	}
+	var versionCmd = &cobra.Command{
+		Use:   "version",
+		Short: "Display the program version",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			tools.LogStdout(version)
+			return nil
+		},
 	}
 	gCtx := NewGraphContext(cfg, version)
 	rootCmd.AddCommand(NewCmdSnippetList(gCtx))
@@ -22,7 +31,7 @@ func NewCmdRoot(cfg *config.Config, version string) *cobra.Command {
 	rootCmd.AddCommand(NewCmdAuth(cfg))
 	rootCmd.AddCommand(NewCmdConfig(cfg))
 	rootCmd.AddCommand(NewCmdCompletion())
-
+	rootCmd.AddCommand(versionCmd)
 	return rootCmd
 }
 

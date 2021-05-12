@@ -22,7 +22,7 @@ info:
 	@echo " ------------------------------------------------------------------"
 
 build: clean fmt
-	$(GO) build -o $(BUILD_BINARY) -v main.go version.go
+	$(GO) build -o $(BUILD_BINARY) -v main.go
 	cp misc/**/*.sh $(BIN_DIR)/
 
 .PHONY: clean
@@ -36,7 +36,7 @@ fmt:
 
 release/%: fmt
 	@echo "build GOOS: $(subst release/,,$@) & GOARCH: amd64"
-	GOOS=$(subst release/,,$@) GOARCH=amd64 $(GO) build -o bin/$(subst release/,,$@)/$(BINARY) -v main.go version.go
+	GOOS=$(subst release/,,$@) GOARCH=amd64 $(GO) build -o bin/$(subst release/,,$@)/$(BINARY) -v main.go
 	cp misc/**/*.sh $(BIN_DIR)/$(subst release/,,$@)
 
 .PHONY: test
