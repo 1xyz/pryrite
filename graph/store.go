@@ -23,6 +23,9 @@ type Store interface {
 
 	// SearchNodes searches for nodes for provided query
 	SearchNodes(query string, limit int, kind Kind) ([]Node, error)
+
+	// UpdateNode updates the content of an existing node
+	UpdateNode(node *Node) error
 }
 
 // remoteStore represents the remote event store backed by the service
@@ -103,6 +106,22 @@ func (r *remoteStore) AddNode(n *Node) (*Node, error) {
 		return nil, err
 	}
 	return &result, nil
+}
+
+func (r *remoteStore) UpdateNode(n *Node) error {
+	client := r.newHTTPClient(true)
+	resp, err := client.R().
+		SetPathParam("nodeId", n.ID).
+		SetHeader("Content-Type", "application/json").
+		SetBody(n).
+		Put("/api/v1/nodes/{nodeId}")
+	if err != nil {
+		return fmt.Errorf("http.put err: %v", err)
+	}
+	if err := checkHTTP2XX(fmt.Sprintf("UpdateNode(%v)", n), resp.StatusCode()); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (r *remoteStore) SearchNodes(query string, limit int, kind Kind) ([]Node, error) {

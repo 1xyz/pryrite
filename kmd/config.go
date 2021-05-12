@@ -141,7 +141,7 @@ func NewCmdConfigDelete(cfg *config.Config) *cobra.Command {
 func NewCmdConfig(cfg *config.Config) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "config",
-		Short: "Manage the set of aard named configurations.",
+		Short: "Manage the set of aard named configurations",
 	}
 	cmd.AddCommand(NewCmdConfigAdd(cfg))
 	cmd.AddCommand(NewCmdConfigList(cfg))
