@@ -1,8 +1,9 @@
 on:
   push:
-    # Sequence of patterns matched against refs/tags
-    tags:
-    - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+    branches:
+    - main
+    paths:
+    - 'version.txt'
 
 name: Release
 
@@ -10,7 +11,7 @@ jobs:
   build:
     name: Release
     runs-on: ubuntu-latest
-    steps:   
+    steps:
         - name: Set up Go 1.16+
           uses: actions/setup-go@v2
           with:
@@ -22,19 +23,19 @@ jobs:
 
         - name: Build x64 linux release
           run: make release/linux
-        
+
         - name: Zip linux build
           run: zip -j aard-linux-amd64.zip README.md bin/linux/*
 
         - name: Build x64 darwin release
           run: make release/darwin
-        
+
         - name: Zip darwin build
           run: zip -j aard-darwin-amd64.zip README.md bin/darwin/*
 
         - name: Get tag name
           id: get_tag_name
-          run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+          run: echo ::set-output name=VERSION::$(cat version.txt)')
 
         - name: Create Release
           id: create_release
@@ -43,8 +44,8 @@ jobs:
             GITHUB_USER: ${{ secrets.GH_USER }}
             GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           with:
-            tag_name: ${{ github.ref }}
-            release_name: Release ${{ github.ref }}
+            tag_name: ${{ steps.get_tag_name.outputs.VERSION }}
+            release_name: Release ${{ steps.get_tag_name.outputs.VERSION }}
             draft: false
             prerelease: false
 

@@ -5,7 +5,7 @@ on:
     types: [published]
 
 jobs:
-  homebrew-release:
+  publish-release:
     runs-on: macOS-latest
     steps:
     - name: Checks if pre-release
@@ -19,9 +19,9 @@ jobs:
 
     - name: Get tag name
       id: get_tag_name
-      run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+      run: echo ::set-output name=VERSION::$(cat version.txt)')
 
-    - name: Use gh to release to homebrew-cli repo
+    - name: Use gh to release to cli-release repo
       if: github.event.release.prerelease != true
       env:
         RELEASE_TAG: ${{ steps.get_tag_name.outputs.VERSION }}
