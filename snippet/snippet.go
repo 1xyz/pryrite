@@ -1,13 +1,18 @@
 package snippet
 
 import (
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/tools"
+	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
+	"os/exec"
 	"strings"
 )
 
@@ -48,6 +53,27 @@ func GetSnippetNode(ctx *Context, id string) (*graph.Node, error) {
 	}
 
 	return n, nil
+}
+
+func UpdateSnippetNode(ctx *Context, n *graph.Node) error {
+	entry, found := ctx.Config.GetDefaultEntry()
+	if !found {
+		return fmt.Errorf("default config is nil")
+	}
+
+	store := graph.NewStore(entry, ctx.Metadata)
+	err := store.UpdateNode(n)
+	if err != nil {
+		ctxMsg := fmt.Sprintf("UpdateSnippetNode(%s) = %v", n.ID, err)
+		var ghe *graph.HttpError
+		if errors.As(err, &ghe) {
+			return handleGraphHTTPErr(ghe, ctxMsg)
+		}
+		tools.Log.Err(err).Msg(ctxMsg)
+		return err
+	}
+
+	return nil
 }
 
 func SearchSnippetNodes(ctx *Context, query string, limit int, kind graph.Kind) ([]graph.Node, error) {
@@ -114,6 +140,66 @@ func AddSnippetNode(ctx *Context, content string) (*graph.Node, error) {
 	return result, nil
 }
 
+func EditSnippetNode(ctx *Context, id string) (*graph.Node, error) {
+	n, err := GetSnippetNode(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	// create a temporary file - current we do not know the type.
+	// but hopefully in the future we can guess this.
+	filename, err := tools.CreateTempFile("", "t_*.txt")
+	if err != nil {
+		return nil, err
+	}
+
+	// Write the content to temporary file
+	if len(n.Content) > 0 {
+		if err := ioutil.WriteFile(filename, []byte(n.Content), 0600); err != nil {
+			return nil, err
+		}
+		tools.Log.Info().Msgf("EditSnippetNode (%s). wrote n=%d bytes to %s",
+			n.ID, len(n.Content), filename)
+	} else {
+		tools.Log.Info().Msgf("EditSnippetNode (%s). no content to write to file",
+			n.ID, filename)
+	}
+
+	// Compute the file hash before
+	h0, err := computeFileHash(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	// open this file in editor
+	if err := openFileInEditor(filename); err != nil {
+		return nil, err
+	}
+
+	// Compute the filehash after edit
+	h1, err := computeFileHash(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	// check to see if the content should be sent
+	if areEqual(h0, h1) {
+		tools.LogStdout("no changes are detected. abandoning edit")
+		return n, nil
+	}
+
+	newContent, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+	n.Content = string(newContent)
+
+	if err := UpdateSnippetNode(ctx, n); err != nil {
+		return nil, err
+	}
+	return n, nil
+}
+
 func handleGraphHTTPErr(ghe *graph.HttpError, ctxMessage string) error {
 	tools.Log.Err(ghe).Msgf("%s HTTP error = %v reason = %s",
 		ctxMessage, ghe.HTTPCode, ghe.Error())
@@ -137,4 +223,53 @@ func getID(idOrURL string) (string, error) {
 		return "", fmt.Errorf("empty id")
 	}
 	return tokens[len(tokens)-1], nil
+}
+
+func openFileInEditor(filename string) error {
+	// ToDo: have a better solution to support windows etc
+	const DefaultEditor = "nano"
+	editor := os.Getenv("EDITOR")
+	if editor == "" {
+		tools.LogStdout(fmt.Sprintf("No EDITOR variable defined, using %s", DefaultEditor))
+		editor = DefaultEditor
+	}
+
+	executable, err := exec.LookPath(editor)
+	if err != nil {
+		return fmt.Errorf("could not find path for the editor %v", err)
+	}
+	tools.Log.Info().Msgf("found editor=%s path=%s", editor, executable)
+
+	cmd := exec.Command(executable, filename)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	return cmd.Run()
+}
+
+func computeFileHash(filename string) ([]byte, error) {
+	fr, err := tools.OpenFile(filename, os.O_RDONLY)
+	if err != nil {
+		return nil, err
+	}
+	defer tools.CloseFile(fr)
+
+	h := sha256.New()
+	if _, err := io.Copy(h, fr); err != nil {
+		return nil, err
+	}
+	return h.Sum(nil), nil
+}
+
+func areEqual(b0, b1 []byte) bool {
+	if len(b0) != len(b1) {
+		return false
+	}
+	for i := 0; i < len(b0); i++ {
+		if b0[i] != b1[i] {
+			return false
+		}
+	}
+	return true
 }

@@ -163,13 +163,13 @@ func NewCmdSnippetSave(gCtx *snippet.Context) *cobra.Command {
 		DisableFlagsInUseLine: true,
 
 		Use:   "save <content>...",
-		Short: "Save a snippet with the specified content",
+		Short: "Save a new snippet with the specified content",
 		Long: heredoc.Doc(`
               aard save <content>, save content to the remote service.
 
               Here, <content> can be any content (typically a shell commend) that you want to be saved.
         `),
-		Aliases: []string{"save", "stash"},
+		Aliases: []string{"add", "stash"},
 		Example: heredoc.Doc(`
             To save a specified docker command, run:
 
@@ -192,6 +192,47 @@ func NewCmdSnippetSave(gCtx *snippet.Context) *cobra.Command {
 
 			tools.Log.Info().Msgf("AddSnippetNode n.ID = %s", n.ID)
 			fmt.Printf("Added a new node with id = %s\n", n.ID)
+			return nil
+		},
+	}
+	return cmd
+}
+
+func NewCmdSnippetEdit(gCtx *snippet.Context) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "edit <name>",
+		Short: "Edit and update content of the specified snippet",
+		Long: heredoc.Doc(`
+              aard edit <name>, edits the content of the specified snippet. 
+
+              Here, <name> can be the identifier or the URL of the snippet.
+              
+              The edit command allows you to directly edit the content of a command. It will open
+              the editor defined by the EDITOR environment variable, or fall back to 'nano' for Linux/OSX 
+              or 'notepad' for Windows. Upon exiting the editor, the content will be updated on the remote 
+              service.
+        `),
+		Example: heredoc.Doc(`
+            To edit a specific snippet by URL, run:
+              $ aard edit https://aard.app/edy6819l
+
+            To edit a specific snippet by ID, run:
+              $ aard edit edy6819l
+		`),
+		Args: MinimumArgs(1, "no name specified"),
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			return IsUserLoggedIn(gCtx.Config)
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			name := args[0]
+			tools.Log.Info().Msgf("edit name=%s", name)
+			n, err := snippet.EditSnippetNode(gCtx, name)
+			if err != nil {
+				return err
+			}
+			if err := snippet.RenderSnippetNode(gCtx.Config, n, true /*show content*/); err != nil {
+				return err
+			}
 			return nil
 		},
 	}

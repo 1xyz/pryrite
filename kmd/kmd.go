@@ -18,6 +18,7 @@ func NewCmdRoot(cfg *config.Config, version string) *cobra.Command {
 	rootCmd.AddCommand(NewCmdSnippetSearch(gCtx))
 	rootCmd.AddCommand(NewCmdSnippetDesc(gCtx))
 	rootCmd.AddCommand(NewCmdSnippetSave(gCtx))
+	rootCmd.AddCommand(NewCmdSnippetEdit(gCtx))
 	rootCmd.AddCommand(NewCmdAuth(cfg))
 	rootCmd.AddCommand(NewCmdConfig(cfg))
 	rootCmd.AddCommand(NewCmdCompletion())

@@ -28,6 +28,7 @@ type Node struct {
 	IsTitleGenerated bool      `json:"title_was_generated"`
 	Description      string    `json:"description,omitempty"`
 	Content          string    `json:"content,omitempty"`
+	ContentLanguage  string    `json:"content_language,omitempty"`
 	Children         string    `json:"children,omitempty"`
 }
 
