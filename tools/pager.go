@@ -10,6 +10,7 @@ import (
 )
 
 type Pager struct {
+	buf    []byte
 	w      io.WriteCloser
 	stdout *os.File
 	cmd    *exec.Cmd
@@ -39,6 +40,7 @@ func NewPager() (*Pager, error) {
 	cmd.Stderr = os.Stderr
 
 	return &Pager{
+		buf:    []byte{},
 		cmd:    cmd,
 		w:      w,
 		stdout: stdout,
@@ -46,15 +48,21 @@ func NewPager() (*Pager, error) {
 }
 
 func (p *Pager) Write(b []byte) (int, error) {
-	return p.w.Write(b)
+	p.buf = append(p.buf, b...)
+	return len(b), nil
 }
 
 func (p *Pager) Close() error {
+	if err := p.cmd.Start(); err != nil {
+		return err
+	}
+	if _, err := p.w.Write(p.buf); err != nil {
+		return err
+	}
 	if err := p.w.Close(); err != nil {
 		return err
 	}
-
-	if err := p.cmd.Run(); err != nil {
+	if err := p.cmd.Wait(); err != nil {
 		return err
 	}
 	// restore stdout

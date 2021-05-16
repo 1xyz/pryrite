@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 )
 
 func NewContext(c *config.Config, agent string) *Context {
@@ -231,9 +232,10 @@ func GetSnippetNodeView(ctx *Context, id string) (*graph.NodeView, error) {
 }
 
 func getSnippetNodeView(store graph.Store, id string) (*graph.NodeView, error) {
+	startAt := time.Now()
 	n, err := store.GetNodeView(id)
 	if err != nil {
-		ctxMsg := fmt.Sprintf("GetSnippetNodeView(%s) = %v", id, err)
+		ctxMsg := fmt.Sprintf("getSnippetNodeView(%s) = %v", id, err)
 		var ghe *graph.HttpError
 		if errors.As(err, &ghe) {
 			return nil, handleGraphHTTPErr(ghe, ctxMsg)
@@ -241,6 +243,8 @@ func getSnippetNodeView(store graph.Store, id string) (*graph.NodeView, error) {
 		tools.Log.Err(err).Msg(ctxMsg)
 		return nil, err
 	}
+	duration := time.Since(startAt)
+	tools.Log.Info().Msgf("getSnippetNodeView: took %v", duration)
 	return n, nil
 }
 

@@ -26,7 +26,7 @@ const (
 	// sample Kind col. len w/ padding length
 	kindColLen = len(graph.ClipboardCopy) + padLen
 	// id URL column length - a rough estimate
-	idColLen = 32 + padLen
+	idColLen = 60 + padLen
 )
 
 func RenderSnippetNodeView(cfg *config.Config, nv *graph.NodeView) error {
@@ -71,17 +71,19 @@ func (nr *nodeRender) Render() {
 		tools.LogStdout(fmt.Sprintf("Render: tools.OpenOutputWriter: err = %v", err))
 		return
 	}
-	defer func() { w.Close() }()
-
+	defer func() {
+		if err := w.Close(); err != nil {
+			tools.Log.Err(err).Msgf("Render defer: error closing writer")
+			return
+		}
+	}()
 	nr.renderNodeView(nr.view, w, err)
-	if nr.view.Children != nil {
+	if nr.view.Children != nil && len(nr.view.Children) > 0 {
 		for _, child := range nr.view.Children {
 			nr.renderNodeView(child, w, err)
 		}
 	}
-
-	//result := markdown.Render(nr.view.ContentMarkdown, colLen, padLen)
-	//fmt.Println(string(result))
+	tools.Log.Info().Msgf("Render complete for node %v", nr.view.Node.ID)
 }
 
 func (nr *nodeRender) renderNodeView(nv *graph.NodeView, w io.WriteCloser, err error) {
@@ -108,10 +110,13 @@ func (nr *nodeRender) renderNodeView(nv *graph.NodeView, w io.WriteCloser, err e
 
 	out, err := r.Render(nv.ContentMarkdown)
 	if err != nil {
-		tools.LogStdout(fmt.Sprintf("error = %v", err))
+		tools.Log.Err(err).Msgf("renderNodeView: id = %v fmt.Fprintf()", nv.Node.ID)
 		return
 	}
-	fmt.Fprint(w, out)
+	if _, err := fmt.Fprint(w, out); err != nil {
+		tools.Log.Err(err).Msgf("renderNodeView: id = %v fmt.Fprintf()", nv.Node.ID)
+	}
+	tools.Log.Info().Msgf("renderNodeView: id=%v complete", nv.Node.ID)
 }
 
 func (nr *nodeRender) getColumnLen() int {
