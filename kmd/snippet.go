@@ -92,7 +92,8 @@ func NewCmdSnippetList(gCtx *snippet.Context) *cobra.Command {
             To list all kinds of snippets that include non-command snippets, run:
               $ aard list --all-kinds
 		`),
-		Args: cobra.NoArgs,
+		Aliases: []string{"ls"},
+		Args:    cobra.NoArgs,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			return IsUserLoggedIn(gCtx.Config)
 		},
@@ -129,6 +130,7 @@ func NewCmdSnippetDesc(gCtx *snippet.Context) *cobra.Command {
 
               Here, <name> can be the identifier or the URL of the snippet.
         `),
+
 		Aliases: []string{"view", "show", "desc"},
 		Example: heredoc.Doc(`
             To describe a specific snippet by URL, run:
@@ -144,11 +146,11 @@ func NewCmdSnippetDesc(gCtx *snippet.Context) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 			tools.Log.Info().Msgf("describe name=%s", name)
-			n, err := snippet.GetSnippetNode(gCtx, name)
+			view, err := snippet.GetSnippetNodeView(gCtx, name)
 			if err != nil {
 				return err
 			}
-			if err := snippet.RenderSnippetNode(gCtx.Config, n, true /*show content*/); err != nil {
+			if err := snippet.RenderSnippetNodeView(gCtx.Config, view); err != nil {
 				return err
 			}
 			return nil
@@ -226,13 +228,13 @@ func NewCmdSnippetEdit(gCtx *snippet.Context) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 			tools.Log.Info().Msgf("edit name=%s", name)
-			n, err := snippet.EditSnippetNode(gCtx, name)
+			_, err := snippet.EditSnippetNode(gCtx, name)
 			if err != nil {
 				return err
 			}
-			if err := snippet.RenderSnippetNode(gCtx.Config, n, true /*show content*/); err != nil {
-				return err
-			}
+			//if err := snippet.RenderSnippetNodeView(gCtx.Config, n, true /*show content*/); err != nil {
+			//	return err
+			//}
 			return nil
 		},
 	}

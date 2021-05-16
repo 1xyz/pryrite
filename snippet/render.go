@@ -2,12 +2,13 @@ package snippet
 
 import (
 	"fmt"
-	markdown "github.com/MichaelMure/go-term-markdown"
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/charmbracelet/glamour"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/rs/zerolog/log"
+	"io"
 	"strings"
 
 	"os"
@@ -28,11 +29,10 @@ const (
 	idColLen = 32 + padLen
 )
 
-func RenderSnippetNode(cfg *config.Config, n *graph.Node, showContent bool) error {
+func RenderSnippetNodeView(cfg *config.Config, nv *graph.NodeView) error {
 	nr := &nodeRender{
-		Node:        n,
-		showContent: showContent,
-		serviceURL:  getServiceURL(cfg),
+		view:       nv,
+		serviceURL: getServiceURL(cfg),
 	}
 	nr.Render()
 	return nil
@@ -51,7 +51,7 @@ func RenderSnippetNodes(cfg *config.Config, nodes []graph.Node, kind graph.Kind)
 func getServiceURL(cfg *config.Config) string {
 	entry, found := cfg.GetDefaultEntry()
 	if !found {
-		tools.Log.Warn().Msgf("RenderSnippetNode(s): cannot find default entry!")
+		tools.Log.Warn().Msgf("RenderSnippetNodeView(s): cannot find default entry!")
 	}
 	serviceURL := entry.ServiceUrl
 	if !strings.HasSuffix(serviceURL, "/") {
@@ -61,50 +61,57 @@ func getServiceURL(cfg *config.Config) string {
 }
 
 type nodeRender struct {
-	Node        *graph.Node
-	showContent bool
-	serviceURL  string
+	view       *graph.NodeView
+	serviceURL string
 }
 
 func (nr *nodeRender) Render() {
+	w, err := tools.OpenOutputWriter()
+	if err != nil {
+		tools.LogStdout(fmt.Sprintf("Render: tools.OpenOutputWriter: err = %v", err))
+		return
+	}
+	defer func() { w.Close() }()
+
+	nr.renderNodeView(nr.view, w, err)
+	if nr.view.Children != nil {
+		for _, child := range nr.view.Children {
+			nr.renderNodeView(child, w, err)
+		}
+	}
+
+	//result := markdown.Render(nr.view.ContentMarkdown, colLen, padLen)
+	//fmt.Println(string(result))
+}
+
+func (nr *nodeRender) renderNodeView(nv *graph.NodeView, w io.WriteCloser, err error) {
 	t := table.NewWriter()
 	t.SetStyle(table.StyleBold)
-	t.SetOutputMirror(os.Stdout)
-	t.AppendRow(table.Row{"Id", fmtID(nr.serviceURL, nr.Node.ID)})
-	t.AppendRow(table.Row{"Kind", nr.Node.Kind})
+	t.SetOutputMirror(w)
+	t.AppendRow(table.Row{"Id", fmtID(nr.serviceURL, nv.Node.ID)})
+	t.AppendRow(table.Row{"Kind", nv.Node.Kind})
 	t.AppendSeparator()
 	colLen := nr.getColumnLen()
 	t.AppendRows([]table.Row{
-		{"Date", tools.FmtTime(nr.Node.OccurredAt)},
-		{"Agent", nr.Node.Metadata.Agent},
+		{"Date", tools.FmtTime(nv.Node.OccurredAt)},
+		{"Agent", nv.Node.Metadata.Agent},
 	})
 	t.AppendSeparator()
 	t.Render()
 
-	if nr.showContent {
-		if len(nr.Node.Title) > 0 {
-			result := markdown.Render("* Title:-", colLen, padLen)
-			fmt.Println(string(result))
-			result = markdown.Render(nr.Node.Title, colLen, padLen)
-			fmt.Println(string(result))
-		}
-		if len(nr.Node.Description) > 0 {
-			result := markdown.Render("* Description:-", colLen, padLen)
-			fmt.Println(string(result))
-			result = markdown.Render(nr.Node.Description, colLen, padLen)
-			fmt.Println(string(result))
-			fmt.Println()
-		}
+	r, _ := glamour.NewTermRenderer(
+		// detect background color and pick either the default dark or light theme
+		glamour.WithAutoStyle(),
+		// wrap output at specific width
+		glamour.WithWordWrap(colLen),
+	)
 
-		result := markdown.Render("* Content:-", colLen, padLen)
-		fmt.Println(string(result))
-		if len(nr.Node.Content) > 0 {
-			result := markdown.Render(nr.Node.Content, colLen, padLen)
-			fmt.Println(string(result))
-		} else {
-			fmt.Println("  No content")
-		}
+	out, err := r.Render(nv.ContentMarkdown)
+	if err != nil {
+		tools.LogStdout(fmt.Sprintf("error = %v", err))
+		return
 	}
+	fmt.Fprint(w, out)
 }
 
 func (nr *nodeRender) getColumnLen() int {

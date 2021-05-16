@@ -200,6 +200,50 @@ func EditSnippetNode(ctx *Context, id string) (*graph.Node, error) {
 	return n, nil
 }
 
+func GetSnippetNodeView(ctx *Context, id string) (*graph.NodeView, error) {
+	id, err := getID(id)
+	if err != nil {
+		return nil, err
+	}
+	entry, found := ctx.Config.GetDefaultEntry()
+	if !found {
+		return nil, fmt.Errorf("default config is nil")
+	}
+
+	store := graph.NewStore(entry, ctx.Metadata)
+	nv, err := getSnippetNodeView(store, id)
+	if err != nil {
+		return nil, err
+	}
+
+	nv.Children = []*graph.NodeView{}
+	childIDs := nv.Node.GetChildIDs()
+	for _, childID := range childIDs {
+		cnv, err := getSnippetNodeView(store, childID)
+		if err != nil {
+			return nil, fmt.Errorf("error fetching childId = %v for node %v. err = %v",
+				childID, id, err)
+		}
+		nv.Children = append(nv.Children, cnv)
+	}
+
+	return nv, nil
+}
+
+func getSnippetNodeView(store graph.Store, id string) (*graph.NodeView, error) {
+	n, err := store.GetNodeView(id)
+	if err != nil {
+		ctxMsg := fmt.Sprintf("GetSnippetNodeView(%s) = %v", id, err)
+		var ghe *graph.HttpError
+		if errors.As(err, &ghe) {
+			return nil, handleGraphHTTPErr(ghe, ctxMsg)
+		}
+		tools.Log.Err(err).Msg(ctxMsg)
+		return nil, err
+	}
+	return n, nil
+}
+
 func handleGraphHTTPErr(ghe *graph.HttpError, ctxMessage string) error {
 	tools.Log.Err(ghe).Msgf("%s HTTP error = %v reason = %s",
 		ctxMessage, ghe.HTTPCode, ghe.Error())

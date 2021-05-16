@@ -2,6 +2,7 @@ package graph
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -32,6 +33,18 @@ type Node struct {
 	Children         string    `json:"children,omitempty"`
 }
 
+func (n *Node) GetChildIDs() []string {
+	ids := strings.Split(n.Children, ",")
+	result := []string{}
+	for _, id := range ids {
+		id = strings.TrimSpace(id)
+		if len(id) > 0 {
+			result = append(result, id)
+		}
+	}
+	return result
+}
+
 func NewNode(kind Kind, title, description, content string, metadata Metadata) (*Node, error) {
 	now := time.Now().UTC()
 	return &Node{
@@ -43,4 +56,11 @@ func NewNode(kind Kind, title, description, content string, metadata Metadata) (
 		Content:     content,
 		Metadata:    metadata,
 	}, nil
+}
+
+// NodeView is a terminal specific rendered response
+type NodeView struct {
+	Node            *Node  `json:"node"`
+	ContentMarkdown string `json:"content_markdown"`
+	Children        []*NodeView
 }

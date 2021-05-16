@@ -26,6 +26,9 @@ type Store interface {
 
 	// UpdateNode updates the content of an existing node
 	UpdateNode(node *Node) error
+
+	// GetNodeView asks the server for a terminal renderable view.
+	GetNodeView(id string) (*NodeView, error)
 }
 
 // remoteStore represents the remote event store backed by the service
@@ -84,6 +87,27 @@ func (r *remoteStore) GetNode(id string) (*Node, error) {
 		return nil, err
 	}
 	result := Node{}
+	if err := json.NewDecoder(resp.RawBody()).Decode(&result); err != nil {
+		return nil, &Error{"GetNode", err}
+	}
+	return &result, nil
+}
+
+func (r *remoteStore) GetNodeView(id string) (*NodeView, error) {
+	client := r.newHTTPClient(false)
+	req := client.R().
+		SetPathParam("nodeId", id).
+		SetQueryParam("IncludeTitle", "true").
+		SetQueryParam("HtmlAsText", "true").
+		SetHeader("Accept", "application/json")
+	resp, err := req.Get("/api/v1/nodes/{nodeId}/termview")
+	if err != nil {
+		return nil, fmt.Errorf("http.get err: %v", err)
+	}
+	if err := checkHTTP2XX(fmt.Sprintf("getNode(%s)", id), resp.StatusCode()); err != nil {
+		return nil, err
+	}
+	result := NodeView{}
 	if err := json.NewDecoder(resp.RawBody()).Decode(&result); err != nil {
 		return nil, &Error{"GetNode", err}
 	}
