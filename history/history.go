@@ -4,14 +4,15 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"github.com/aardlabs/terminal-poc/tools"
 	"os"
 	"time"
+
+	"github.com/aardlabs/terminal-poc/tools"
 )
 
 type Item struct {
-	CreatedAt time.Time `json:"createdAt"`
-	Command   string    `json:"command"`
+	CreatedAt *time.Time `json:"createdAt"`
+	Command   string     `json:"command"`
 }
 
 type History interface {
