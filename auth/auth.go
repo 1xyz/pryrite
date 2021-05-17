@@ -3,10 +3,12 @@ package auth
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/aardlabs/terminal-poc/tools"
+	"net"
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/aardlabs/terminal-poc/tools"
 
 	"github.com/1xyz/sseclient"
 	"github.com/aardlabs/terminal-poc/config"
@@ -31,9 +33,18 @@ func AuthUser(entry *config.Entry, serviceUrl string) error {
 	if entry.SkipSSLCheck {
 		tools.LogStdout("Warning: SSL check is disabled")
 	}
+
 	client := &http.Client{
-		Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: entry.SkipSSLCheck}},
-		Timeout:   ClientTimeout}
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: entry.SkipSSLCheck},
+			Dial: (&net.Dialer{
+				Timeout:   10 * time.Second,
+				KeepAlive: 25 * time.Second,
+			}).Dial,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ResponseHeaderTimeout: 10 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+		}}
 
 	events, err := sseclient.HttpClientOpenURL(client, loginUrl.String())
 	//events, err := sseclient.OpenURL(loginUrl.String())
