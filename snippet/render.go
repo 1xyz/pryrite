@@ -5,7 +5,6 @@ import (
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/tools"
-	"github.com/charmbracelet/glamour"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/rs/zerolog/log"
 	"io"
@@ -27,10 +26,15 @@ const (
 	idColLen = 60 + padLen
 )
 
-func RenderSnippetNodeView(cfg *config.Config, nv *graph.NodeView) error {
+type RenderNodeViewOpts struct {
+	RenderMarkdown bool
+}
+
+func RenderSnippetNodeView(cfg *config.Config, nv *graph.NodeView, opts *RenderNodeViewOpts) error {
 	nr := &nodeRender{
 		view:       nv,
 		serviceURL: getServiceURL(cfg),
+		opts:       opts,
 	}
 	nr.Render()
 	return nil
@@ -61,6 +65,7 @@ func getServiceURL(cfg *config.Config) string {
 type nodeRender struct {
 	view       *graph.NodeView
 	serviceURL string
+	opts       *RenderNodeViewOpts
 }
 
 func (nr *nodeRender) Render() {
@@ -91,7 +96,6 @@ func (nr *nodeRender) renderNodeView(nv *graph.NodeView, w io.WriteCloser, err e
 	t.AppendRow(table.Row{"Id", fmtID(nr.serviceURL, nv.Node.ID)})
 	t.AppendRow(table.Row{"Kind", nv.Node.Kind})
 	t.AppendSeparator()
-	colLen := nr.getColumnLen()
 	t.AppendRows([]table.Row{
 		{"Date", tools.FmtTime(nv.Node.OccurredAt)},
 		{"Agent", nv.Node.Metadata.Agent},
@@ -99,18 +103,24 @@ func (nr *nodeRender) renderNodeView(nv *graph.NodeView, w io.WriteCloser, err e
 	t.AppendSeparator()
 	t.Render()
 
-	r, _ := glamour.NewTermRenderer(
-		// detect background color and pick either the default dark or light theme
-		glamour.WithAutoStyle(),
-		// wrap output at specific width
-		glamour.WithWordWrap(colLen),
-	)
-
-	out, err := r.Render(nv.ContentMarkdown)
-	if err != nil {
-		tools.Log.Err(err).Msgf("renderNodeView: id = %v fmt.Fprintf()", nv.Node.ID)
-		return
-	}
+	out := nv.ContentMarkdown
+	//colLen := nr.getColumnLen()
+	//r, _ := glamour.NewTermRenderer(
+	//	// detect background color and pick either the default dark or light theme
+	//	glamour.WithAutoStyle(),
+	//	// wrap output at specific width
+	//	glamour.WithWordWrap(colLen),
+	//)
+	//
+	//// Glamour rendering preserves carriage return characters in code blocks, but
+	//// we need to ensure that no such characters are present in the output.
+	//// text := strings.ReplaceAll(nv.ContentMarkdown, "\r\n", "\n")
+	//text := nv.ContentMarkdown
+	//out, err := r.Render(text)
+	//if err != nil {
+	//	tools.Log.Err(err).Msgf("renderNodeView: id = %v fmt.Fprintf()", nv.Node.ID)
+	//	return
+	//}
 	if _, err := fmt.Fprint(w, out); err != nil {
 		tools.Log.Err(err).Msgf("renderNodeView: id = %v fmt.Fprintf()", nv.Node.ID)
 	}
