@@ -3,6 +3,7 @@ package kmd
 import (
 	"errors"
 	"fmt"
+
 	"github.com/aardlabs/terminal-poc/auth"
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/spf13/cobra"
@@ -28,7 +29,7 @@ func IsUserLoggedIn(cfg *config.Config) error {
 	}
 	_, found = auth.GetLoggedInUser(entry)
 	if !found {
-		return fmt.Errorf("no user is logged in. See: aard auth login --help")
+		return auth.AuthUser(entry, "")
 	}
 	return nil
 }
