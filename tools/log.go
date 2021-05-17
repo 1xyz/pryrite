@@ -2,14 +2,15 @@ package tools
 
 import (
 	"fmt"
-	"github.com/rs/zerolog"
-	zlog "github.com/rs/zerolog/log"
-	"gopkg.in/natefinch/lumberjack.v2"
-	"gopkg.in/yaml.v2"
 	"io"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/rs/zerolog"
+	zlog "github.com/rs/zerolog/log"
+	"gopkg.in/natefinch/lumberjack.v2"
+	"gopkg.in/yaml.v2"
 )
 
 var (
@@ -111,7 +112,7 @@ func TrimLength(s string, maxLen int) string {
 	return s
 }
 
-func FmtTime(t time.Time) string {
+func FmtTime(t *time.Time) string {
 	return t.In(time.Local).Format("Jan _2 3:04PM")
 }
 
