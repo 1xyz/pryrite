@@ -10,8 +10,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"io"
 	"strings"
-
-	"os"
 )
 
 const (
@@ -144,9 +142,21 @@ type nodesRender struct {
 }
 
 func (nr *nodesRender) Render() {
+	w, err := tools.OpenOutputWriter()
+	if err != nil {
+		tools.LogStdout(fmt.Sprintf("Render: tools.OpenOutputWriter: err = %v", err))
+		return
+	}
+	defer func() {
+		if err := w.Close(); err != nil {
+			tools.Log.Err(err).Msgf("Render defer: error closing writer")
+			return
+		}
+	}()
+
 	t := table.NewWriter()
 	t.SetStyle(table.StyleBold)
-	t.SetOutputMirror(os.Stdout)
+	t.SetOutputMirror(w)
 	for _, e := range nr.Nodes {
 		summary := nr.getSummary(&e)
 		idURL := fmtID(nr.serviceURL, e.ID)
