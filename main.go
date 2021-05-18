@@ -3,14 +3,24 @@ package main
 import (
 	_ "embed"
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/kmd"
 	"github.com/aardlabs/terminal-poc/tools"
-	"os"
 )
 
-//go:embed version.txt
-var version string
+var (
+	//go:embed version.txt
+	version string
+	//go:embed commit_hash.txt
+	commitHash string
+	//go:embed build_time.txt
+	buildTime string
+
+	whitespace = " \t\r\n"
+)
 
 func main() {
 	verbose := true
@@ -32,7 +42,11 @@ func main() {
 		tools.LogStderrExit("config.Default", err)
 	}
 	// the error is handled by cobra (so let us not handle it)
-	kmd.Execute(cfg, version)
+	kmd.Execute(cfg, &kmd.VersionInfo{
+		Version:    strings.Trim(version, whitespace),
+		CommitHash: strings.Trim(commitHash, whitespace),
+		BuildTime:  strings.Trim(buildTime, whitespace),
+	})
 }
 
 //

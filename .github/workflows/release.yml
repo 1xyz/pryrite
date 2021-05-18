@@ -50,6 +50,18 @@ jobs:
             draft: false
             prerelease: false
 
+        - name: Upload Linux Release Binary
+          id: upload-release-binary-linux
+          uses: actions/upload-release-asset@v1
+          env:
+            GITHUB_USER: ${{ secrets.GH_USER }}
+            GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          with:
+            upload_url: ${{ steps.create_release.outputs.upload_url }}
+            asset_path: ./bin/linxu/aard
+            asset_name: aard-linux-amd64-${{ steps.get_tag_name.outputs.VERSION }}.zip
+            asset_content_type: application/zip
+
         - name: Upload Linux Release Asset
           id: upload-release-asset-linux
           uses: actions/upload-release-asset@v1
