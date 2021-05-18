@@ -22,21 +22,33 @@ jobs:
         - name: Check out code into the Go module directory
           uses: actions/checkout@v2
 
+        - name: Get version
+          id: get_version
+          run: echo ::set-output name=VERSION::$(cat version.txt)
+
+        - name: Get commit hash
+          id: get_commit_hash
+          run: echo ::set-output name=COMMIT_HASH::$(git rev-parse --short HEAD)
+
         - name: Get tag name
           id: get_tag_name
-          run: echo ::set-output name=VERSION::$(cat version.txt)
+          uses: haya14busa/action-cond@v1
+          with:
+            cond: ${{ github.ref == 'refs/heads/main' }}
+            if_true: ${{ steps.get_version.outputs.VERSION }}
+            if_false: ${{ steps.get_version.outputs.VERSION }}-${{ steps.get_commit_hash.outputs.COMMIT_HASH }}-dev
 
         - name: Build x64 linux release
           run: make release/linux
 
         - name: Zip linux build
-          run: zip -j aard-linux-amd64.zip README.md bin/linux/*
+          run: zip -j aardy-linux-amd64.zip README.md bin/linux/*
 
         - name: Build x64 darwin release
           run: make release/darwin
 
         - name: Zip darwin build
-          run: zip -j aard-darwin-amd64.zip README.md bin/darwin/*
+          run: zip -j aardy-darwin-amd64.zip README.md bin/darwin/*
 
         - name: Create Release
           id: create_release
@@ -45,10 +57,22 @@ jobs:
             GITHUB_USER: ${{ secrets.GH_USER }}
             GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           with:
-            tag_name: ${{ steps.get_tag_name.outputs.VERSION }}
-            release_name: Release ${{ steps.get_tag_name.outputs.VERSION }}
+            tag_name: ${{ steps.get_tag_name.outputs.value }}
+            release_name: Release ${{ steps.get_tag_name.outputs.value }}
             draft: false
-            prerelease: false
+            prerelease: ${{ github.ref != 'refs/heads/main' }}
+
+        - name: Upload Linux Release Binary
+          id: upload-release-binary-linux
+          uses: actions/upload-release-asset@v1
+          env:
+            GITHUB_USER: ${{ secrets.GH_USER }}
+            GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          with:
+            upload_url: ${{ steps.create_release.outputs.upload_url }}
+            asset_path: ./bin/linux/aardy
+            asset_name: aardy-linux-amd64
+            asset_content_type: application/octet-stream
 
         - name: Upload Linux Release Asset
           id: upload-release-asset-linux
@@ -58,8 +82,8 @@ jobs:
             GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           with:
             upload_url: ${{ steps.create_release.outputs.upload_url }}
-            asset_path: ./aard-linux-amd64.zip
-            asset_name: aard-linux-amd64-${{ steps.get_tag_name.outputs.VERSION }}.zip
+            asset_path: ./aardy-linux-amd64.zip
+            asset_name: aardy-linux-amd64-${{ steps.get_tag_name.outputs.value }}.zip
             asset_content_type: application/zip
 
         - name: Upload darwin Release Asset
@@ -70,6 +94,6 @@ jobs:
             GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           with:
             upload_url: ${{ steps.create_release.outputs.upload_url }}
-            asset_path: ./aard-darwin-amd64.zip
-            asset_name: aard-darwin-amd64-${{ steps.get_tag_name.outputs.VERSION }}.zip
+            asset_path: ./aardy-darwin-amd64.zip
+            asset_name: aardy-darwin-amd64-${{ steps.get_tag_name.outputs.value }}.zip
             asset_content_type: application/zip

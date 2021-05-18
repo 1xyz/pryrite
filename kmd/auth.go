@@ -2,6 +2,7 @@ package kmd
 
 import (
 	"fmt"
+
 	"github.com/MakeNowJust/heredoc"
 	"github.com/aardlabs/terminal-poc/auth"
 	"github.com/aardlabs/terminal-poc/config"
@@ -15,14 +16,14 @@ func NewCmdAuthLogin(cfg *config.Config) *cobra.Command {
 		Use:   "login",
 		Short: "Login an authorized user to the aard service.",
 		Long:  heredoc.Doc(`Authorizes the user to access the service.`),
-		Example: heredoc.Doc(`
+		Example: examplef(`
 			In order to login to this service, run:
 
-              $ aard auth login
+              $ {AppName} auth login
 
             In order to view the current logged in user, run:
 
-              $ aard config list
+              $ {AppName} config list
 		`),
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -48,14 +49,14 @@ func NewCmdAuthLogout(cfg *config.Config) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "logout",
 		Short: "Logout an authorized user",
-		Example: heredoc.Doc(`
-			To logout the current logged in user, run: 
+		Example: examplef(`
+			To logout the current logged in user, run:
 
-              $ aard auth logout
+              $ {AppName} auth logout
 
             In order to view the current logged in user, run:
 
-              $ aard config list 
+              $ {AppName} config list
 		`),
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {

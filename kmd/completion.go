@@ -2,9 +2,9 @@ package kmd
 
 import (
 	"errors"
-	"github.com/MakeNowJust/heredoc"
-	"github.com/aardlabs/terminal-poc/tools"
 	"os"
+
+	"github.com/aardlabs/terminal-poc/tools"
 
 	"github.com/spf13/cobra"
 )
@@ -17,7 +17,7 @@ func NewCmdCompletion() *cobra.Command {
 		Hidden: true,
 		Use:    "completion [bash|zsh|fish|powershell]",
 		Short:  "Generate completion script",
-		Long: heredoc.Docf(`
+		Long: examplef(`
 Generate shell completion scripts for the CLI commands.
 
 When installing the CLI through a package manager, it's possible that
@@ -29,13 +29,13 @@ config file locations might vary based on your system. Make sure to restart your
 shell before testing whether completions are working.:
 Bash:
 
-  $ source <(aard completion -s bash)
+  $ source <({AppName} completion -s bash)
 
   # To load completions for each session, execute once:
   # Linux:
-  $ aard completion -s bash > /etc/bash_completion.d/aard
+  $ {AppName} completion -s bash > /etc/bash_completion.d/{AppName}
   # macOS:
-  $ aard completion -s bash > /usr/local/etc/bash_completion.d/aard
+  $ {AppName} completion -s bash > /usr/local/etc/bash_completion.d/{AppName}
 
 Zsh:
 
@@ -45,23 +45,23 @@ Zsh:
   $ echo "autoload -U compinit; compinit" >> ~/.zshrc
 
   # To load completions for each session, execute once:
-  $ aard completion -s zsh > "${fpath[1]}/_aard"
+  $ {AppName} completion -s zsh > "${fpath[1]}/_aard"
 
   # You will need to start a new shell for this setup to take effect.
 
 fish:
 
-  $ aard completion -s fish | source
+  $ {AppName} completion -s fish | source
 
   # To load completions for each session, execute once:
-  $ aard completion -s fish > ~/.config/fish/completions/aard.fish
+  $ {AppName} completion -s fish > ~/.config/fish/completions/{AppName}.fish
 
 PowerShell:
 
-  PS> aard completion -s powershell | Out-String | Invoke-Expression
+  PS> {AppName} completion -s powershell | Out-String | Invoke-Expression
 
   # To load completions for every new session, run:
-  PS> aard completion -s powershell > aard.ps1
+  PS> {AppName} completion -s powershell > {AppName}.ps1
   # and source this file from your PowerShell profile.
 `),
 		DisableFlagsInUseLine: false,

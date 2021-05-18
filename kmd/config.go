@@ -3,7 +3,6 @@ package kmd
 import (
 	"fmt"
 
-	"github.com/MakeNowJust/heredoc"
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/spf13/cobra"
@@ -18,10 +17,10 @@ func NewCmdConfigAdd(cfg *config.Config) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "add <name>",
 		Short: "Add a new named configuration",
-		Example: heredoc.Doc(`
+		Example: examplef(`
 			To add a new named configuration, run:
 
-			   $ aard config add my-config --service-url https://aardy.app
+			   $ {AppName} config add my-config --service-url https://aardy.app
 		`),
 		Args: MinimumArgs(1, "could not add configuration: no name provided"),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -51,10 +50,10 @@ func NewCmdConfigList(cfg *config.Config) *cobra.Command {
 		Use:     "list",
 		Short:   "Lists existing named configurations.",
 		Aliases: []string{"ls"},
-		Example: heredoc.Doc(`
+		Example: examplef(`
 			To list all available configurations, run::
 
-			   $ aard config list
+			   $ {AppName} config list
 		`),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			tr := &config.TableRender{Config: cfg}
@@ -72,14 +71,14 @@ func NewCmdConfigActivate(cfg *config.Config) *cobra.Command {
 		Use:     "activate <name>",
 		Short:   "Activates an existing named configuration.",
 		Aliases: []string{"ls"},
-		Example: heredoc.Doc(`
+		Example: examplef(`
 			To activate an existing named configuration, run::
 
-			   $ aard config activate my-config
+			   $ {AppName} config activate my-config
 
             To list all configurations, run::
 
-			   $ aard config list
+			   $ {AppName} config list
 		`),
 		Args: MinimumArgs(1, "could not activate configuration: no name provided"),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -105,15 +104,15 @@ func NewCmdConfigDelete(cfg *config.Config) *cobra.Command {
 		Use:     "delete <name>",
 		Short:   "Deletes a named configuration.",
 		Aliases: []string{"remove", "rm"},
-		Long: heredoc.Doc(`
+		Long: examplef(`
             Deletes a named configuration. You cannot delete a configuration that is
             active,  To delete the current active configuration, first run
-            aard config activate another one.
+            {AppName} config activate another one.
         `),
-		Example: heredoc.Doc(`
+		Example: examplef(`
             To delete a named configuration, run:
 
-              $ aard config delete my_config
+              $ {AppName} config delete my_config
 		`),
 		Args: MinimumArgs(1, "could not delete configuration: no name provided"),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -142,7 +141,7 @@ func NewCmdConfigDelete(cfg *config.Config) *cobra.Command {
 func NewCmdConfig(cfg *config.Config) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "config",
-		Short: "Manage the set of aard named configurations",
+		Short: examplef("Manage the set of {AppName} named configurations"),
 	}
 	cmd.AddCommand(NewCmdConfigAdd(cfg))
 	cmd.AddCommand(NewCmdConfigList(cfg))

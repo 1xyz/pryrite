@@ -31,4 +31,4 @@ jobs:
         gh --version
         gh -R aardlabs/terminal-poc release download ${RELEASE_TAG}
         echo "Release: ${RELEASE_TAG}" > changelog.md
-        gh -R aardlabs/cli-release release create ${RELEASE_TAG} aard*.zip -F changelog.md
+        gh -R aardlabs/cli-release release create ${RELEASE_TAG} aardy* -F changelog.md
