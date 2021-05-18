@@ -53,8 +53,8 @@ jobs:
             GITHUB_USER: ${{ secrets.GH_USER }}
             GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           with:
-            tag_name: ${{ steps.get_tag_name.value }}
-            release_name: Release ${{ steps.get_tag_name.value }}
+            tag_name: ${{ steps.get_tag_name.outputs.value }}
+            release_name: Release ${{ steps.get_tag_name.outputs.value }}
             draft: false
             prerelease: false
 
@@ -79,7 +79,7 @@ jobs:
           with:
             upload_url: ${{ steps.create_release.outputs.upload_url }}
             asset_path: ./aard-linux-amd64.zip
-            asset_name: aard-linux-amd64-${{ steps.get_tag_name.value }}.zip
+            asset_name: aard-linux-amd64-${{ steps.get_tag_name.outputs.value }}.zip
             asset_content_type: application/zip
 
         - name: Upload darwin Release Asset
@@ -91,5 +91,5 @@ jobs:
           with:
             upload_url: ${{ steps.create_release.outputs.upload_url }}
             asset_path: ./aard-darwin-amd64.zip
-            asset_name: aard-darwin-amd64-${{ steps.get_tag_name.value }}.zip
+            asset_name: aard-darwin-amd64-${{ steps.get_tag_name.outputs.value }}.zip
             asset_content_type: application/zip
