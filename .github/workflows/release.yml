@@ -22,15 +22,16 @@ jobs:
         - name: Check out code into the Go module directory
           uses: actions/checkout@v2
 
-        - name: Get tag name
-          id: get_tag_name
+        - name: Get version
+          id: get_version
           run: echo ::set-output name=VERSION::$(cat version.txt)
-          if: github.ref == 'refs/heads/main'
 
         - name: Get tag name
           id: get_tag_name
-          run: echo ::set-output name=VERSION::$(cat version.txt)-dev
-          if: github.ref != 'refs/heads/main'
+          uses: haya14busa/action-cond@v1
+          cond: ${{ github.ref == 'refs/heads/main' }}
+          if_true: ${{ steps.get_version.outputs.VERSION }}
+          if_false: ${{ steps.get_version.outputs.VERSION }}-dev
 
         - name: Build x64 linux release
           run: make release/linux
@@ -51,8 +52,8 @@ jobs:
             GITHUB_USER: ${{ secrets.GH_USER }}
             GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           with:
-            tag_name: ${{ steps.get_tag_name.outputs.VERSION }}
-            release_name: Release ${{ steps.get_tag_name.outputs.VERSION }}
+            tag_name: ${{ steps.get_tag_name.value }}
+            release_name: Release ${{ steps.get_tag_name.value }}
             draft: false
             prerelease: false
 
@@ -77,7 +78,7 @@ jobs:
           with:
             upload_url: ${{ steps.create_release.outputs.upload_url }}
             asset_path: ./aard-linux-amd64.zip
-            asset_name: aard-linux-amd64-${{ steps.get_tag_name.outputs.VERSION }}.zip
+            asset_name: aard-linux-amd64-${{ steps.get_tag_name.value }}.zip
             asset_content_type: application/zip
 
         - name: Upload darwin Release Asset
@@ -89,5 +90,5 @@ jobs:
           with:
             upload_url: ${{ steps.create_release.outputs.upload_url }}
             asset_path: ./aard-darwin-amd64.zip
-            asset_name: aard-darwin-amd64-${{ steps.get_tag_name.outputs.VERSION }}.zip
+            asset_name: aard-darwin-amd64-${{ steps.get_tag_name.value }}.zip
             asset_content_type: application/zip
