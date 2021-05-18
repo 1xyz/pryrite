@@ -9,7 +9,7 @@ jobs:
     runs-on: macOS-latest
     steps:
     - name: Checks if pre-release
-      if: ${{ github.ref != 'refs/heads/main' }}
+      if: github.event.release.prerelease == true
       run: |
         echo This is running against a pre-release.
         echo Skipping all the next steps.
@@ -22,7 +22,7 @@ jobs:
       run: echo ::set-output name=VERSION::$(cat version.txt)
 
     - name: Use gh to release to cli-release repo
-      if: ${{ github.ref == 'refs/heads/main' }}
+      if: github.event.release.prerelease != true
       env:
         RELEASE_TAG: ${{ steps.get_tag_name.outputs.VERSION }}
         GITHUB_USER: ${{ secrets.GH_USER }}

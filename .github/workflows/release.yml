@@ -60,7 +60,7 @@ jobs:
             tag_name: ${{ steps.get_tag_name.outputs.value }}
             release_name: Release ${{ steps.get_tag_name.outputs.value }}
             draft: false
-            prerelease: false
+            prerelease: ${{ github.ref != 'refs/heads/main' }}
 
         - name: Upload Linux Release Binary
           id: upload-release-binary-linux
