@@ -38,13 +38,13 @@ jobs:
           run: make release/linux
 
         - name: Zip linux build
-          run: zip -j aard-linux-amd64.zip README.md bin/linux/*
+          run: zip -j aardy-linux-amd64.zip README.md bin/linux/*
 
         - name: Build x64 darwin release
           run: make release/darwin
 
         - name: Zip darwin build
-          run: zip -j aard-darwin-amd64.zip README.md bin/darwin/*
+          run: zip -j aardy-darwin-amd64.zip README.md bin/darwin/*
 
         - name: Create Release
           id: create_release
