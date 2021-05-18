@@ -21,6 +21,8 @@ info:
 	@echo
 	@echo " ------------------------------------------------------------------"
 
+rebuild: clean build
+
 build: fmt verinfo
 	$(GO) build -o $(BUILD_BINARY) -v main.go
 	cp misc/**/*.sh $(BIN_DIR)/

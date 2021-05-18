@@ -59,8 +59,8 @@ jobs:
           with:
             upload_url: ${{ steps.create_release.outputs.upload_url }}
             asset_path: ./bin/linxu/aard
-            asset_name: aard-linux-amd64-${{ steps.get_tag_name.outputs.VERSION }}.zip
-            asset_content_type: application/zip
+            asset_name: aard-linux-amd64
+            asset_content_type: application/octet-stream
 
         - name: Upload Linux Release Asset
           id: upload-release-asset-linux
