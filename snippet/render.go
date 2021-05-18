@@ -5,9 +5,9 @@ import (
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/charmbracelet/glamour"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/rs/zerolog/log"
-	"io"
 	"strings"
 )
 
@@ -26,15 +26,10 @@ const (
 	idColLen = 60 + padLen
 )
 
-type RenderNodeViewOpts struct {
-	RenderMarkdown bool
-}
-
-func RenderSnippetNodeView(cfg *config.Config, nv *graph.NodeView, opts *RenderNodeViewOpts) error {
+func RenderSnippetNodeView(cfg *config.Config, nv *graph.NodeView) error {
 	nr := &nodeRender{
 		view:       nv,
 		serviceURL: getServiceURL(cfg),
-		opts:       opts,
 	}
 	nr.Render()
 	return nil
@@ -65,7 +60,6 @@ func getServiceURL(cfg *config.Config) string {
 type nodeRender struct {
 	view       *graph.NodeView
 	serviceURL string
-	opts       *RenderNodeViewOpts
 }
 
 func (nr *nodeRender) Render() {
@@ -74,22 +68,27 @@ func (nr *nodeRender) Render() {
 		tools.LogStdout(fmt.Sprintf("Render: tools.OpenOutputWriter: err = %v", err))
 		return
 	}
+	tools.Log.Info().Msgf("Render: OpenOutputWriter opened SupportRawControlChars: %b",
+		w.SupportRawControlChars())
+
 	defer func() {
 		if err := w.Close(); err != nil {
-			tools.Log.Err(err).Msgf("Render defer: error closing writer")
+			tools.Log.Err(err).Msgf("Render: defer: error closing writer")
 			return
 		}
 	}()
-	nr.renderNodeView(nr.view, w, err)
+
+	nr.renderNodeView(nr.view, w)
 	if nr.view.Children != nil && len(nr.view.Children) > 0 {
 		for _, child := range nr.view.Children {
-			nr.renderNodeView(child, w, err)
+			nr.renderNodeView(child, w)
 		}
 	}
+
 	tools.Log.Info().Msgf("Render complete for node %v", nr.view.Node.ID)
 }
 
-func (nr *nodeRender) renderNodeView(nv *graph.NodeView, w io.WriteCloser, err error) {
+func (nr *nodeRender) renderNodeView(nv *graph.NodeView, w tools.OutputWriteCloser) {
 	t := table.NewWriter()
 	t.SetStyle(table.StyleBold)
 	t.SetOutputMirror(w)
@@ -103,26 +102,36 @@ func (nr *nodeRender) renderNodeView(nv *graph.NodeView, w io.WriteCloser, err e
 	t.AppendSeparator()
 	t.Render()
 
-	out := nv.ContentMarkdown
-	//colLen := nr.getColumnLen()
-	//r, _ := glamour.NewTermRenderer(
-	//	// detect background color and pick either the default dark or light theme
-	//	glamour.WithAutoStyle(),
-	//	// wrap output at specific width
-	//	glamour.WithWordWrap(colLen),
-	//)
-	//
-	//// Glamour rendering preserves carriage return characters in code blocks, but
-	//// we need to ensure that no such characters are present in the output.
-	//// text := strings.ReplaceAll(nv.ContentMarkdown, "\r\n", "\n")
-	//text := nv.ContentMarkdown
-	//out, err := r.Render(text)
-	//if err != nil {
-	//	tools.Log.Err(err).Msgf("renderNodeView: id = %v fmt.Fprintf()", nv.Node.ID)
-	//	return
-	//}
+	var renderOpts []glamour.TermRendererOption
+	if w.SupportRawControlChars() {
+		colLen := nr.getColumnLen()
+		renderOpts = []glamour.TermRendererOption{
+			glamour.WithAutoStyle(), glamour.WithWordWrap(colLen),
+		}
+	} else {
+		renderOpts = []glamour.TermRendererOption{
+			glamour.WithStylePath("notty"),
+		}
+	}
+
+	var out string
+	r, err := glamour.NewTermRenderer(renderOpts...)
+	if err != nil {
+		tools.Log.Err(err).Msgf("newTermRender %v failed %v", renderOpts, err)
+		if _, err := fmt.Fprint(w, out); err != nil {
+			tools.Log.Err(err).Msgf("renderNodeView: id = %v fmt.Fprintf()", nv.Node.ID)
+		}
+		return
+	}
+
+	out, err = r.Render(nv.ContentMarkdown)
+	if err != nil {
+		tools.Log.Err(err).Msgf("renderNodeView: id = %v fmt.Fprintf()", nv.Node.ID)
+		return
+	}
 	if _, err := fmt.Fprint(w, out); err != nil {
 		tools.Log.Err(err).Msgf("renderNodeView: id = %v fmt.Fprintf()", nv.Node.ID)
+		return
 	}
 	tools.Log.Info().Msgf("renderNodeView: id=%v complete", nv.Node.ID)
 }

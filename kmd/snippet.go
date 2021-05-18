@@ -150,8 +150,8 @@ func NewCmdSnippetDesc(gCtx *snippet.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			renderOpts := &snippet.RenderNodeViewOpts{}
-			if err := snippet.RenderSnippetNodeView(gCtx.Config, view, renderOpts); err != nil {
+
+			if err := snippet.RenderSnippetNodeView(gCtx.Config, view); err != nil {
 				return err
 			}
 			return nil
