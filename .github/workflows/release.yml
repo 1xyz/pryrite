@@ -26,13 +26,17 @@ jobs:
           id: get_version
           run: echo ::set-output name=VERSION::$(cat version.txt)
 
+        - name: Get commit hash
+          id: get_commit_hash
+          run: echo ::set-output name=COMMIT_HASH::$(cat commit_hash.txt)
+
         - name: Get tag name
           id: get_tag_name
           uses: haya14busa/action-cond@v1
           with:
             cond: ${{ github.ref == 'refs/heads/main' }}
             if_true: ${{ steps.get_version.outputs.VERSION }}
-            if_false: ${{ steps.get_version.outputs.VERSION }}-dev
+            if_false: ${{ steps.get_version.outputs.VERSION }}-${{ steps.get_commit_hash.outputs.COMMIT_HASH }}-dev
 
         - name: Build x64 linux release
           run: make release/linux
