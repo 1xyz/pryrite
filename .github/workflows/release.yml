@@ -28,7 +28,7 @@ jobs:
 
         - name: Get commit hash
           id: get_commit_hash
-          run: echo ::set-output name=COMMIT_HASH::$(cat commit_hash.txt)
+          run: echo ::set-output name=COMMIT_HASH::$(git rev-parse --short HEAD)
 
         - name: Get tag name
           id: get_tag_name
