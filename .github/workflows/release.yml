@@ -66,8 +66,8 @@ jobs:
             GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           with:
             upload_url: ${{ steps.create_release.outputs.upload_url }}
-            asset_path: ./bin/linux/aard
-            asset_name: aard-linux-amd64
+            asset_path: ./bin/linux/aardy
+            asset_name: aardy-linux-amd64
             asset_content_type: application/octet-stream
 
         - name: Upload Linux Release Asset
@@ -78,8 +78,8 @@ jobs:
             GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           with:
             upload_url: ${{ steps.create_release.outputs.upload_url }}
-            asset_path: ./aard-linux-amd64.zip
-            asset_name: aard-linux-amd64-${{ steps.get_tag_name.outputs.value }}.zip
+            asset_path: ./aardy-linux-amd64.zip
+            asset_name: aardy-linux-amd64-${{ steps.get_tag_name.outputs.value }}.zip
             asset_content_type: application/zip
 
         - name: Upload darwin Release Asset
@@ -90,6 +90,6 @@ jobs:
             GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           with:
             upload_url: ${{ steps.create_release.outputs.upload_url }}
-            asset_path: ./aard-darwin-amd64.zip
-            asset_name: aard-darwin-amd64-${{ steps.get_tag_name.outputs.value }}.zip
+            asset_path: ./aardy-darwin-amd64.zip
+            asset_name: aardy-darwin-amd64-${{ steps.get_tag_name.outputs.value }}.zip
             asset_content_type: application/zip
