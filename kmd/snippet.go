@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/MakeNowJust/heredoc"
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/snippet"
 	"github.com/aardlabs/terminal-poc/tools"
@@ -23,23 +22,23 @@ func NewCmdSnippetSearch(gCtx *snippet.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "search",
 		Short: "Search available snippets",
-		Long: heredoc.Doc(`
-              aard search, searches all snippets which are visible to the current
+		Long: examplef(`
+              {AppName} search, searches all snippets which are visible to the current
               logged-in user. This includes both a user's own snippets as well
               as snippet shared.
 
               By default, only "command" snippets are searched. This can be changed
               by using the --kind=all flag.
         `),
-		Example: heredoc.Doc(`
+		Example: examplef(`
             To search snippets for the term certutil, run:
-              $ aard search "certutil"
+              $ {AppName} search "certutil"
 
             To limit the search result to 10 entries, run:
-              $ aard search "certutil" -n 10
+              $ {AppName} search "certutil" -n 10
 
             To include all kinds of snippets that include non-command snippets, run:
-              $ aard search certutil --all-kinds
+              $ {AppName} search certutil --all-kinds
 		`),
 		Args: MinimumArgs(1, "You need to specify a search query"),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
@@ -75,23 +74,23 @@ func NewCmdSnippetList(gCtx *snippet.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List available snippets",
-		Long: heredoc.Doc(`
-              aard list, lists all snippets which are visible to the current
+		Long: examplef(`
+              {AppName} list, lists all snippets which are visible to the current
               logged-in user. This includes both a user's own snippets as well
               as snippet shared.
 
               By default, only "command" snippets are listed. This can be changed
               by using the --kind=all flag.
         `),
-		Example: heredoc.Doc(`
+		Example: examplef(`
             To list the most recently created snippets, run:
-              $ aard list
+              $ {AppName} list
 
             To list the most recent "n=100" snippets, run:
-              $ aard list -n 100
+              $ {AppName} list -n 100
 
             To list all kinds of snippets that include non-command snippets, run:
-              $ aard list --all-kinds
+              $ {AppName} list --all-kinds
 		`),
 		Aliases: []string{"ls"},
 		Args:    cobra.NoArgs,
@@ -126,19 +125,19 @@ func NewCmdSnippetDesc(gCtx *snippet.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "describe <name>",
 		Short: "Describe the specified Snippet",
-		Long: heredoc.Doc(`
-              aard describe <name>, describes all data associated with the specified snippet.
+		Long: examplef(`
+              {AppName} describe <name>, describes all data associated with the specified snippet.
 
               Here, <name> can be the identifier or the URL of the snippet.
         `),
 
 		Aliases: []string{"view", "show", "desc"},
-		Example: heredoc.Doc(`
+		Example: examplef(`
             To describe a specific snippet by URL, run:
-              $ aard describe https://aardy.app/edy6819l
+              $ {AppName} describe https://aardy.app/edy6819l
 
             To describe a specific snippet by ID, run:
-              $ aard describe edy6819l
+              $ {AppName} describe edy6819l
 		`),
 		Args: MinimumArgs(1, "no name specified"),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
@@ -168,16 +167,16 @@ func NewCmdSnippetSave(gCtx *snippet.Context) *cobra.Command {
 
 		Use:   "save <content>...",
 		Short: "Save a new snippet with the specified content",
-		Long: heredoc.Doc(`
-              aard save <content>, save content to the remote service.
+		Long: examplef(`
+              {AppName} save <content>, save content to the remote service.
 
               Here, <content> can be any content (typically a shell commend) that you want to be saved.
         `),
 		Aliases: []string{"add", "stash"},
-		Example: heredoc.Doc(`
+		Example: examplef(`
             To save a specified docker command, run:
 
-              $ aard save docker-compose run --rm --service-ports development bash
+              $ {AppName} save docker-compose run --rm --service-ports development bash
 		`),
 		Args: MinimumArgs(1, "no content specified"),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
@@ -205,9 +204,10 @@ func NewCmdSnippetSave(gCtx *snippet.Context) *cobra.Command {
 
 func NewCmdSnippetEdit(gCtx *snippet.Context) *cobra.Command {
 	cmd := &cobra.Command{
+		Use:   "edit <name>",
 		Short: "Edit and update content of the specified snippet",
-		Long: heredoc.Doc(`
-              aard edit <name>, edits the content of the specified snippet.
+		Long: examplef(`
+              {AppName} edit <name>, edits the content of the specified snippet.
 
               Here, <name> can be the identifier or the URL of the snippet.
 
@@ -216,12 +216,12 @@ func NewCmdSnippetEdit(gCtx *snippet.Context) *cobra.Command {
               or 'notepad' for Windows. Upon exiting the editor, the content will be updated on the remote
               service.
         `),
-		Example: heredoc.Doc(`
+		Example: examplef(`
             To edit a specific snippet by URL, run:
-              $ aard edit https://aardy.app/edy6819l
+              $ {AppName} edit https://aardy.app/edy6819l
 
             To edit a specific snippet by ID, run:
-              $ aard edit edy6819l
+              $ {AppName} edit edy6819l
 		`),
 		Args: MinimumArgs(1, "no name specified"),
 		PreRunE: func(cmd *cobra.Command, args []string) error {

@@ -2,15 +2,27 @@ package kmd
 
 import (
 	"fmt"
+	"strings"
+
+	"github.com/MakeNowJust/heredoc"
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/snippet"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/spf13/cobra"
 )
 
-func NewCmdRoot(cfg *config.Config, version string) *cobra.Command {
+const AppName = "aardy"
+
+type VersionInfo struct {
+	Version    string
+	CommitHash string
+	BuildTime  string
+}
+
+func NewCmdRoot(cfg *config.Config, versionInfo *VersionInfo) *cobra.Command {
 	var rootCmd = &cobra.Command{
-		Use:          "aard",
+		Version:      versionInfo.Version,
+		Use:          AppName,
 		Short:        "Work seamlessly with the aard service from the command line",
 		SilenceUsage: true,
 	}
@@ -18,11 +30,12 @@ func NewCmdRoot(cfg *config.Config, version string) *cobra.Command {
 		Use:   "version",
 		Short: "Display the program version",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			tools.LogStdout(version)
+			tools.LogStdout(fmt.Sprintf("%s version %s (%s at %s)",
+				rootCmd.Name(), rootCmd.Version, versionInfo.CommitHash, versionInfo.BuildTime))
 			return nil
 		},
 	}
-	gCtx := NewGraphContext(cfg, version)
+	gCtx := NewGraphContext(cfg, versionInfo.Version)
 	rootCmd.AddCommand(NewCmdSnippetList(gCtx))
 	rootCmd.AddCommand(NewCmdSnippetSearch(gCtx))
 	rootCmd.AddCommand(NewCmdSnippetDesc(gCtx))
@@ -35,11 +48,17 @@ func NewCmdRoot(cfg *config.Config, version string) *cobra.Command {
 	return rootCmd
 }
 
-func Execute(cfg *config.Config, version string) error {
-	rootCmd := NewCmdRoot(cfg, version)
+func Execute(cfg *config.Config, versionInfo *VersionInfo) error {
+	rootCmd := NewCmdRoot(cfg, versionInfo)
 	return rootCmd.Execute()
 }
 
 func NewGraphContext(cfg *config.Config, version string) *snippet.Context {
 	return snippet.NewContext(cfg, fmt.Sprintf("TermConsole:%s", version))
+}
+
+func examplef(format string, args ...string) string {
+	args = append(args, "{AppName}", AppName)
+	r := strings.NewReplacer(args...)
+	return heredoc.Doc(r.Replace(format))
 }
