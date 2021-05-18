@@ -58,7 +58,7 @@ jobs:
             GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           with:
             upload_url: ${{ steps.create_release.outputs.upload_url }}
-            asset_path: ./bin/linxu/aard
+            asset_path: ./bin/linux/aard
             asset_name: aard-linux-amd64
             asset_content_type: application/octet-stream
 
