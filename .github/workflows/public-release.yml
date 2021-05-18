@@ -17,26 +17,14 @@ jobs:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v2
 
-    - name: Get version
-      id: get_version
-      run: echo ::set-output name=VERSION::$(cat version.txt)
-
-    - name: Get commit hash
-      id: get_commit_hash
-      run: echo ::set-output name=COMMIT_HASH::$(git rev-parse --short HEAD)
-
     - name: Get tag name
       id: get_tag_name
-      uses: haya14busa/action-cond@v1
-      with:
-        cond: ${{ github.ref == 'refs/heads/main' }}
-        if_true: ${{ steps.get_version.outputs.VERSION }}
-        if_false: ${{ steps.get_version.outputs.VERSION }}-${{ steps.get_commit_hash.outputs.COMMIT_HASH }}-dev
+      run: echo ::set-output name=VERSION::$(cat version.txt)
 
     - name: Use gh to release to cli-release repo
       if: github.event.release.prerelease != true
       env:
-        RELEASE_TAG: ${{ steps.get_tag_name.outputs.value }}
+        RELEASE_TAG: ${{ steps.get_tag_name.outputs.VERSION }}
         GITHUB_USER: ${{ secrets.GH_USER }}
         GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
       run: |
