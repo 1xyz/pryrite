@@ -29,9 +29,10 @@ jobs:
         - name: Get tag name
           id: get_tag_name
           uses: haya14busa/action-cond@v1
-          cond: ${{ github.ref == 'refs/heads/main' }}
-          if_true: ${{ steps.get_version.outputs.VERSION }}
-          if_false: ${{ steps.get_version.outputs.VERSION }}-dev
+          with:
+            cond: ${{ github.ref == 'refs/heads/main' }}
+            if_true: ${{ steps.get_version.outputs.VERSION }}
+            if_false: ${{ steps.get_version.outputs.VERSION }}-dev
 
         - name: Build x64 linux release
           run: make release/linux
