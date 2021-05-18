@@ -2,6 +2,7 @@ package kmd
 
 import (
 	"fmt"
+
 	"github.com/MakeNowJust/heredoc"
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/tools"
@@ -20,7 +21,7 @@ func NewCmdConfigAdd(cfg *config.Config) *cobra.Command {
 		Example: heredoc.Doc(`
 			To add a new named configuration, run:
 
-			   $ aard config add my-config --service-url https://aard.app
+			   $ aard config add my-config --service-url https://aardy.app
 		`),
 		Args: MinimumArgs(1, "could not add configuration: no name provided"),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -38,7 +39,7 @@ func NewCmdConfigAdd(cfg *config.Config) *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&opts.ServiceURL,
-		"service-url", "https://aard.app",
+		"service-url", "https://aardy.app",
 		"URL for the aard service")
 	return cmd
 }
@@ -106,7 +107,7 @@ func NewCmdConfigDelete(cfg *config.Config) *cobra.Command {
 		Aliases: []string{"remove", "rm"},
 		Long: heredoc.Doc(`
             Deletes a named configuration. You cannot delete a configuration that is
-            active,  To delete the current active configuration, first run 
+            active,  To delete the current active configuration, first run
             aard config activate another one.
         `),
 		Example: heredoc.Doc(`
