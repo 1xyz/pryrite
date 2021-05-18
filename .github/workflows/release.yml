@@ -25,6 +25,12 @@ jobs:
         - name: Get tag name
           id: get_tag_name
           run: echo ::set-output name=VERSION::$(cat version.txt)
+          if: github.ref == 'refs/heads/main'
+
+        - name: Get tag name
+          id: get_tag_name
+          run: echo ::set-output name=VERSION::$(cat version.txt)-dev
+          if: github.ref != 'refs/heads/main'
 
         - name: Build x64 linux release
           run: make release/linux
