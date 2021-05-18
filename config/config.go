@@ -14,7 +14,7 @@ var (
 )
 
 const (
-	DefaultServiceURL = "https://aard.app/"
+	DefaultServiceURL = "https://aardy.app/"
 )
 
 type Entry struct {

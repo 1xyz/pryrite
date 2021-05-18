@@ -2,12 +2,13 @@ package kmd
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/MakeNowJust/heredoc"
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/snippet"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/spf13/cobra"
-	"strings"
 )
 
 type SnippetListOpts struct {
@@ -25,13 +26,13 @@ func NewCmdSnippetSearch(gCtx *snippet.Context) *cobra.Command {
 		Long: heredoc.Doc(`
               aard search, searches all snippets which are visible to the current
               logged-in user. This includes both a user's own snippets as well
-              as snippet shared. 
+              as snippet shared.
 
               By default, only "command" snippets are searched. This can be changed
               by using the --kind=all flag.
         `),
 		Example: heredoc.Doc(`
-            To search snippets for the term certutil, run: 
+            To search snippets for the term certutil, run:
               $ aard search "certutil"
 
             To limit the search result to 10 entries, run:
@@ -77,13 +78,13 @@ func NewCmdSnippetList(gCtx *snippet.Context) *cobra.Command {
 		Long: heredoc.Doc(`
               aard list, lists all snippets which are visible to the current
               logged-in user. This includes both a user's own snippets as well
-              as snippet shared. 
+              as snippet shared.
 
               By default, only "command" snippets are listed. This can be changed
               by using the --kind=all flag.
         `),
 		Example: heredoc.Doc(`
-            To list the most recently created snippets, run: 
+            To list the most recently created snippets, run:
               $ aard list
 
             To list the most recent "n=100" snippets, run:
@@ -126,7 +127,7 @@ func NewCmdSnippetDesc(gCtx *snippet.Context) *cobra.Command {
 		Use:   "describe <name>",
 		Short: "Describe the specified Snippet",
 		Long: heredoc.Doc(`
-              aard describe <name>, describes all data associated with the specified snippet. 
+              aard describe <name>, describes all data associated with the specified snippet.
 
               Here, <name> can be the identifier or the URL of the snippet.
         `),
@@ -134,7 +135,7 @@ func NewCmdSnippetDesc(gCtx *snippet.Context) *cobra.Command {
 		Aliases: []string{"view", "show", "desc"},
 		Example: heredoc.Doc(`
             To describe a specific snippet by URL, run:
-              $ aard describe https://aard.app/edy6819l
+              $ aard describe https://aardy.app/edy6819l
 
             To describe a specific snippet by ID, run:
               $ aard describe edy6819l
@@ -183,9 +184,10 @@ func NewCmdSnippetSave(gCtx *snippet.Context) *cobra.Command {
 			return IsUserLoggedIn(gCtx.Config)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if args[0] == "--help" {
-				return fmt.Errorf("run aard help save for more information")
+			if args[0] == "-h" || args[0] == "--help" {
+				return cmd.Help()
 			}
+
 			content := strings.Join(args, " ")
 			tools.Log.Info().Msgf("add content=%s", content)
 			n, err := snippet.AddSnippetNode(gCtx, content)
@@ -203,21 +205,20 @@ func NewCmdSnippetSave(gCtx *snippet.Context) *cobra.Command {
 
 func NewCmdSnippetEdit(gCtx *snippet.Context) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "edit <name>",
 		Short: "Edit and update content of the specified snippet",
 		Long: heredoc.Doc(`
-              aard edit <name>, edits the content of the specified snippet. 
+              aard edit <name>, edits the content of the specified snippet.
 
               Here, <name> can be the identifier or the URL of the snippet.
-              
+
               The edit command allows you to directly edit the content of a command. It will open
-              the editor defined by the EDITOR environment variable, or fall back to 'nano' for Linux/OSX 
-              or 'notepad' for Windows. Upon exiting the editor, the content will be updated on the remote 
+              the editor defined by the EDITOR environment variable, or fall back to 'nano' for Linux/OSX
+              or 'notepad' for Windows. Upon exiting the editor, the content will be updated on the remote
               service.
         `),
 		Example: heredoc.Doc(`
             To edit a specific snippet by URL, run:
-              $ aard edit https://aard.app/edy6819l
+              $ aard edit https://aardy.app/edy6819l
 
             To edit a specific snippet by ID, run:
               $ aard edit edy6819l
@@ -227,6 +228,10 @@ func NewCmdSnippetEdit(gCtx *snippet.Context) *cobra.Command {
 			return IsUserLoggedIn(gCtx.Config)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if args[0] == "-h" || args[0] == "--help" {
+				return cmd.Help()
+			}
+
 			name := args[0]
 			tools.Log.Info().Msgf("edit name=%s", name)
 			_, err := snippet.EditSnippetNode(gCtx, name)
