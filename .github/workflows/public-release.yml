@@ -35,8 +35,10 @@ jobs:
 
     - name: Notify Slack
       uses: rtCamp/action-slack-notify@v2
+      if: ${{ always() }}
       env:
         SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
         SLACK_CHANNEL: general
         MSG_MINIMAL: commit
-        SLACK_MESSAGE: "Public CLI release published"
+        SLACK_USERNAME: ${{ github.repository }}
+        SLACK_MESSAGE: "Public CLI release published :rocket:"

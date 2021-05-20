@@ -104,7 +104,8 @@ jobs:
           env:
             SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
             SLACK_CHANNEL: ops
-            SLACK_MESSAGE: "CLI release created"
+            SLACK_USERNAME: ${{ github.repository }}
+            SLACK_MESSAGE: "CLI release created :rocket:"
 
         - name: Notify Slack on failure
           uses: rtCamp/action-slack-notify@v2
@@ -112,4 +113,5 @@ jobs:
           env:
             SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
             SLACK_CHANNEL: ops
-            SLACK_MESSAGE: "CLI release creation *FAILED*"
+            SLACK_USERNAME: ${{ github.repository }}
+            SLACK_MESSAGE: "CLI release creation *FAILED* :fire:"

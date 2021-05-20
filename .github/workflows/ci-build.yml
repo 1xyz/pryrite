@@ -25,11 +25,14 @@ jobs:
 
     - name: Notify Slack
       uses: rtCamp/action-slack-notify@v2
-      if: ${{ success() }}
+      if: |
+        ${{ success() }} &&
+        ${{ github.event_name == 'push' }}
       env:
         SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
         SLACK_CHANNEL: ops
-        SLACK_MESSAGE: "CLI build success"
+        SLACK_USERNAME: ${{ github.repository }}
+        SLACK_MESSAGE: "CLI :terminal: build success :success:"
 
     - name: Notify Slack on failure
       uses: rtCamp/action-slack-notify@v2
@@ -37,4 +40,5 @@ jobs:
       env:
         SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
         SLACK_CHANNEL: ops
-        SLACK_MESSAGE: "CLI build *FAILED*"
+        SLACK_USERNAME: ${{ github.repository }}
+        SLACK_MESSAGE: "CLI :terminal: build *FAILED* :fire:"
