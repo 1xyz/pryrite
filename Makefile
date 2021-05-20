@@ -1,4 +1,5 @@
 GO=go
+GOARCH ?= amd64
 GOFMT=gofmt
 DELETE=rm
 BINARY=aardy
@@ -37,8 +38,8 @@ fmt:
 	$(GOFMT) -l -w $(SRC)
 
 release/%: fmt verinfo
-	@echo "build GOOS: $(subst release/,,$@) & GOARCH: amd64"
-	GOOS=$(subst release/,,$@) GOARCH=amd64 $(GO) build -o bin/$(subst release/,,$@)/$(BINARY) -v main.go
+	@echo "build GOOS: $(subst release/,,$@) & GOARCH: $(GOARCH)"
+	GOOS=$(subst release/,,$@) GOARCH=$(GOARCH) $(GO) build -o bin/$(subst release/,,$@)/$(BINARY) -v main.go
 	cp misc/**/*.sh $(BIN_DIR)/$(subst release/,,$@)
 
 .PHONY: test
