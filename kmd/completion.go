@@ -45,7 +45,7 @@ Zsh:
   $ echo "autoload -U compinit; compinit" >> ~/.zshrc
 
   # To load completions for each session, execute once:
-  $ {AppName} completion -s zsh > "${fpath[1]}/_aard"
+  $ {AppName} completion -s zsh > "${fpath[1]}/_{AppName}"
 
   # You will need to start a new shell for this setup to take effect.
 

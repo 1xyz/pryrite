@@ -6,7 +6,7 @@ on:
 
 jobs:
   publish-release:
-    runs-on: macOS-latest
+    runs-on: ubuntu-latest
     steps:
     - name: Checks if pre-release
       if: github.event.release.prerelease == true
@@ -32,3 +32,11 @@ jobs:
         gh -R aardlabs/terminal-poc release download ${RELEASE_TAG}
         echo "Release: ${RELEASE_TAG}" > changelog.md
         gh -R aardlabs/cli-release release create ${RELEASE_TAG} aardy* -F changelog.md
+
+    - name: Notify Slack
+      uses: rtCamp/action-slack-notify@v2
+      env:
+        SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+        SLACK_CHANNEL: general
+        MSG_MINIMAL: commit
+        SLACK_MESSAGE: "Public CLI release published"

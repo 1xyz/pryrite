@@ -97,3 +97,19 @@ jobs:
             asset_path: ./aardy-darwin-amd64.zip
             asset_name: aardy-darwin-amd64-${{ steps.get_tag_name.outputs.value }}.zip
             asset_content_type: application/zip
+
+        - name: Notify Slack
+          uses: rtCamp/action-slack-notify@v2
+          if: ${{ success() }}
+          env:
+            SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+            SLACK_CHANNEL: ops
+            SLACK_MESSAGE: "CLI release created"
+
+        - name: Notify Slack on failure
+          uses: rtCamp/action-slack-notify@v2
+          if: ${{ ! success() }}
+          env:
+            SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+            SLACK_CHANNEL: ops
+            SLACK_MESSAGE: "CLI release creation *FAILED*"
