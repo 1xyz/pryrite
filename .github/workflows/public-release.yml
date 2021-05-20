@@ -41,4 +41,4 @@ jobs:
         SLACK_CHANNEL: general
         MSG_MINIMAL: commit
         SLACK_USERNAME: ${{ github.repository }}
-        SLACK_MESSAGE: "Public CLI release published :rocket:"
+        SLACK_MESSAGE: "Public CLI release published :arrow_right: https://github.com/aardlabs/cli-release/releases/latest"
