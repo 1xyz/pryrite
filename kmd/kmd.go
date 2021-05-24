@@ -44,6 +44,7 @@ func NewCmdRoot(cfg *config.Config, versionInfo *VersionInfo) *cobra.Command {
 	rootCmd.AddCommand(NewCmdAuth(cfg))
 	rootCmd.AddCommand(NewCmdConfig(cfg))
 	rootCmd.AddCommand(NewCmdCompletion())
+	rootCmd.AddCommand(NewCmdExecutor())
 	rootCmd.AddCommand(versionCmd)
 	return rootCmd
 }
