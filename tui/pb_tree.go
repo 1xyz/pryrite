@@ -9,28 +9,31 @@ import (
 	"github.com/rivo/tview"
 )
 
-// PlayBookTree represents the Tree view of a playbook (that is shown on the left pane)
+// PlayBookTree encapsulates the Tree view of a playbook (that is shown on the left pane)
 type PlayBookTree struct {
 	// Reference to the TreeView UI component
-	RootView *tview.TreeView
+	View *tview.TreeView
+
+	// Reference ot the root UI component
+	rootUI *Tui
 
 	// Refers the details component for a selected node on the PlayBookTree
-	detail *NodeDetails
+	nodeDetail *DetailPane
 
 	// Refers to the underlying playbook
 	playbook *graph.NodeView
 }
 
-func NewPlaybookTree(playbook *graph.NodeView, detail *NodeDetails) (*PlayBookTree, error) {
+func NewPlaybookTree(root *Tui, playbook *graph.NodeView, detail *DetailPane) (*PlayBookTree, error) {
 	tn := tview.NewTreeNode(playbook.Node.Title).
 		SetColor(tcell.ColorRed)
 	tree := tview.NewTreeView().
 		SetRoot(tn).
 		SetCurrentNode(tn)
-	tree.SetBorder(true)
-
-	// A helper function which adds the files and directories of the given path
-	// to the given target node.
+	tree.SetBorder(true).
+		SetTitle("Playbook").
+		SetTitleAlign(tview.AlignLeft)
+	// A helper function which adds the child nodes to the given target node.
 	add := func(target *tview.TreeNode, view *graph.NodeView) error {
 		for _, child := range view.Children {
 			hasChildren := len(child.Children) > 0
@@ -49,7 +52,7 @@ func NewPlaybookTree(playbook *graph.NodeView, detail *NodeDetails) (*PlayBookTr
 		return nil, err
 	}
 
-	// If a directory was selected, open it.
+	// If a node was selected, open it and show it in the details window
 	tree.SetSelectedFunc(func(node *tview.TreeNode) {
 		ref := node.GetReference()
 		if ref == nil {
@@ -84,9 +87,12 @@ func NewPlaybookTree(playbook *graph.NodeView, detail *NodeDetails) (*PlayBookTr
 		}
 	})
 
+	tree.SetDoneFunc(func(key tcell.Key) { root.Navigate(key) })
+
 	return &PlayBookTree{
-		RootView: tree,
-		detail:   detail,
-		playbook: playbook,
+		rootUI:     root,
+		View:       tree,
+		nodeDetail: detail,
+		playbook:   playbook,
 	}, nil
 }
