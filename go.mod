@@ -13,6 +13,8 @@ require (
 	github.com/charmbracelet/glamour v0.3.0 // indirect
 	github.com/creack/pty v1.1.11
 	github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815
+	github.com/gdamore/tcell v1.4.0 // indirect
+	github.com/gdamore/tcell/v2 v2.3.3 // indirect
 	github.com/go-resty/resty/v2 v2.5.0
 	github.com/google/uuid v1.2.0
 	github.com/gorilla/csrf v1.6.0 // indirect
@@ -21,6 +23,7 @@ require (
 	github.com/jedib0t/go-pretty/v6 v6.1.0
 	github.com/logrusorgru/aurora v0.0.0-20191116043053-66b7ad493a23 // indirect
 	github.com/muesli/termenv v0.8.1 // indirect
+	github.com/rivo/tview v0.0.0-20210521091241-1fd4a5b7aab3 // indirect
 	github.com/rs/zerolog v1.21.0
 	github.com/spf13/cobra v1.1.3
 	github.com/stretchr/testify v1.7.0 // indirect

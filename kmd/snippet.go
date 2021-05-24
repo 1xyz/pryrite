@@ -146,7 +146,7 @@ func NewCmdSnippetDesc(gCtx *snippet.Context) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 			tools.Log.Info().Msgf("describe name=%s", name)
-			view, err := snippet.GetSnippetNodeView(gCtx, name)
+			view, err := snippet.GetSnippetNodeViewWithChildren(gCtx, name)
 			if err != nil {
 				return err
 			}

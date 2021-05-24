@@ -45,6 +45,13 @@ func (n *Node) GetChildIDs() []string {
 	return result
 }
 
+func (n Node) String() string {
+	sb := strings.Builder{}
+	sb.WriteString(fmt.Sprintf("ID=%s kind=%v Title=%s Desc=%s Children=%s",
+		n.ID, n.Kind, n.Title, n.Description, n.Children))
+	return sb.String()
+}
+
 func NewNode(kind Kind, title, description, content string, metadata Metadata) (*Node, error) {
 	now := time.Now().UTC()
 	return &Node{
@@ -63,4 +70,15 @@ type NodeView struct {
 	Node            *Node  `json:"node"`
 	ContentMarkdown string `json:"content_markdown"`
 	Children        []*NodeView
+}
+
+func (n NodeView) String() string {
+	sb := strings.Builder{}
+	sb.WriteString(fmt.Sprintf("Node: %v\n", n.Node))
+	if n.Children != nil && len(n.Children) > 0 {
+		for i, c := range n.Children {
+			sb.WriteString(fmt.Sprintf("Child[%d] = %v\n", i, c))
+		}
+	}
+	return sb.String()
 }
