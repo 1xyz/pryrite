@@ -1,4 +1,4 @@
-package hui
+package tui
 
 import (
 	"container/list"
@@ -12,7 +12,7 @@ type NodeIndex map[string]*graph.NodeView
 
 type RunContext struct {
 	ID    string          // ID of the snippet to run
-	Root  *graph.NodeView // NodeView of the root node of execution
+	Root  *graph.NodeView // NodeView of the Root node of execution
 	Index NodeIndex       // Index of all the nodes in the RunContext
 	Store graph.Store
 }
@@ -43,7 +43,6 @@ func BuildRunContext(gCtx *snippet.Context, name string) (*RunContext, error) {
 }
 
 func (r *RunContext) buildGraph() error {
-
 	// fetch the node
 	view, err := r.Store.GetNodeView(r.ID)
 	if err != nil {
@@ -92,7 +91,7 @@ func (r *RunContext) getNodeView(id string) (*graph.NodeView, error) {
 func (r RunContext) String() string {
 	sb := strings.Builder{}
 	sb.WriteString(fmt.Sprintf("RootID = %s\n", r.ID))
-	sb.WriteString(fmt.Sprintf("Root = %v\n", r.Root))
+	sb.WriteString(fmt.Sprintf("RootView = %v\n", r.Root))
 	return sb.String()
 }
 

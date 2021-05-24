@@ -1,9 +1,9 @@
 package kmd
 
 import (
-	"github.com/aardlabs/terminal-poc/hui"
 	"github.com/aardlabs/terminal-poc/snippet"
 	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/aardlabs/terminal-poc/tui"
 	"github.com/spf13/cobra"
 )
 
@@ -24,7 +24,7 @@ func NewCmdHui(gCtx *snippet.Context) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 			tools.Log.Info().Msgf("run name=%s", name)
-			return hui.LaunchUI(gCtx, name)
+			return tui.LaunchUI(gCtx, name)
 		},
 	}
 
