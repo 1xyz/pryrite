@@ -2,6 +2,8 @@ package graph
 
 import (
 	"fmt"
+	"github.com/aardlabs/terminal-poc/tools"
+	"io"
 	"strings"
 	"time"
 )
@@ -65,7 +67,7 @@ func NewNode(kind Kind, title, description, content string, metadata Metadata) (
 	}, nil
 }
 
-// NodeView is a terminal specific rendered response
+// NodeView is a node rendered server-side.
 type NodeView struct {
 	Node            *Node  `json:"node"`
 	ContentMarkdown string `json:"content_markdown"`
@@ -81,4 +83,73 @@ func (n NodeView) String() string {
 		}
 	}
 	return sb.String()
+}
+
+// NodeExecutionResult encapsulates a node's execution result
+type NodeExecutionResult struct {
+	ExecutionID string `json:"execution_id"`
+	NodeID      string `json:"node_id"`
+	RequestID   string `json:"request_id"`
+	Stdout      []byte `json:"stdout"`
+	StdErr      []byte `json:"std_err"`
+	Err         error  `json:"err"`
+	ExitStatus  int    `json:"exit_status"`
+
+	stdoutWriter io.WriteCloser
+	stderrWriter io.WriteCloser
+}
+
+func (n *NodeExecutionResult) Close() error {
+	w := []io.Closer{n.stderrWriter, n.stdoutWriter}
+	for _, c := range w {
+		if c != nil {
+			if err := c.Close(); err != nil {
+				tools.Log.Err(err).Msgf("close writer %v", err)
+			}
+		}
+	}
+	return nil
+}
+
+func NewNodeExecutionResult(executionID, nodeID, requestID string) *NodeExecutionResult {
+	res := &NodeExecutionResult{
+		ExecutionID: executionID,
+		NodeID:      nodeID,
+		RequestID:   requestID,
+		Err:         nil,
+		ExitStatus:  0,
+	}
+	res.stdoutWriter = newByteWriter(func(bytes []byte) {
+		res.Stdout = bytes
+	})
+	res.stderrWriter = newByteWriter(func(bytes []byte) {
+		res.StdErr = bytes
+	})
+	return res
+}
+
+type bytesSetFn = func(bytes []byte)
+
+type byteWriter struct {
+	bytes []byte
+	fn    bytesSetFn
+}
+
+func newByteWriter(fn bytesSetFn) io.WriteCloser {
+	return &byteWriter{
+		bytes: []byte{},
+		fn:    fn,
+	}
+}
+
+func (b *byteWriter) Write(p []byte) (int, error) {
+	b.bytes = append(b.bytes, p...)
+	return len(p), nil
+}
+
+func (b *byteWriter) Close() error {
+	if b.fn != nil {
+		b.fn(b.bytes)
+	}
+	return nil
 }

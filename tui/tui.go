@@ -101,7 +101,7 @@ func (t *Tui) Statusf(format string, v ...interface{}) {
 	}
 }
 
-func (t *Tui) Execute(n *graph.Node, stdout, stderr io.Writer) ([]byte, error) {
+func (t *Tui) Execute(n *graph.Node, stdout, stderr io.Writer) (*graph.NodeExecutionResult, error) {
 	return t.rc.Execute(n, stdout, stderr)
 }
 
