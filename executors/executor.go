@@ -54,6 +54,9 @@ type ResponseHdr struct {
 type ExecResponse struct {
 	Hdr *ResponseHdr
 
+	// Exit status of the command
+	ExitStatus int
+
 	// Err is set to non-nil on error/cancellation
 	Err error
 }

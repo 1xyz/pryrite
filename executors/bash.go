@@ -8,14 +8,27 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 )
 
-type BashExecutor struct{}
+type BashExecutor struct {
+	context *[]string
+}
 
 type collectorResult struct {
 	err        error
 	exitStatus int
-	context    []string
+	context    *[]string
+}
+
+// variables to ignore when saving context (many are readonly)
+var ignoreVars = map[string]bool{
+	"BASHOPTS":      true,
+	"BASH_VERSINFO": true,
+	"EUID":          true,
+	"PPID":          true,
+	"SHELLOPTS":     true,
+	"UID":           true,
 }
 
 func (b *BashExecutor) Name() string { return "bash-executor" }
@@ -24,9 +37,10 @@ func (b *BashExecutor) ContentTypes() []ContentType { return []ContentType{Bash,
 
 func (b *BashExecutor) Execute(ctx context.Context, req *ExecRequest) *ExecResponse {
 	c := make(chan error, 1)
+
 	cmd := exec.CommandContext(ctx, "bash")
 
-	// prepare the input to allow for injection of our own follow-on commands
+	// prepare the input for injection of our own follow-on commands
 	cmdInput, err := cmd.StdinPipe()
 	if err != nil {
 		return &ExecResponse{Err: err}
@@ -46,12 +60,18 @@ func (b *BashExecutor) Execute(ctx context.Context, req *ExecRequest) *ExecRespo
 	cmd.ExtraFiles[9] = writeFile // this becomes file descriptor 12 in bash (in,out,err + 9)
 
 	result := &collectorResult{}
-	go b.collectStatusAndContext(cmdInput, readFile, result)
+	go collectStatusAndContext(cmdInput, readFile, result)
 
 	go func() {
 		c <- cmd.Run()
 		close(c)
 	}()
+
+	if b.context != nil {
+		for _, line := range *b.context {
+			cmdInput.Write([]byte(line + "\n"))
+		}
+	}
 
 	cmdInput.Write(req.Content)
 	cmdInput.Write([]byte("\n"))
@@ -72,15 +92,20 @@ func (b *BashExecutor) Execute(ctx context.Context, req *ExecRequest) *ExecRespo
 		err = result.err
 	}
 
-	return &ExecResponse{Hdr: responseHdr, Err: err}
+	b.context = result.context
+	result.context = nil
+
+	return &ExecResponse{Hdr: responseHdr, ExitStatus: result.exitStatus, Err: err}
 }
 
-func (b *BashExecutor) collectStatusAndContext(cmdInput io.WriteCloser, readFile *os.File, result *collectorResult) {
+func collectStatusAndContext(cmdInput io.WriteCloser, readFile *os.File, result *collectorResult) {
+	result.context = &[]string{}
+
 	var err error
 	state := 0
 	reader := bufio.NewReader(readFile)
 
-	cmdInput.Write([]byte("set -o posix\necho $? >&12\n"))
+	cmdInput.Write([]byte("echo $? >&12\nset -o posix\n"))
 
 	for {
 		var data []byte
@@ -108,7 +133,10 @@ func (b *BashExecutor) collectStatusAndContext(cmdInput io.WriteCloser, readFile
 				break
 			}
 
-			result.context = append(result.context, line)
+			vals := strings.Split(line, "=")
+			if _, ok := ignoreVars[vals[0]]; !ok {
+				*result.context = append(*result.context, line)
+			}
 
 		} else {
 			err = fmt.Errorf("unknown state value: %d", state)
