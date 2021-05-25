@@ -64,7 +64,6 @@ func NewPlaybookTree(root *Tui, playbook *graph.NodeView) (*PlayBookTree, error)
 			// Collapse if visible, expand if collapsed.
 			node.SetExpanded(!node.IsExpanded())
 		}
-
 		root.SetCurrentNodeView(view)
 	})
 

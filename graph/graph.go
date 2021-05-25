@@ -95,12 +95,12 @@ type NodeExecutionResult struct {
 	Err         error  `json:"err"`
 	ExitStatus  int    `json:"exit_status"`
 
-	stdoutWriter io.WriteCloser
-	stderrWriter io.WriteCloser
+	StdoutWriter io.WriteCloser
+	StderrWriter io.WriteCloser
 }
 
 func (n *NodeExecutionResult) Close() error {
-	w := []io.Closer{n.stderrWriter, n.stdoutWriter}
+	w := []io.Closer{n.StderrWriter, n.StdoutWriter}
 	for _, c := range w {
 		if c != nil {
 			if err := c.Close(); err != nil {
@@ -119,10 +119,10 @@ func NewNodeExecutionResult(executionID, nodeID, requestID string) *NodeExecutio
 		Err:         nil,
 		ExitStatus:  0,
 	}
-	res.stdoutWriter = newByteWriter(func(bytes []byte) {
+	res.StdoutWriter = newByteWriter(func(bytes []byte) {
 		res.Stdout = bytes
 	})
-	res.stderrWriter = newByteWriter(func(bytes []byte) {
+	res.StderrWriter = newByteWriter(func(bytes []byte) {
 		res.StdErr = bytes
 	})
 	return res

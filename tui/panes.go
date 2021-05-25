@@ -14,9 +14,6 @@ type DetailPane struct {
 
 	// Reference ot the root UI component
 	rootUI *Tui
-
-	// Represents the current node shown in the detail
-	curNodeView *graph.NodeView
 }
 
 func NewDetailPane(title string, rootUI *Tui) *DetailPane {
@@ -29,14 +26,15 @@ func NewDetailPane(title string, rootUI *Tui) *DetailPane {
 	textView.SetDoneFunc(func(key tcell.Key) { rootUI.Navigate(key) })
 
 	return &DetailPane{
-		rootUI:      rootUI,
-		TextView:    textView,
-		curNodeView: nil,
+		rootUI:   rootUI,
+		TextView: textView,
 	}
 }
 
 type SnippetPane struct {
 	*DetailPane
+	// Represents the current node shown in the detail
+	curNodeView *graph.NodeView
 }
 
 func NewSnippetPane(rootUI *Tui) *SnippetPane {

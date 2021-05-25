@@ -3,6 +3,7 @@ package tui
 import (
 	"fmt"
 	"github.com/aardlabs/terminal-poc/graph"
+	"github.com/aardlabs/terminal-poc/run"
 	"github.com/aardlabs/terminal-poc/snippet"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/gdamore/tcell/v2"
@@ -30,27 +31,27 @@ type Tui struct {
 
 	pages *tview.Pages // different pages in this UI
 	grid  *tview.Grid  //  layout for the run page
-	rc    *RunContext
+	run   *run.Run
 
 	Nav *Navigator
 }
 
 func NewTui(gCtx *snippet.Context, name string) (*Tui, error) {
-	rc, err := BuildRunContext(gCtx, name)
+	run, err := run.NewRun(gCtx, name)
 	if err != nil {
 		return nil, err
 	}
 
 	ui := &Tui{
 		App: tview.NewApplication(),
-		rc:  rc,
+		run: run,
 	}
 
 	ui.info = newInfo(ui, gCtx)
 	ui.Detail = NewSnippetPane(ui)
 	ui.ExecDetail = NewDetailPane("Execution result", ui)
 	ui.Status = NewDetailPane("Status", ui)
-	pbTree, err := NewPlaybookTree(ui, rc.Root)
+	pbTree, err := NewPlaybookTree(ui, run.Root)
 	if err != nil {
 		return nil, fmt.Errorf("newPlaybookTree: err = %v", err)
 	}
@@ -59,12 +60,12 @@ func NewTui(gCtx *snippet.Context, name string) (*Tui, error) {
 	ui.setupNavigator()
 	// 100 x 100 grid
 	ui.grid = tview.NewGrid().
-		SetRows(3, -7, -1, -1).
+		SetRows(3, 0, -3, 3).
 		AddItem(ui.info, 0, 0, 1, 5, 0, 0, false).
-		AddItem(pbTree.View, 1, 0, 3, 1, 0, 0, true).
-		AddItem(ui.Detail, 1, 1, 2, 4, 0, 0, false).
-		AddItem(ui.ExecDetail, 2, 1, 2, 4, 0, 0, false).
-		AddItem(ui.Status, 4, 0, 1, 5, 0, 0, false)
+		AddItem(pbTree.View, 1, 0, 2, 1, 0, 0, true).
+		AddItem(ui.Detail, 1, 1, 1, 4, 0, 0, false).
+		AddItem(ui.ExecDetail, 2, 1, 1, 4, 0, 0, false).
+		AddItem(ui.Status, 3, 0, 1, 5, 0, 0, false)
 	ui.pages = tview.NewPages().AddPage("main", ui.grid, true, true)
 	ui.App.SetRoot(ui.pages, true)
 	return ui, nil
@@ -83,16 +84,6 @@ func (t *Tui) SetCurrentNodeView(nodeView *graph.NodeView) {
 	t.Detail.SetCurrentNodeView(nodeView)
 }
 
-func (t *Tui) ClearDetail() {
-	t.Detail.Clear()
-}
-
-func (t *Tui) WriteDetail(p []byte) {
-	if _, err := t.Detail.Write(p); err != nil {
-		t.Statusf("WriteDetail: err = %v", err)
-	}
-}
-
 func (t *Tui) Statusf(format string, v ...interface{}) {
 	s := fmt.Sprintf(format, v...)
 	tools.Log.Info().Msg(s)
@@ -102,7 +93,7 @@ func (t *Tui) Statusf(format string, v ...interface{}) {
 }
 
 func (t *Tui) Execute(n *graph.Node, stdout, stderr io.Writer) (*graph.NodeExecutionResult, error) {
-	return t.rc.Execute(n, stdout, stderr)
+	return t.run.Execute(n, stdout, stderr)
 }
 
 type Navigator struct {
