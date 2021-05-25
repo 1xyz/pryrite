@@ -7,10 +7,17 @@ import (
 
 type Register map[ContentType]Executor
 
-func NewRegister() Register {
+func NewRegister() (Register, error) {
 	r := Register{}
-	r.Register(&BashExecutor{})
-	return r
+
+	e, err := NewBashExecutor()
+	if err != nil {
+		return nil, err
+	}
+
+	r.Register(e)
+
+	return r, nil
 }
 
 func (r Register) Register(executor Executor) error {

@@ -3,8 +3,6 @@ package executor
 import (
 	"bufio"
 	"context"
-	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"strconv"
@@ -12,142 +10,121 @@ import (
 )
 
 type BashExecutor struct {
-	context *[]string
+	bash      *exec.Cmd
+	bashDone  chan error
+	isRunning bool
+
+	// i/o for sending commands to the bash session
+	cmdWriter *os.File
+
+	// i/o for receiving exit status from executed commands in the bash session
+	resultReader *os.File
 }
 
 type collectorResult struct {
 	err        error
 	exitStatus int
-	context    *[]string
 }
 
-// variables to ignore when saving context (many are readonly)
-var ignoreVars = map[string]bool{
-	"BASHOPTS":      true,
-	"BASH_VERSINFO": true,
-	"EUID":          true,
-	"PPID":          true,
-	"SHELLOPTS":     true,
-	"UID":           true,
+const repl = `while IFS= read -u 11 -r line; do
+    eval "$line";
+    echo $? >&12;
+done`
+
+func NewBashExecutor() (Executor, error) {
+	b := &BashExecutor{}
+
+	b.bash = exec.Command("bash", "-c", repl)
+
+	// FIXME: proxy!!
+	b.bash.Stdout = os.Stdout
+	b.bash.Stderr = os.Stderr
+
+	var err error
+
+	// these are passed off to the bash session
+	var cmdReader, resultWriter *os.File
+
+	// prepare a pipe to let us inject commands (i.e. avoid their stdin)
+	cmdReader, b.cmdWriter, err = os.Pipe()
+	if err != nil {
+		return nil, err
+	}
+
+	// prepare a pipe to let our injected commands communicate only to us (i.e. avoid their stdout)
+	b.resultReader, resultWriter, err = os.Pipe()
+	if err != nil {
+		return nil, err
+	}
+
+	// offset our descriptors in case the user wants to get fancy with their own scripts
+	b.bash.ExtraFiles = make([]*os.File, 10)
+	b.bash.ExtraFiles[8] = cmdReader    // this becomes file descriptor 11 in bash (in,out,err + 8)
+	b.bash.ExtraFiles[9] = resultWriter // and this is 12
+
+	return b, nil
 }
 
 func (b *BashExecutor) Name() string { return "bash-executor" }
 
 func (b *BashExecutor) ContentTypes() []ContentType { return []ContentType{Bash, Shell} }
 
-func (b *BashExecutor) Execute(ctx context.Context, req *ExecRequest) *ExecResponse {
-	c := make(chan error, 1)
-
-	cmd := exec.CommandContext(ctx, "bash")
-
-	// prepare the input for injection of our own follow-on commands
-	cmdInput, err := cmd.StdinPipe()
-	if err != nil {
-		return &ExecResponse{Err: err}
+func (b *BashExecutor) ensureRunning() {
+	if b.isRunning {
+		return
 	}
-
-	cmd.Stdout = req.Stdout
-	cmd.Stderr = req.Stderr
-
-	// prepare a pipe to let our injected commands communicate only to us (i.e. avoid their stdout)
-	readFile, writeFile, err := os.Pipe()
-	if err != nil {
-		return &ExecResponse{Err: err}
-	}
-
-	// offset our descriptor in case the user wants to get fancy with their own scripts
-	cmd.ExtraFiles = make([]*os.File, 10)
-	cmd.ExtraFiles[9] = writeFile // this becomes file descriptor 12 in bash (in,out,err + 9)
-
-	result := &collectorResult{}
-	go collectStatusAndContext(cmdInput, readFile, result)
 
 	go func() {
-		c <- cmd.Run()
-		close(c)
+		b.bashDone <- b.bash.Run()
+		close(b.bashDone)
+		b.isRunning = false
 	}()
 
-	if b.context != nil {
-		for _, line := range *b.context {
-			cmdInput.Write([]byte(line + "\n"))
-		}
-	}
+	b.isRunning = true
+}
 
-	cmdInput.Write(req.Content)
-	cmdInput.Write([]byte("\n"))
+func (b *BashExecutor) Execute(ctx context.Context, req *ExecRequest) *ExecResponse {
+	b.ensureRunning()
+
+	resultReady := make(chan *collectorResult, 1)
+	go b.collectStatus(resultReady)
+
+	b.cmdWriter.Write(req.Content)
+	b.cmdWriter.WriteString("\n")
 
 	responseHdr := &ResponseHdr{req.Hdr.ID}
 
+	var err error
+	exitStatus := -1
+
 	select {
-	case <-ctx.Done():
-		err = ctx.Err()
-		if err == nil {
-			err = <-c // wait for cmd.Run to complete
-		}
-	case err = <-c:
-	}
-
-	if err == nil {
-		// don't stomp on an error from the cmd or ctx
+	case result := <-resultReady: // got a result
 		err = result.err
+		exitStatus = result.exitStatus
+	case <-ctx.Done(): // interrupted by the context
+		err = ctx.Err()
+		// FIXME: how to kill on timeout?
+	case err = <-b.bashDone: // bash exited!
 	}
 
-	b.context = result.context
-	result.context = nil
-
-	return &ExecResponse{Hdr: responseHdr, ExitStatus: result.exitStatus, Err: err}
+	return &ExecResponse{Hdr: responseHdr, ExitStatus: exitStatus, Err: err}
 }
 
-func collectStatusAndContext(cmdInput io.WriteCloser, readFile *os.File, result *collectorResult) {
-	result.context = &[]string{}
+func (b *BashExecutor) collectStatus(ready chan *collectorResult) {
+	result := &collectorResult{exitStatus: -1}
+	reader := bufio.NewReader(b.resultReader)
 
-	var err error
-	state := 0
-	reader := bufio.NewReader(readFile)
-
-	cmdInput.Write([]byte("echo $? >&12\nset -o posix\n"))
-
-	for {
-		var data []byte
-
-		data, _, err = reader.ReadLine()
-		if err != nil {
-			break
-		}
-
-		line := string(data)
-
-		if state == 0 {
-			state++
-
-			result.exitStatus, err = strconv.Atoi(line)
-			if err != nil {
-				break
-			}
-
-			// list out variables
-			cmdInput.Write([]byte("set >&12; echo AARDY_COLLECTION_DONE >&12\n"))
-
-		} else if state == 1 {
-			if line == "AARDY_COLLECTION_DONE" {
-				break
-			}
-
-			vals := strings.Split(line, "=")
-			if _, ok := ignoreVars[vals[0]]; !ok {
-				*result.context = append(*result.context, line)
-			}
-
-		} else {
-			err = fmt.Errorf("unknown state value: %d", state)
-			break
-		}
+	var status string
+	status, result.err = reader.ReadString('\n')
+	if result.err != nil {
+		return
 	}
 
-	closeErr := cmdInput.Close()
-
-	if err == nil {
-		// don't overwrite an err from above!
-		result.err = closeErr
+	result.exitStatus, result.err = strconv.Atoi(strings.Trim(status, " \t\r\n"))
+	if result.err != nil {
+		result.exitStatus = -1
 	}
+
+	ready <- result
+	close(ready)
 }
