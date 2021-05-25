@@ -2,7 +2,6 @@ package kmd
 
 import (
 	"context"
-	"fmt"
 	"os"
 
 	executor "github.com/aardlabs/terminal-poc/executors"
@@ -20,7 +19,6 @@ func NewCmdExecutor() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			exec, _ := register.Get(executor.ContentType(args[0]))
 			for _, content := range args[1:] {
-				println("barfing", content)
 				req := &executor.ExecRequest{
 					Hdr: &executor.RequestHdr{
 						ID: uuid.NewString(),
@@ -30,7 +28,10 @@ func NewCmdExecutor() *cobra.Command {
 					Stderr:  os.Stderr,
 				}
 				res := exec.Execute(context.Background(), req)
-				fmt.Printf("res: %v\n", *res)
+				if res.Err != nil {
+					return res.Err
+				}
+				cmd.Printf("Exit status: %d\n", res.ExitStatus)
 			}
 
 			return nil

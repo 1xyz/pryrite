@@ -16,24 +16,8 @@ type RequestHdr struct {
 	UserID string
 }
 
-type ExecAction uint
-
-const (
-	Run     ExecAction = iota // Run a command and wait for more requests
-	RunOnce                   // Prepends the content within the template tag to the container designated by the target dom id.
-)
-
-func (action ExecAction) String() string {
-	return [...]string{"run", "run-once"}[action]
-}
-
 type ExecRequest struct {
 	Hdr *RequestHdr
-
-	// Action refers to the intended action;
-	// the action can be used to support, where there are multiple request actions
-	// supported by the Executor
-	Action ExecAction
 
 	// Content refers to the payload provided by the requester
 	Content []byte
