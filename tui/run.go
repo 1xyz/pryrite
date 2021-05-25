@@ -2,19 +2,27 @@ package tui
 
 import (
 	"container/list"
+	"context"
 	"fmt"
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/snippet"
+	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/aardlabs/terminal-poc/tui/kernel"
+	"github.com/google/uuid"
+	"io"
+	"os"
 	"strings"
 )
 
 type NodeIndex map[string]*graph.NodeView
 
 type RunContext struct {
-	ID    string          // ID of the snippet to run
-	Root  *graph.NodeView // NodeView of the Root node of execution
-	Index NodeIndex       // Index of all the nodes in the RunContext
-	Store graph.Store
+	ID         string          // Unique ID of the Execution
+	PlaybookID string          // PlaybookID of the playbook snippet to run
+	Root       *graph.NodeView // NodeView of the Root node of execution
+	Index      NodeIndex       // Index of all the nodes in the RunContext
+	Store      graph.Store
+	Register   kernel.Register
 }
 
 // BuildRunContext eagerly builds the RunContext
@@ -31,12 +39,19 @@ func BuildRunContext(gCtx *snippet.Context, name string) (*RunContext, error) {
 	}
 
 	runCtx := &RunContext{
-		ID:    id,
-		Root:  nil,
-		Index: make(NodeIndex),
-		Store: store,
+		ID:         uuid.New().String(),
+		PlaybookID: id,
+		Root:       nil,
+		Index:      make(NodeIndex),
+		Store:      store,
+		Register:   make(kernel.Register),
 	}
+
 	if err := runCtx.buildGraph(); err != nil {
+		return nil, err
+	}
+
+	if err := runCtx.buildRegister(); err != nil {
 		return nil, err
 	}
 	return runCtx, nil
@@ -44,7 +59,7 @@ func BuildRunContext(gCtx *snippet.Context, name string) (*RunContext, error) {
 
 func (r *RunContext) buildGraph() error {
 	// fetch the node
-	view, err := r.Store.GetNodeView(r.ID)
+	view, err := r.Store.GetNodeView(r.PlaybookID)
 	if err != nil {
 		return err
 	}
@@ -72,6 +87,13 @@ func (r *RunContext) buildGraph() error {
 	return nil
 }
 
+func (r *RunContext) buildRegister() error {
+	if err := r.Register.Register(&kernel.BashKernel{}); err != nil {
+		return fmt.Errorf("registerBashKernl: err = %v", err)
+	}
+	return nil
+}
+
 func (r *RunContext) getNodeView(id string) (*graph.NodeView, error) {
 	// fetch the node
 	view, err := r.Store.GetNodeView(id)
@@ -90,9 +112,30 @@ func (r *RunContext) getNodeView(id string) (*graph.NodeView, error) {
 
 func (r RunContext) String() string {
 	sb := strings.Builder{}
-	sb.WriteString(fmt.Sprintf("RootID = %s\n", r.ID))
+	sb.WriteString(fmt.Sprintf("RootID = %s\n", r.PlaybookID))
 	sb.WriteString(fmt.Sprintf("RootView = %v\n", r.Root))
 	return sb.String()
+}
+
+func (r *RunContext) Execute(n *graph.Node, stdout, stderr io.Writer) ([]byte, error) {
+	tools.Log.Info().Msgf("Execute n = %+v", n)
+	req := &kernel.ExecRequest{
+		Hdr: &kernel.RequestHdr{
+			ID:          "123",
+			ExecutionID: "456",
+			NodeID:      "3232",
+			UserID:      "12",
+		},
+		Action:      "",
+		Content:     []byte(n.Content),
+		ContentType: kernel.ContentType(n.ContentLanguage),
+		Stdin:       os.Stdin,
+		Stdout:      stdout,
+		Stderr:      stderr,
+	}
+	ctx := context.Background()
+	resp := r.Register.Execute(ctx, req)
+	return resp.Content, resp.Err
 }
 
 func (ni NodeIndex) Add(view *graph.NodeView) error {

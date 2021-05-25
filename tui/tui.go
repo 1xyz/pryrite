@@ -2,9 +2,12 @@ package tui
 
 import (
 	"fmt"
+	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/snippet"
+	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	"io"
 )
 
 func LaunchUI(gCtx *snippet.Context, name string) error {
@@ -20,7 +23,7 @@ type Tui struct {
 	App *tview.Application
 
 	PbTree     *PlayBookTree
-	Detail     *DetailPane
+	Detail     *SnippetPane
 	ExecDetail *DetailPane
 	Status     *DetailPane
 
@@ -39,12 +42,13 @@ func NewTui(gCtx *snippet.Context, name string) (*Tui, error) {
 
 	ui := &Tui{
 		App: tview.NewApplication(),
+		rc:  rc,
 	}
 
-	ui.Detail = NewDetailPane("Node detail", ui)
+	ui.Detail = NewSnippetPane(ui)
 	ui.ExecDetail = NewDetailPane("Execution result", ui)
 	ui.Status = NewDetailPane("Status", ui)
-	pbTree, err := NewPlaybookTree(ui, rc.Root, ui.Detail)
+	pbTree, err := NewPlaybookTree(ui, rc.Root)
 	if err != nil {
 		return nil, fmt.Errorf("newPlaybookTree: err = %v", err)
 	}
@@ -54,9 +58,9 @@ func NewTui(gCtx *snippet.Context, name string) (*Tui, error) {
 	// 100 x 100 grid
 	ui.grid = tview.NewGrid().
 		AddItem(pbTree.View, 0, 0, 4, 1, 0, 0, true).
-		AddItem(ui.Detail.View, 0, 1, 2, 4, 0, 0, false).
-		AddItem(ui.ExecDetail.View, 2, 1, 2, 4, 0, 0, false).
-		AddItem(ui.Status.View, 4, 0, 1, 5, 0, 0, false)
+		AddItem(ui.Detail, 0, 1, 2, 4, 0, 0, false).
+		AddItem(ui.ExecDetail, 2, 1, 2, 4, 0, 0, false).
+		AddItem(ui.Status, 4, 0, 1, 5, 0, 0, false)
 	ui.pages = tview.NewPages().AddPage("main", ui.grid, true, true)
 	ui.App.SetRoot(ui.pages, true)
 	return ui, nil
@@ -67,8 +71,34 @@ func (t *Tui) Navigate(key tcell.Key) { t.Nav.Navigate(key) }
 func (t *Tui) setupNavigator() {
 	t.Nav = &Navigator{
 		rootUI:  t.App,
-		Entries: []tview.Primitive{t.PbTree.View, t.Detail.View, t.ExecDetail.View, t.Status.View},
+		Entries: []tview.Primitive{t.PbTree.View, t.Detail, t.ExecDetail, t.Status},
 	}
+}
+
+func (t *Tui) SetCurrentNodeView(nodeView *graph.NodeView) {
+	t.Detail.SetCurrentNodeView(nodeView)
+}
+
+func (t *Tui) ClearDetail() {
+	t.Detail.Clear()
+}
+
+func (t *Tui) WriteDetail(p []byte) {
+	if _, err := t.Detail.Write(p); err != nil {
+		t.Statusf("WriteDetail: err = %v", err)
+	}
+}
+
+func (t *Tui) Statusf(format string, v ...interface{}) {
+	s := fmt.Sprintf(format, v...)
+	tools.Log.Info().Msg(s)
+	if _, err := t.Status.Write([]byte(s)); err != nil {
+		tools.Log.Err(err).Msgf("WriteStatus: err = %v", err)
+	}
+}
+
+func (t *Tui) Execute(n *graph.Node, stdout, stderr io.Writer) ([]byte, error) {
+	return t.rc.Execute(n, stdout, stderr)
 }
 
 type Navigator struct {

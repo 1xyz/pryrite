@@ -1,10 +1,8 @@
 package tui
 
 import (
-	"fmt"
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/tools"
-	"github.com/charmbracelet/glamour"
 	tcell "github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -17,14 +15,11 @@ type PlayBookTree struct {
 	// Reference ot the root UI component
 	rootUI *Tui
 
-	// Refers the details component for a selected node on the PlayBookTree
-	nodeDetail *DetailPane
-
 	// Refers to the underlying playbook
 	playbook *graph.NodeView
 }
 
-func NewPlaybookTree(root *Tui, playbook *graph.NodeView, detail *DetailPane) (*PlayBookTree, error) {
+func NewPlaybookTree(root *Tui, playbook *graph.NodeView) (*PlayBookTree, error) {
 	tn := tview.NewTreeNode(playbook.Node.Title).
 		SetColor(tcell.ColorRed)
 	tree := tview.NewTreeView().
@@ -70,29 +65,14 @@ func NewPlaybookTree(root *Tui, playbook *graph.NodeView, detail *DetailPane) (*
 			node.SetExpanded(!node.IsExpanded())
 		}
 
-		detail.Clear()
-		var out string
-		r, err := glamour.NewTermRenderer(glamour.WithStylePath("notty"))
-		if err != nil {
-			tools.Log.Err(err).Msgf("SetSelectedFunc: NewTermRenderer err =  %v", err)
-			return
-		}
-
-		out, err = r.Render(view.ContentMarkdown)
-		if err != nil {
-			out = fmt.Sprintf("SetSelectedFunc: render markdown: err = %v", err)
-		}
-		if err := detail.Write([]byte(out)); err != nil {
-			tools.Log.Err(err).Msgf("SetSelectedFunc: detail.Write: err = %v", err)
-		}
+		root.SetCurrentNodeView(view)
 	})
 
 	tree.SetDoneFunc(func(key tcell.Key) { root.Navigate(key) })
 
 	return &PlayBookTree{
-		rootUI:     root,
-		View:       tree,
-		nodeDetail: detail,
-		playbook:   playbook,
+		rootUI:   root,
+		View:     tree,
+		playbook: playbook,
 	}, nil
 }
