@@ -63,6 +63,9 @@ type Executor interface {
 
 	// Execute requests the Executor to execute the provided request
 	Execute(context.Context, *ExecRequest) *ExecResponse
+
+	// Internal cleanup function invoked when the Register is torn down
+	Cleanup()
 }
 
 func DefaultRequest() *ExecRequest {

@@ -35,6 +35,7 @@ func NewBashExecutor() (Executor, error) {
 	b := &BashExecutor{}
 
 	b.bash = exec.Command("bash", "-c", repl)
+	b.bashDone = make(chan error, 1)
 
 	// FIXME: proxy!!
 	b.bash.Stdout = os.Stdout
@@ -69,20 +70,6 @@ func (b *BashExecutor) Name() string { return "bash-executor" }
 
 func (b *BashExecutor) ContentTypes() []ContentType { return []ContentType{Bash, Shell} }
 
-func (b *BashExecutor) ensureRunning() {
-	if b.isRunning {
-		return
-	}
-
-	go func() {
-		b.bashDone <- b.bash.Run()
-		close(b.bashDone)
-		b.isRunning = false
-	}()
-
-	b.isRunning = true
-}
-
 func (b *BashExecutor) Execute(ctx context.Context, req *ExecRequest) *ExecResponse {
 	b.ensureRunning()
 
@@ -108,6 +95,30 @@ func (b *BashExecutor) Execute(ctx context.Context, req *ExecRequest) *ExecRespo
 	}
 
 	return &ExecResponse{Hdr: responseHdr, ExitStatus: exitStatus, Err: err}
+}
+
+func (b *BashExecutor) Cleanup() {
+	if b.isRunning {
+		b.bash.Process.Kill()
+		b.bash.Process.Wait() // the previous kill won't let the `Run()` call clean up children
+		b.cmdWriter.Close()
+		b.resultReader.Close()
+		b.isRunning = false
+	}
+}
+
+func (b *BashExecutor) ensureRunning() {
+	if b.isRunning {
+		return
+	}
+
+	go func() {
+		b.bashDone <- b.bash.Run() // this calls `Wait()` for us
+		close(b.bashDone)
+		b.isRunning = false
+	}()
+
+	b.isRunning = true
 }
 
 func (b *BashExecutor) collectStatus(ready chan *collectorResult) {

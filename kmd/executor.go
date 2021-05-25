@@ -41,6 +41,8 @@ func NewCmdExecutor() *cobra.Command {
 				cmd.Printf("Exit status: %d\n", res.ExitStatus)
 			}
 
+			register.Cleanup()
+
 			return nil
 		},
 	}
