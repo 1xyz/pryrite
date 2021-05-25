@@ -91,7 +91,7 @@ type NodeExecutionResult struct {
 	NodeID      string `json:"node_id"`
 	RequestID   string `json:"request_id"`
 	Stdout      []byte `json:"stdout"`
-	StdErr      []byte `json:"std_err"`
+	Stderr      []byte `json:"stderr"`
 	Err         error  `json:"err"`
 	ExitStatus  int    `json:"exit_status"`
 
@@ -123,7 +123,7 @@ func NewNodeExecutionResult(executionID, nodeID, requestID string) *NodeExecutio
 		res.Stdout = bytes
 	})
 	res.StderrWriter = newByteWriter(func(bytes []byte) {
-		res.StdErr = bytes
+		res.Stderr = bytes
 	})
 	return res
 }

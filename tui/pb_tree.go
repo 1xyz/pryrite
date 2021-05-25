@@ -65,6 +65,8 @@ func NewPlaybookTree(root *Tui, playbook *graph.NodeView) (*PlayBookTree, error)
 			node.SetExpanded(!node.IsExpanded())
 		}
 		root.SetCurrentNodeView(view)
+		res, _ := root.run.ExecIndex.Get(view.Node.ID)
+		root.SetCurrentNodeExecutionResult(res)
 	})
 
 	tree.SetDoneFunc(func(key tcell.Key) { root.Navigate(key) })
