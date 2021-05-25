@@ -49,6 +49,11 @@ func NewRun(gCtx *snippet.Context, playbookIDOrURL string) (*Run, error) {
 		return nil, err
 	}
 
+	register, err := executor.NewRegister()
+	if err != nil {
+		return nil, err
+	}
+
 	run := &Run{
 		ID:         uuid.New().String(),
 		PlaybookID: id,
@@ -56,7 +61,7 @@ func NewRun(gCtx *snippet.Context, playbookIDOrURL string) (*Run, error) {
 		ViewIndex:  make(NodeViewIndex),
 		ExecIndex:  make(NodeExecResultIndex),
 		Store:      store,
-		Register:   executor.NewRegister(),
+		Register:   register,
 	}
 
 	if err := run.buildGraph(); err != nil {
