@@ -26,7 +26,6 @@ func NewCmdExecutor() *cobra.Command {
 						ID: uuid.NewString(),
 					},
 					Content: []byte(content),
-					Stdin:   os.Stdin,
 					Stdout:  os.Stdout,
 					Stderr:  os.Stderr,
 				}
