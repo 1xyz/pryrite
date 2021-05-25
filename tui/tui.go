@@ -22,6 +22,7 @@ type Tui struct {
 	// Primary UI Application component
 	App *tview.Application
 
+	info       *info
 	PbTree     *PlayBookTree
 	Detail     *SnippetPane
 	ExecDetail *DetailPane
@@ -45,6 +46,7 @@ func NewTui(gCtx *snippet.Context, name string) (*Tui, error) {
 		rc:  rc,
 	}
 
+	ui.info = newInfo(ui, gCtx)
 	ui.Detail = NewSnippetPane(ui)
 	ui.ExecDetail = NewDetailPane("Execution result", ui)
 	ui.Status = NewDetailPane("Status", ui)
@@ -57,8 +59,10 @@ func NewTui(gCtx *snippet.Context, name string) (*Tui, error) {
 	ui.setupNavigator()
 	// 100 x 100 grid
 	ui.grid = tview.NewGrid().
-		AddItem(pbTree.View, 0, 0, 4, 1, 0, 0, true).
-		AddItem(ui.Detail, 0, 1, 2, 4, 0, 0, false).
+		SetRows(3, -7, -1, -1).
+		AddItem(ui.info, 0, 0, 1, 5, 0, 0, false).
+		AddItem(pbTree.View, 1, 0, 3, 1, 0, 0, true).
+		AddItem(ui.Detail, 1, 1, 2, 4, 0, 0, false).
 		AddItem(ui.ExecDetail, 2, 1, 2, 4, 0, 0, false).
 		AddItem(ui.Status, 4, 0, 1, 5, 0, 0, false)
 	ui.pages = tview.NewPages().AddPage("main", ui.grid, true, true)
