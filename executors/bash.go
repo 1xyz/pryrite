@@ -3,6 +3,8 @@ package executor
 import (
 	"bufio"
 	"context"
+	"errors"
+	"io"
 	"os"
 	"os/exec"
 	"strconv"
@@ -37,9 +39,10 @@ func NewBashExecutor() (Executor, error) {
 	b.bash = exec.Command("bash", "-c", repl)
 	b.bashDone = make(chan error, 1)
 
-	// FIXME: proxy!!
-	b.bash.Stdout = os.Stdout
-	b.bash.Stderr = os.Stderr
+	// proxy in/out/err to allow for dynamic reassignment for each execution
+	b.bash.Stdin = &readWriterProxy{}
+	b.bash.Stdout = &readWriterProxy{}
+	b.bash.Stderr = &readWriterProxy{}
 
 	var err error
 
@@ -73,6 +76,14 @@ func (b *BashExecutor) ContentTypes() []ContentType { return []ContentType{Bash,
 func (b *BashExecutor) Execute(ctx context.Context, req *ExecRequest) *ExecResponse {
 	b.ensureRunning()
 
+	// update proxies with the requested i/o
+	inProxy := b.bash.Stdin.(*readWriterProxy)
+	inProxy.SetReader(req.Stdin)
+	outProxy := b.bash.Stdout.(*readWriterProxy)
+	outProxy.SetWriter(req.Stdout)
+	errProxy := b.bash.Stderr.(*readWriterProxy)
+	errProxy.SetWriter(req.Stderr)
+
 	resultReady := make(chan *collectorResult, 1)
 	go b.collectStatus(resultReady)
 
@@ -93,6 +104,11 @@ func (b *BashExecutor) Execute(ctx context.Context, req *ExecRequest) *ExecRespo
 		// FIXME: how to kill on timeout?
 	case err = <-b.bashDone: // bash exited!
 	}
+
+	// update proxies to avoid confusing caller if more junk comes in
+	inProxy.SetReader(nil)
+	outProxy.SetWriter(nil)
+	errProxy.SetWriter(nil)
 
 	return &ExecResponse{Hdr: responseHdr, ExitStatus: exitStatus, Err: err}
 }
@@ -138,4 +154,33 @@ func (b *BashExecutor) collectStatus(ready chan *collectorResult) {
 
 	ready <- result
 	close(ready)
+}
+
+type readWriterProxy struct {
+	reader io.Reader
+	writer io.Writer
+}
+
+func (proxy *readWriterProxy) SetReader(reader io.Reader) {
+	proxy.reader = reader
+}
+
+func (proxy *readWriterProxy) SetWriter(writer io.Writer) {
+	proxy.writer = writer
+}
+
+func (proxy *readWriterProxy) Read(buf []byte) (int, error) {
+	if proxy.reader == nil {
+		return 0, errors.New("proxy was asked to read without a reader assigned")
+	}
+
+	return proxy.reader.Read(buf)
+}
+
+func (proxy *readWriterProxy) Write(data []byte) (int, error) {
+	if proxy.writer == nil {
+		return 0, errors.New("proxy was asked to write without a writer assigned")
+	}
+
+	return proxy.writer.Write(data)
 }

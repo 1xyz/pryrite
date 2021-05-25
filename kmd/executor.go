@@ -2,10 +2,11 @@ package kmd
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"os"
 
 	executor "github.com/aardlabs/terminal-poc/executors"
-	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
 
@@ -22,15 +23,20 @@ func NewCmdExecutor() *cobra.Command {
 
 			contentType := executor.ContentType(args[0])
 
-			for _, content := range args[1:] {
-				req := &executor.ExecRequest{
-					Hdr: &executor.RequestHdr{
-						ID: uuid.NewString(),
-					},
-					Content:     []byte(content),
-					ContentType: contentType,
-					Stdout:      os.Stdout,
-					Stderr:      os.Stderr,
+			for count, content := range args[1:] {
+				req := executor.DefaultRequest()
+
+				req.Content = []byte(content)
+				req.ContentType = contentType
+
+				req.Stdout = &prefixWriter{
+					writer: os.Stdout,
+					prefix: []byte(fmt.Sprint(count, "-out> ")),
+				}
+
+				req.Stderr = &prefixWriter{
+					writer: os.Stdout,
+					prefix: []byte(fmt.Sprint(count, "-err> ")),
 				}
 
 				res := register.Execute(context.Background(), req)
@@ -48,4 +54,15 @@ func NewCmdExecutor() *cobra.Command {
 	}
 
 	return cmd
+}
+
+type prefixWriter struct {
+	writer io.Writer
+	prefix []byte
+}
+
+func (pw *prefixWriter) Write(data []byte) (int, error) {
+	// println("barfwrite", string(data))
+	pw.writer.Write(pw.prefix)
+	return pw.writer.Write(data)
 }
