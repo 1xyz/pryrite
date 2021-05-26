@@ -20,7 +20,7 @@ Options:
   -h --help            Show this screen.
 
 Examples:
-  Add a new configuration with the name "foobar" and service url: https://foobar.aardvarklabs.com:9443
+  Register a new configuration with the name "foobar" and service url: https://foobar.aardvarklabs.com:9443
   $ aard config add foobar --service-url=https://foobar.aardvarklabs.com:9443
 
   List all configurations for this client

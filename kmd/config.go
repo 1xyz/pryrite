@@ -16,7 +16,7 @@ func NewCmdConfigAdd(cfg *config.Config) *cobra.Command {
 	opts := &ConfigAddOptions{}
 	cmd := &cobra.Command{
 		Use:   "add <name>",
-		Short: "Add a new named configuration",
+		Short: "Register a new named configuration",
 		Example: examplef(`
 			To add a new named configuration, run:
 

@@ -32,7 +32,7 @@ type Context struct {
 }
 
 func GetSnippetNode(ctx *Context, id string) (*graph.Node, error) {
-	id, err := getID(id)
+	id, err := GetID(id)
 	if err != nil {
 		return nil, err
 	}
@@ -201,8 +201,8 @@ func EditSnippetNode(ctx *Context, id string) (*graph.Node, error) {
 	return n, nil
 }
 
-func GetSnippetNodeView(ctx *Context, id string) (*graph.NodeView, error) {
-	id, err := getID(id)
+func GetSnippetNodeViewWithChildren(ctx *Context, id string) (*graph.NodeView, error) {
+	id, err := GetID(id)
 	if err != nil {
 		return nil, err
 	}
@@ -212,7 +212,7 @@ func GetSnippetNodeView(ctx *Context, id string) (*graph.NodeView, error) {
 	}
 
 	store := graph.NewStore(entry, ctx.Metadata)
-	nv, err := getSnippetNodeView(store, id)
+	nv, err := GetSnippetNodeView(store, id)
 	if err != nil {
 		return nil, err
 	}
@@ -220,7 +220,7 @@ func GetSnippetNodeView(ctx *Context, id string) (*graph.NodeView, error) {
 	nv.Children = []*graph.NodeView{}
 	childIDs := nv.Node.GetChildIDs()
 	for _, childID := range childIDs {
-		cnv, err := getSnippetNodeView(store, childID)
+		cnv, err := GetSnippetNodeView(store, childID)
 		if err != nil {
 			return nil, fmt.Errorf("error fetching childId = %v for node %v. err = %v",
 				childID, id, err)
@@ -231,11 +231,11 @@ func GetSnippetNodeView(ctx *Context, id string) (*graph.NodeView, error) {
 	return nv, nil
 }
 
-func getSnippetNodeView(store graph.Store, id string) (*graph.NodeView, error) {
+func GetSnippetNodeView(store graph.Store, id string) (*graph.NodeView, error) {
 	startAt := time.Now()
 	n, err := store.GetNodeView(id)
 	if err != nil {
-		ctxMsg := fmt.Sprintf("getSnippetNodeView(%s) = %v", id, err)
+		ctxMsg := fmt.Sprintf("GetSnippetNodeView(%s) = %v", id, err)
 		var ghe *graph.HttpError
 		if errors.As(err, &ghe) {
 			return nil, handleGraphHTTPErr(ghe, ctxMsg)
@@ -244,7 +244,7 @@ func getSnippetNodeView(store graph.Store, id string) (*graph.NodeView, error) {
 		return nil, err
 	}
 	duration := time.Since(startAt)
-	tools.Log.Info().Msgf("getSnippetNodeView: took %v", duration)
+	tools.Log.Info().Msgf("GetSnippetNodeView: took %v", duration)
 	return n, nil
 }
 
@@ -260,7 +260,7 @@ func handleGraphHTTPErr(ghe *graph.HttpError, ctxMessage string) error {
 	return fmt.Errorf("%s code = %v", ctxMessage, ghe.HTTPCode)
 }
 
-func getID(idOrURL string) (string, error) {
+func GetID(idOrURL string) (string, error) {
 	idOrURL = strings.TrimSpace(idOrURL)
 	u, err := url.Parse(idOrURL)
 	if err != nil {
@@ -271,6 +271,16 @@ func getID(idOrURL string) (string, error) {
 		return "", fmt.Errorf("empty id")
 	}
 	return tokens[len(tokens)-1], nil
+}
+
+func NewStoreFromContext(ctx *Context) (graph.Store, error) {
+	entry, found := ctx.Config.GetDefaultEntry()
+	if !found {
+		return nil, fmt.Errorf("default config is nil")
+	}
+
+	store := graph.NewStore(entry, ctx.Metadata)
+	return store, nil
 }
 
 func openFileInEditor(filename string) error {

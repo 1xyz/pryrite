@@ -2,6 +2,8 @@ package graph
 
 import (
 	"fmt"
+	"github.com/aardlabs/terminal-poc/tools"
+	"io"
 	"strings"
 	"time"
 )
@@ -45,6 +47,13 @@ func (n *Node) GetChildIDs() []string {
 	return result
 }
 
+func (n Node) String() string {
+	sb := strings.Builder{}
+	sb.WriteString(fmt.Sprintf("ID=%s kind=%v Title=%s Desc=%s Children=%s",
+		n.ID, n.Kind, n.Title, n.Description, n.Children))
+	return sb.String()
+}
+
 func NewNode(kind Kind, title, description, content string, metadata Metadata) (*Node, error) {
 	now := time.Now().UTC()
 	return &Node{
@@ -58,9 +67,89 @@ func NewNode(kind Kind, title, description, content string, metadata Metadata) (
 	}, nil
 }
 
-// NodeView is a terminal specific rendered response
+// NodeView is a node rendered server-side.
 type NodeView struct {
 	Node            *Node  `json:"node"`
 	ContentMarkdown string `json:"content_markdown"`
 	Children        []*NodeView
+}
+
+func (n NodeView) String() string {
+	sb := strings.Builder{}
+	sb.WriteString(fmt.Sprintf("Node: %v\n", n.Node))
+	if n.Children != nil && len(n.Children) > 0 {
+		for i, c := range n.Children {
+			sb.WriteString(fmt.Sprintf("Child[%d] = %v\n", i, c))
+		}
+	}
+	return sb.String()
+}
+
+// NodeExecutionResult encapsulates a node's execution result
+type NodeExecutionResult struct {
+	ExecutionID string `json:"execution_id"`
+	NodeID      string `json:"node_id"`
+	RequestID   string `json:"request_id"`
+	Stdout      []byte `json:"stdout"`
+	Stderr      []byte `json:"stderr"`
+	Err         error  `json:"err"`
+	ExitStatus  int    `json:"exit_status"`
+
+	StdoutWriter io.WriteCloser
+	StderrWriter io.WriteCloser
+}
+
+func (n *NodeExecutionResult) Close() error {
+	w := []io.Closer{n.StderrWriter, n.StdoutWriter}
+	for _, c := range w {
+		if c != nil {
+			if err := c.Close(); err != nil {
+				tools.Log.Err(err).Msgf("close writer %v", err)
+			}
+		}
+	}
+	return nil
+}
+
+func NewNodeExecutionResult(executionID, nodeID, requestID string) *NodeExecutionResult {
+	res := &NodeExecutionResult{
+		ExecutionID: executionID,
+		NodeID:      nodeID,
+		RequestID:   requestID,
+		Err:         nil,
+		ExitStatus:  0,
+	}
+	res.StdoutWriter = newByteWriter(func(bytes []byte) {
+		res.Stdout = bytes
+	})
+	res.StderrWriter = newByteWriter(func(bytes []byte) {
+		res.Stderr = bytes
+	})
+	return res
+}
+
+type bytesSetFn = func(bytes []byte)
+
+type byteWriter struct {
+	bytes []byte
+	fn    bytesSetFn
+}
+
+func newByteWriter(fn bytesSetFn) io.WriteCloser {
+	return &byteWriter{
+		bytes: []byte{},
+		fn:    fn,
+	}
+}
+
+func (b *byteWriter) Write(p []byte) (int, error) {
+	b.bytes = append(b.bytes, p...)
+	return len(p), nil
+}
+
+func (b *byteWriter) Close() error {
+	if b.fn != nil {
+		b.fn(b.bytes)
+	}
+	return nil
 }
