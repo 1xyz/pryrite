@@ -1,6 +1,7 @@
 package run
 
 import (
+	"bufio"
 	"container/list"
 	"context"
 	"fmt"
@@ -143,8 +144,8 @@ func (r *Run) Execute(n *graph.Node, stdout, stderr io.Writer) (*graph.NodeExecu
 	}()
 
 	// The execution stdout and stderr will be mirrored to the executionResult
-	outWriter := io.MultiWriter(stdout, execResult.StdoutWriter)
-	errWriter := io.MultiWriter(stderr, execResult.StderrWriter)
+	outWriter := bufio.NewWriter(io.MultiWriter(stdout, execResult.StdoutWriter))
+	errWriter := bufio.NewWriter(io.MultiWriter(stderr, execResult.StderrWriter))
 	req := &executor.ExecRequest{
 		Hdr:     &executor.RequestHdr{ID: reqID, ExecutionID: executionID, NodeID: nodeID},
 		Content: []byte(n.Content),
