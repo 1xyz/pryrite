@@ -10,27 +10,29 @@ import (
 // executionOutputView is a  rendered textview of a  NodeExecutionResult's stdout and stderr
 type executionOutputView struct {
 	*detailView
-
-	// execResult refers to the result being rendered
-	execResult *graph.NodeExecutionResult
 }
 
-func (e *executionOutputView) setExecutionResult(res *graph.NodeExecutionResult) {
-	e.execResult = res
+func (e *executionOutputView) Refresh(res *graph.NodeExecutionResult) {
 	e.Clear()
-	if e.execResult == nil {
+	if res == nil {
 		return
 	}
-	if e.execResult.Stdout != nil && len(e.execResult.Stdout) > 0 {
-		if _, err := e.Write(e.execResult.Stdout); err != nil {
-			e.rootUI.StatusErrorf("setExecutionResult: e.Write(stdout): err = %v\n", err)
-		}
+	if err := e.writeBytes(res.Stdout); err != nil {
+		e.rootUI.StatusErrorf("Refresh: e.writeBytes(stdout): err = %v\n", err)
 	}
-	if e.execResult.Stderr != nil && len(e.execResult.Stderr) > 0 {
-		if _, err := e.Write(e.execResult.Stderr); err != nil {
-			e.rootUI.StatusErrorf("setExecutionResult: e.Write(stderr): err = %v\n", err)
-		}
+	if err := e.writeBytes(res.Stderr); err != nil {
+		e.rootUI.StatusErrorf("Refresh: e.writeBytes(stderr): err = %v\n", err)
 	}
+}
+
+func (e *executionOutputView) writeBytes(p []byte) error {
+	if p == nil || len(p) == 0 {
+		return nil
+	}
+	if _, err := e.Write(p); err != nil {
+		return err
+	}
+	return nil
 }
 
 func newExecutionOutputView(rootUI *Tui) *executionOutputView {
@@ -44,7 +46,7 @@ type executionResultView struct {
 	*detailView
 }
 
-func (e *executionResultView) setExecutionResult(res *graph.NodeExecutionResult) {
+func (e *executionResultView) Refresh(res *graph.NodeExecutionResult) {
 	e.Clear()
 	if res == nil {
 		return
@@ -67,7 +69,7 @@ func (e *executionResultView) setExecutionResult(res *graph.NodeExecutionResult)
 	e.SetTextAlign(tview.AlignLeft)
 }
 
-func (e *executionResultView) setExecutionInProgress() {
+func (e *executionResultView) InProgress() {
 	e.Clear()
 	status := "status:Busy"
 	e.SetTextColor(tcell.ColorYellow)
