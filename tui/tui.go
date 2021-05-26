@@ -62,12 +62,12 @@ func NewTui(gCtx *snippet.Context, name string) (*Tui, error) {
 	ui.setupNavigator()
 	// 100 x 100 grid
 	ui.grid = tview.NewGrid().
-		SetRows(3, 0, 0, 3, 3).
+		SetRows(3, 0, 3, 0, 3).
 		AddItem(ui.info, 0, 0, 1, 5, 0, 0, false).
 		AddItem(pbTree.View, 1, 0, 3, 1, 0, 0, true).
 		AddItem(ui.snippetView, 1, 1, 1, 4, 0, 0, false).
-		AddItem(ui.execOutView, 2, 1, 1, 4, 0, 0, false).
-		AddItem(ui.execResView, 3, 1, 1, 4, 0, 0, false).
+		AddItem(ui.execResView, 2, 1, 1, 4, 0, 0, false).
+		AddItem(ui.execOutView, 3, 1, 1, 4, 0, 0, false).
 		AddItem(ui.statusView, 4, 0, 1, 5, 0, 0, false)
 	ui.pages = tview.NewPages().AddPage("main", ui.grid, true, true)
 	ui.App.SetRoot(ui.pages, true)
@@ -86,9 +86,15 @@ func (t *Tui) setupNavigator() {
 func (t *Tui) SetCurrentNodeView(nodeView *graph.NodeView) {
 	t.snippetView.SetCurrentNodeView(nodeView)
 }
-func (t *Tui) ResetNodeExecutionResult() { t.SetCurrentNodeExecutionResult(nil) }
+
 func (t *Tui) SetCurrentNodeExecutionResult(res *graph.NodeExecutionResult) {
 	t.execOutView.setExecutionResult(res)
+	t.execResView.setExecutionResult(res)
+}
+
+func (t *Tui) SetExecutionInProgress() {
+	t.execOutView.setExecutionResult(nil)
+	t.execResView.setExecutionInProgress()
 }
 
 func (t *Tui) Statusf(format string, v ...interface{}) {

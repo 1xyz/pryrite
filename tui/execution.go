@@ -1,7 +1,9 @@
 package tui
 
 import (
+	"fmt"
 	"github.com/aardlabs/terminal-poc/graph"
+	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
@@ -40,19 +42,44 @@ func newExecutionOutputView(rootUI *Tui) *executionOutputView {
 
 type executionResultView struct {
 	*tview.TextView
-	// execResult refers to the result being rendered
-	execResult *graph.NodeExecutionResult
 }
 
 func (e *executionResultView) setExecutionResult(res *graph.NodeExecutionResult) {
-	e.execResult = res
+	e.Clear()
+	if res == nil {
+		return
+	}
+
+	execInfo := fmt.Sprintf("request-id:%s exit-code:%d", res.RequestID, res.ExitStatus)
+	status := "status:Ok"
+	e.SetTextColor(tcell.ColorGreen)
+	if res.ExitStatus != 0 || res.Err != nil {
+		e.SetTextColor(tcell.ColorRed)
+		status = "status:Failed"
+	}
+	errInfo := "none"
+	if res.Err != nil {
+		errInfo = res.Err.Error()
+	}
+
+	e.SetText(fmt.Sprintf(" job   \t| %s \n info  \t| %s\n error \t| %s\n",
+		status, execInfo, errInfo))
+	e.SetTextAlign(tview.AlignLeft)
+}
+
+func (e *executionResultView) setExecutionInProgress() {
+	e.Clear()
+	status := "status:Busy"
+	e.SetTextColor(tcell.ColorYellow)
+	e.SetText(fmt.Sprintf(" info  \t| %s", status))
+	e.SetTextAlign(tview.AlignLeft)
 }
 
 func newExecutionResultView() *executionResultView {
 	textView := tview.NewTextView().
 		SetDynamicColors(true).
 		SetRegions(false)
-	textView.SetBorder(true).
+	textView.SetBorder(false).
 		SetTitleAlign(tview.AlignLeft)
 	return &executionResultView{
 		TextView: textView,

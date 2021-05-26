@@ -1,7 +1,6 @@
 package tui
 
 import (
-	"fmt"
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/charmbracelet/glamour"
@@ -61,16 +60,13 @@ func (s *snippetView) setKeybinding() {
 			}
 
 			tools.Log.Info().Msgf("Ctrl+R. request to execute node = %v", s.curNodeView.Node.ID)
-			s.rootUI.ResetNodeExecutionResult()
+			s.rootUI.SetExecutionInProgress()
 			result, err := s.rootUI.Execute(s.curNodeView.Node, s.rootUI.execOutView, s.rootUI.execOutView)
 			if err != nil {
 				s.rootUI.Statusf("Run: Execute(node): err = %v", err)
-			} else {
-				body := fmt.Sprintf("requestID = %v err = %v", result.RequestID, result.Err)
-				if _, err := s.Write([]byte(body)); err != nil {
-					s.rootUI.Statusf("Run: write(result) err = %v", err)
-				}
+				break
 			}
+			s.rootUI.SetCurrentNodeExecutionResult(result)
 		}
 
 		switch event.Rune() {
