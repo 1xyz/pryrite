@@ -1,8 +1,8 @@
 package executor
 
 import (
+	"bufio"
 	"context"
-	"io"
 	"os"
 
 	"github.com/google/uuid"
@@ -32,11 +32,11 @@ type ExecRequest struct {
 	// The caller is not required to support this, but if it does not, it must set 'allow_stdin' : False
 	// in its execute requests. In this case, the kernel may not send Stdin requests. If that field is true,
 	// the kernel may send Stdin requests and block waiting for a reply, so the frontend must answer.
-	Stdin io.Reader
+	Stdin *bufio.Reader
 
 	// the executor publishes all side effects (Stdout, Stderr, debugging events etc.)
-	Stdout io.Writer
-	Stderr io.Writer
+	Stdout *bufio.Writer
+	Stderr *bufio.Writer
 }
 
 type ResponseHdr struct {
@@ -73,7 +73,7 @@ func DefaultRequest() *ExecRequest {
 		Hdr: &RequestHdr{
 			ID: uuid.NewString(),
 		},
-		Stdout: os.Stdout,
-		Stderr: os.Stderr,
+		Stdout: bufio.NewWriter(os.Stdout),
+		Stderr: bufio.NewWriter(os.Stderr),
 	}
 }

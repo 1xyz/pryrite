@@ -1,6 +1,7 @@
 package kmd
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"io"
@@ -29,15 +30,15 @@ func NewCmdExecutor() *cobra.Command {
 				req.Content = []byte(content)
 				req.ContentType = contentType
 
-				req.Stdout = &prefixWriter{
+				req.Stdout = bufio.NewWriter(&prefixWriter{
 					writer: os.Stdout,
 					prefix: []byte(fmt.Sprint(count, "-out> ")),
-				}
+				})
 
-				req.Stderr = &prefixWriter{
-					writer: os.Stdout,
+				req.Stderr = bufio.NewWriter(&prefixWriter{
+					writer: os.Stderr,
 					prefix: []byte(fmt.Sprint(count, "-err> ")),
-				}
+				})
 
 				res := register.Execute(context.Background(), req)
 				if res.Err != nil {
