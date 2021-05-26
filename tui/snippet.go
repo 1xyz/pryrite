@@ -3,13 +3,15 @@ package tui
 import (
 	"fmt"
 	"github.com/aardlabs/terminal-poc/graph"
+	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/charmbracelet/glamour"
 	"github.com/gdamore/tcell/v2"
 )
 
 type snippetView struct {
 	*DetailPane
-	// Represents the current node shown in the detail
+
+	// Represents the current node snippet to be shown in the detail
 	curNodeView *graph.NodeView
 }
 
@@ -53,16 +55,14 @@ func (s *snippetView) setKeybinding() {
 	s.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		//g.setGlobalKeybinding(event)
 		switch event.Key() {
-		case tcell.KeyEnter:
-			s.rootUI.Statusf("Enter pressed")
-		case tcell.KeyCtrlL:
-			s.rootUI.Statusf("Ctrl + L pressed")
 		case tcell.KeyCtrlR:
-			s.rootUI.Statusf("Ctrl + R pressed")
 			if s.curNodeView == nil {
 				break
 			}
-			result, err := s.rootUI.Execute(s.curNodeView.Node, s.rootUI.Execution, s.rootUI.Execution)
+
+			tools.Log.Info().Msgf("Ctrl+R. request to execute node = %v", s.curNodeView.Node.ID)
+			s.rootUI.ResetNodeExecutionResult()
+			result, err := s.rootUI.Execute(s.curNodeView.Node, s.rootUI.execOutView, s.rootUI.execOutView)
 			if err != nil {
 				s.rootUI.Statusf("Run: Execute(node): err = %v", err)
 			} else {
@@ -75,7 +75,7 @@ func (s *snippetView) setKeybinding() {
 
 		switch event.Rune() {
 		case 'c':
-			s.rootUI.Statusf("time to edit shit")
+			//s.rootUI.Statusf("time to edit shit")
 			//case 'p':
 			//	g.pullImageForm()
 			//case 'd':
@@ -90,8 +90,4 @@ func (s *snippetView) setKeybinding() {
 
 		return event
 	})
-}
-
-func (s *snippetView) executeCommand() {
-
 }

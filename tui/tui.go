@@ -23,11 +23,12 @@ type Tui struct {
 	// Primary UI Application component
 	App *tview.Application
 
-	info      *info
-	PbTree    *PlayBookTree
-	Snippet   *snippetView
-	Execution *executionView
-	Status    *DetailPane
+	info        *info
+	PbTree      *PlayBookTree
+	snippetView *snippetView
+	execOutView *executionOutputView
+	execResView *executionResultView
+	statusView  *DetailPane
 
 	pages *tview.Pages // different pages in this UI
 	grid  *tview.Grid  //  layout for the run page
@@ -48,9 +49,10 @@ func NewTui(gCtx *snippet.Context, name string) (*Tui, error) {
 	}
 
 	ui.info = newInfo(ui, gCtx)
-	ui.Snippet = newSnippetView(ui)
-	ui.Execution = newExecutionView(ui)
-	ui.Status = NewDetailPane("Status", ui)
+	ui.snippetView = newSnippetView(ui)
+	ui.execOutView = newExecutionOutputView(ui)
+	ui.execResView = newExecutionResultView()
+	ui.statusView = NewDetailPane("Status", ui)
 	pbTree, err := NewPlaybookTree(ui, run.Root)
 	if err != nil {
 		return nil, fmt.Errorf("newPlaybookTree: err = %v", err)
@@ -60,12 +62,13 @@ func NewTui(gCtx *snippet.Context, name string) (*Tui, error) {
 	ui.setupNavigator()
 	// 100 x 100 grid
 	ui.grid = tview.NewGrid().
-		SetRows(3, 0, -3, 3).
+		SetRows(3, 0, 0, 3, 3).
 		AddItem(ui.info, 0, 0, 1, 5, 0, 0, false).
-		AddItem(pbTree.View, 1, 0, 2, 1, 0, 0, true).
-		AddItem(ui.Snippet, 1, 1, 1, 4, 0, 0, false).
-		AddItem(ui.Execution, 2, 1, 1, 4, 0, 0, false).
-		AddItem(ui.Status, 3, 0, 1, 5, 0, 0, false)
+		AddItem(pbTree.View, 1, 0, 3, 1, 0, 0, true).
+		AddItem(ui.snippetView, 1, 1, 1, 4, 0, 0, false).
+		AddItem(ui.execOutView, 2, 1, 1, 4, 0, 0, false).
+		AddItem(ui.execResView, 3, 1, 1, 4, 0, 0, false).
+		AddItem(ui.statusView, 4, 0, 1, 5, 0, 0, false)
 	ui.pages = tview.NewPages().AddPage("main", ui.grid, true, true)
 	ui.App.SetRoot(ui.pages, true)
 	return ui, nil
@@ -76,22 +79,22 @@ func (t *Tui) Navigate(key tcell.Key) { t.Nav.Navigate(key) }
 func (t *Tui) setupNavigator() {
 	t.Nav = &Navigator{
 		rootUI:  t.App,
-		Entries: []tview.Primitive{t.PbTree.View, t.Snippet, t.Execution, t.Status},
+		Entries: []tview.Primitive{t.PbTree.View, t.snippetView, t.execOutView, t.statusView},
 	}
 }
 
 func (t *Tui) SetCurrentNodeView(nodeView *graph.NodeView) {
-	t.Snippet.SetCurrentNodeView(nodeView)
+	t.snippetView.SetCurrentNodeView(nodeView)
 }
-
+func (t *Tui) ResetNodeExecutionResult() { t.SetCurrentNodeExecutionResult(nil) }
 func (t *Tui) SetCurrentNodeExecutionResult(res *graph.NodeExecutionResult) {
-	t.Execution.setExecutionResult(res)
+	t.execOutView.setExecutionResult(res)
 }
 
 func (t *Tui) Statusf(format string, v ...interface{}) {
 	s := fmt.Sprintf(format, v...)
 	tools.Log.Info().Msg(s)
-	if _, err := t.Status.Write([]byte(s)); err != nil {
+	if _, err := t.statusView.Write([]byte(s)); err != nil {
 		tools.Log.Err(err).Msgf("WriteStatus: err = %v", err)
 	}
 }
