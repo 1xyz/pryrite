@@ -4,10 +4,12 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"github.com/aardlabs/terminal-poc/tools"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type BashExecutor struct {
@@ -103,6 +105,10 @@ func (b *BashExecutor) Execute(ctx context.Context, req *ExecRequest) *ExecRespo
 		// FIXME: how to kill on timeout?
 	case err = <-b.bashDone: // bash exited!
 	}
+
+	sleepTime := 100 * time.Millisecond
+	tools.Log.Warn().Msgf("BashExecutor: Execute: sleep for %v", sleepTime)
+	time.Sleep(sleepTime)
 
 	// update proxies to avoid confusing caller if more junk comes in
 	inProxy.SetReader(nil)
