@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"fmt"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -14,11 +15,17 @@ type detailView struct {
 	rootUI *Tui
 }
 
-func NewDetailPane(title string, rootUI *Tui) *detailView {
+func (e *detailView) NavHelp() string {
+	navigate := " tab: next pane, shift+tab: previous pane"
+	navHelp := fmt.Sprintf("navigate \t| %s\n", navigate)
+	return navHelp
+}
+
+func newDetailView(title string, showBorder bool, rootUI *Tui) *detailView {
 	textView := tview.NewTextView().
 		SetDynamicColors(true).
 		SetRegions(true)
-	textView.SetBorder(true).
+	textView.SetBorder(showBorder).
 		SetTitle(title).
 		SetTitleAlign(tview.AlignLeft)
 	textView.SetDoneFunc(func(key tcell.Key) { rootUI.Navigate(key) })

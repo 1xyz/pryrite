@@ -28,7 +28,7 @@ func (i *info) display() {
 	agentInfo := fmt.Sprintf("ver:%s", i.gCtx.Metadata.Agent)
 	e, found := i.gCtx.Config.GetDefaultEntry()
 	if !found {
-		i.rootUI.Statusf("info.Display: config.GetDefaultEntry not found")
+		i.rootUI.StatusErrorf("info.Display: config.GetDefaultEntry not found")
 		return
 	}
 

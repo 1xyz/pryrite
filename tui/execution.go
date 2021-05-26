@@ -23,25 +23,25 @@ func (e *executionOutputView) setExecutionResult(res *graph.NodeExecutionResult)
 	}
 	if e.execResult.Stdout != nil && len(e.execResult.Stdout) > 0 {
 		if _, err := e.Write(e.execResult.Stdout); err != nil {
-			e.rootUI.Statusf("setExecutionResult: e.Write(stdout): err = %v\n", err)
+			e.rootUI.StatusErrorf("setExecutionResult: e.Write(stdout): err = %v\n", err)
 		}
 	}
 	if e.execResult.Stderr != nil && len(e.execResult.Stderr) > 0 {
 		if _, err := e.Write(e.execResult.Stderr); err != nil {
-			e.rootUI.Statusf("setExecutionResult: e.Write(stderr): err = %v\n", err)
+			e.rootUI.StatusErrorf("setExecutionResult: e.Write(stderr): err = %v\n", err)
 		}
 	}
 }
 
 func newExecutionOutputView(rootUI *Tui) *executionOutputView {
 	e := &executionOutputView{
-		detailView: NewDetailPane("execution", rootUI),
+		detailView: newDetailView("execution output", true, rootUI),
 	}
 	return e
 }
 
 type executionResultView struct {
-	*tview.TextView
+	*detailView
 }
 
 func (e *executionResultView) setExecutionResult(res *graph.NodeExecutionResult) {
@@ -62,7 +62,7 @@ func (e *executionResultView) setExecutionResult(res *graph.NodeExecutionResult)
 		errInfo = res.Err.Error()
 	}
 
-	e.SetText(fmt.Sprintf(" job   \t| %s \n info  \t| %s\n error \t| %s\n",
+	e.SetText(fmt.Sprintf("\n job   \t| %s \n info  \t| %s\n error \t| %s\n",
 		status, execInfo, errInfo))
 	e.SetTextAlign(tview.AlignLeft)
 }
@@ -71,17 +71,12 @@ func (e *executionResultView) setExecutionInProgress() {
 	e.Clear()
 	status := "status:Busy"
 	e.SetTextColor(tcell.ColorYellow)
-	e.SetText(fmt.Sprintf(" info  \t| %s", status))
 	e.SetTextAlign(tview.AlignLeft)
+	e.SetText(fmt.Sprintf("\n info  \t| %s", status))
 }
 
-func newExecutionResultView() *executionResultView {
-	textView := tview.NewTextView().
-		SetDynamicColors(true).
-		SetRegions(false)
-	textView.SetBorder(false).
-		SetTitleAlign(tview.AlignLeft)
+func newExecutionResultView(rootUI *Tui) *executionResultView {
 	return &executionResultView{
-		TextView: textView,
+		detailView: newDetailView("execution status", true, rootUI),
 	}
 }
