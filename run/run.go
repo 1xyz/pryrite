@@ -177,8 +177,7 @@ func (r *Run) EditSnippet(nodeID string) (*graph.NodeView, error) {
 	}
 
 	// ToDo: support edit without saving
-	n, err := snippet.EditSnippetNode(r.gCtx, nodeID, true)
-	if err != nil {
+	if _, err := snippet.EditSnippetNode(r.gCtx, nodeID, true); err != nil {
 		tools.Log.Err(err).Msgf("EditSnippet: snippet.EditSnippetNode: err = %v", err)
 		return nil, err
 	}
@@ -188,7 +187,7 @@ func (r *Run) EditSnippet(nodeID string) (*graph.NodeView, error) {
 		tools.Log.Err(err).Msgf("EditSnippet: store.GetNodeView (%s) err = %v", nodeID, err)
 	}
 
-	view.Node = n
+	view.Node = updatedView.Node
 	view.ContentMarkdown = updatedView.ContentMarkdown
 	return view, nil
 }

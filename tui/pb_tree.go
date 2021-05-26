@@ -18,13 +18,18 @@ type PlayBookTree struct {
 
 	// Refers to the underlying playbook
 	playbook *graph.NodeView
+
+	// treeNodes is a map from nodeID to a treeNode object
+	treeNodes map[string]*tview.TreeNode
 }
 
 func NewPlaybookTree(root *Tui, playbook *graph.NodeView) (*PlayBookTree, error) {
+	treeNodes := make(map[string]*tview.TreeNode)
 	tn := tview.NewTreeNode(playbook.Node.Title).
 		SetColor(tcell.ColorYellow).
 		SetReference(playbook).
 		SetSelectable(true)
+	treeNodes[playbook.Node.ID] = tn
 	tree := tview.NewTreeView().
 		SetRoot(tn).
 		SetCurrentNode(tn)
@@ -38,6 +43,7 @@ func NewPlaybookTree(root *Tui, playbook *graph.NodeView) (*PlayBookTree, error)
 			tNode := tview.NewTreeNode(child.Node.Title).
 				SetReference(child).
 				SetSelectable(true)
+			treeNodes[child.Node.ID] = tNode
 			if hasChildren {
 				tNode.SetColor(tcell.ColorYellow)
 			}
@@ -76,9 +82,10 @@ func NewPlaybookTree(root *Tui, playbook *graph.NodeView) (*PlayBookTree, error)
 	tree.SetDoneFunc(func(key tcell.Key) { root.Navigate(key) })
 
 	return &PlayBookTree{
-		rootUI:   root,
-		TreeView: tree,
-		playbook: playbook,
+		treeNodes: treeNodes,
+		rootUI:    root,
+		TreeView:  tree,
+		playbook:  playbook,
 	}, nil
 }
 
@@ -87,4 +94,20 @@ func (p *PlayBookTree) NavHelp() string {
 	navigate := " tab: selected snippet pane, shift+tab: previous pane"
 	navHelp := fmt.Sprintf(" commands \t| %s\n navigate \t| %s\n", help, navigate)
 	return navHelp
+}
+
+func (p *PlayBookTree) RefreshNode(nodeID string) error {
+	tNode, found := p.treeNodes[nodeID]
+	if !found {
+		return fmt.Errorf("refreshNode: node with %s not found", nodeID)
+	}
+
+	view, err := p.rootUI.run.ViewIndex.Get(nodeID)
+	if err != nil {
+		return err
+	}
+
+	tNode.SetReference(view).
+		SetText(view.Node.Title)
+	return nil
 }

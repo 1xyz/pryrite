@@ -203,4 +203,7 @@ func (t *Tui) EditCurrentNode() {
 	if err := t.UpdateCurrentNodeID(t.curNodeID); err != nil {
 		t.StatusErrorf("EditSnippetContent: UpdateCurrentNodeID:  err = %v", err)
 	}
+	if err := t.PbTree.RefreshNode(t.curNodeID); err != nil {
+		t.StatusErrorf("EditSnippetContent: RefreshNodeTitle: err = %v", err)
+	}
 }
