@@ -141,7 +141,7 @@ func AddSnippetNode(ctx *Context, content string) (*graph.Node, error) {
 	return result, nil
 }
 
-func EditSnippetNode(ctx *Context, id string) (*graph.Node, error) {
+func EditSnippetNode(ctx *Context, id string, save bool) (*graph.Node, error) {
 	n, err := GetSnippetNode(ctx, id)
 	if err != nil {
 		return nil, err
@@ -195,8 +195,11 @@ func EditSnippetNode(ctx *Context, id string) (*graph.Node, error) {
 	}
 	n.Content = string(newContent)
 
-	if err := UpdateSnippetNode(ctx, n); err != nil {
-		return nil, err
+	if save {
+		tools.Log.Info().Msgf("EditSnippetNode: Save %s to remote service.", n.ID)
+		if err := UpdateSnippetNode(ctx, n); err != nil {
+			return nil, err
+		}
 	}
 	return n, nil
 }

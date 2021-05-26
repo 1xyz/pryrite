@@ -16,6 +16,9 @@ import (
 
 // Run encapsulates a playbook's execution
 type Run struct {
+	// snippet context
+	gCtx *snippet.Context
+
 	// Unique ID for this execution
 	ID string
 
@@ -56,6 +59,7 @@ func NewRun(gCtx *snippet.Context, playbookIDOrURL string) (*Run, error) {
 	}
 
 	run := &Run{
+		gCtx:       gCtx,
 		ID:         uuid.New().String(),
 		PlaybookID: id,
 		Root:       nil,
@@ -74,7 +78,7 @@ func NewRun(gCtx *snippet.Context, playbookIDOrURL string) (*Run, error) {
 
 func (r *Run) buildGraph() error {
 	// fetch the node
-	view, err := r.Store.GetNodeView(r.PlaybookID)
+	view, err := r.getNodeView(r.PlaybookID)
 	if err != nil {
 		return err
 	}
@@ -163,6 +167,30 @@ func (r *Run) Execute(n *graph.Node, stdout, stderr io.Writer) (*graph.NodeExecu
 	execResult.Err = res.Err
 	r.ExecIndex.Set(execResult)
 	return execResult, nil
+}
+
+func (r *Run) EditSnippet(nodeID string) (*graph.NodeView, error) {
+	view, err := r.ViewIndex.Get(nodeID)
+	if err != nil {
+		tools.Log.Err(err).Msgf("EditSnippet: err = %v", err)
+		return nil, err
+	}
+
+	// ToDo: support edit without saving
+	n, err := snippet.EditSnippetNode(r.gCtx, nodeID, true)
+	if err != nil {
+		tools.Log.Err(err).Msgf("EditSnippet: snippet.EditSnippetNode: err = %v", err)
+		return nil, err
+	}
+
+	updatedView, err := r.Store.GetNodeView(nodeID)
+	if err != nil {
+		tools.Log.Err(err).Msgf("EditSnippet: store.GetNodeView (%s) err = %v", nodeID, err)
+	}
+
+	view.Node = n
+	view.ContentMarkdown = updatedView.ContentMarkdown
+	return view, nil
 }
 
 func (r Run) String() string {

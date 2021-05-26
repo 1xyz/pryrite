@@ -67,9 +67,10 @@ func NewPlaybookTree(root *Tui, playbook *graph.NodeView) (*PlayBookTree, error)
 			// Collapse if visible, expand if collapsed.
 			node.SetExpanded(!node.IsExpanded())
 		}
-		root.SetCurrentNodeView(view)
-		res, _ := root.run.ExecIndex.Get(view.Node.ID)
-		root.SetCurrentNodeExecutionResult(res)
+
+		if err := root.UpdateCurrentNodeID(view.Node.ID); err != nil {
+			root.StatusErrorf("UpdateCurrentNodeID: id=%s err = %v", view.Node.ID, err)
+		}
 	})
 
 	tree.SetDoneFunc(func(key tcell.Key) { root.Navigate(key) })

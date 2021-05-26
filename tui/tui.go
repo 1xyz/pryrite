@@ -35,6 +35,9 @@ type Tui struct {
 	run   *run.Run
 
 	Nav *navigator
+
+	// curNodeID refers the current node id selected. "" if unselected
+	curNodeID string
 }
 
 func NewTui(gCtx *snippet.Context, name string) (*Tui, error) {
@@ -88,18 +91,41 @@ func (t *Tui) setupNavigator() {
 	}
 }
 
-func (t *Tui) SetCurrentNodeView(nodeView *graph.NodeView) {
-	t.snippetView.SetCurrentNodeView(nodeView)
+func (t *Tui) UpdateCurrentNodeID(nodeID string) error {
+	tools.Log.Info().Msgf("UpdateCurrentNodeID nodeID: %s", nodeID)
+	t.curNodeID = nodeID
+	return t.Refresh()
 }
 
-func (t *Tui) SetCurrentNodeExecutionResult(res *graph.NodeExecutionResult) {
-	t.execOutView.setExecutionResult(res)
-	t.execResView.setExecutionResult(res)
+func (t *Tui) Refresh() error {
+	if t.curNodeID == "" {
+		// clear out the views
+		t.snippetView.Refresh(nil)
+		t.execOutView.Refresh(nil)
+		t.execResView.Refresh(nil)
+		return nil
+	}
+
+	view, err := t.run.ViewIndex.Get(t.curNodeID)
+	if err != nil {
+		return err
+	}
+	t.snippetView.Refresh(view)
+
+	execResult, _ := t.run.ExecIndex.Get(t.curNodeID)
+	t.execResView.Refresh(execResult)
+	t.execOutView.Refresh(execResult)
+	return nil
+}
+
+func (t *Tui) SetCurrentNodeView(nodeView *graph.NodeView) {
+	t.curNodeID = nodeView.Node.ID
+	t.snippetView.Refresh(nodeView)
 }
 
 func (t *Tui) SetExecutionInProgress() {
-	t.execOutView.setExecutionResult(nil)
-	t.execResView.setExecutionInProgress()
+	t.execOutView.Refresh(nil)
+	t.execResView.InProgress()
 }
 
 func (t *Tui) setFocusedItem() {
@@ -133,4 +159,48 @@ func (t *Tui) StatusErrorf(format string, v ...interface{}) {
 
 func (t *Tui) Execute(n *graph.Node, stdout, stderr io.Writer) (*graph.NodeExecutionResult, error) {
 	return t.run.Execute(n, stdout, stderr)
+}
+
+func (t *Tui) ExecuteCurrentNode() {
+	tools.Log.Info().Msgf("Execute current node id:[%s]", t.curNodeID)
+	if t.curNodeID == "" {
+		t.StatusErrorf("ExecuteCurrentNode: cannot execute empty node")
+		return
+	}
+
+	// ToDo: for some reason the in-progress is not shown in the UX
+	t.SetExecutionInProgress()
+	view, err := t.run.ViewIndex.Get(t.curNodeID)
+	if err != nil {
+		t.StatusErrorf("ExecuteCurrentNode: err = %v", err)
+	}
+
+	if _, err := t.Execute(view.Node, t.execOutView, t.execOutView); err != nil {
+		t.StatusErrorf("ExecuteCurrentNode  id:[%s]: err = %v", t.curNodeID, err)
+		return
+	}
+
+	if err := t.Refresh(); err != nil {
+		t.StatusErrorf("ExecuteCurrentNode: Refresh: err = %v", err)
+	}
+}
+
+func (t *Tui) EditCurrentNode() {
+	tools.Log.Info().Msgf("EditSnippetContent node-id:[%s]", t.curNodeID)
+	if t.curNodeID == "" {
+		t.StatusErrorf("EditSnippetContent: cannot edit empty node")
+		return
+	}
+
+	t.App.Suspend(func() {
+		_, err := t.run.EditSnippet(t.curNodeID)
+		if err != nil {
+			t.StatusErrorf("edit snippet failed %v", err)
+			return
+		}
+	})
+
+	if err := t.UpdateCurrentNodeID(t.curNodeID); err != nil {
+		t.StatusErrorf("EditSnippetContent: UpdateCurrentNodeID:  err = %v", err)
+	}
 }

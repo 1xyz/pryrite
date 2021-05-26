@@ -10,15 +10,12 @@ import (
 
 type snippetView struct {
 	*detailView
-
-	// Represents the current node snippet to be shown in the detail
-	curNodeView *graph.NodeView
 }
 
-func (s *snippetView) SetCurrentNodeView(nodeView *graph.NodeView) {
-	s.curNodeView = nodeView
+// Refresh refreshes the view with the provided nodeview object
+func (s *snippetView) Refresh(view *graph.NodeView) {
 	s.Clear()
-	s.updateDetailsContent()
+	s.updateDetailsContent(view)
 }
 
 func (s *snippetView) NavHelp() string {
@@ -28,10 +25,11 @@ func (s *snippetView) NavHelp() string {
 	return navHelp
 }
 
-func (s *snippetView) updateDetailsContent() {
-	if s.curNodeView == nil {
+func (s *snippetView) updateDetailsContent(view *graph.NodeView) {
+	if view == nil {
 		return
 	}
+
 	var out string
 	r, err := glamour.NewTermRenderer(glamour.WithStylePath("notty"))
 	if err != nil {
@@ -39,13 +37,13 @@ func (s *snippetView) updateDetailsContent() {
 		return
 	}
 
-	out, err = r.Render(s.curNodeView.ContentMarkdown)
+	out, err = r.Render(view.ContentMarkdown)
 	if err != nil {
-		s.rootUI.StatusErrorf("SetSelectedFunc: render markdown: err = %v", err)
+		s.rootUI.StatusErrorf("updateDetailsContent: render markdown: err = %v", err)
 		return
 	}
 	if _, err := s.Write([]byte(out)); err != nil {
-		s.rootUI.StatusErrorf("SetSelectedFunc: render markdown: err = %v", err)
+		s.rootUI.StatusErrorf("updateDetailsContent: render markdown: err = %v", err)
 		return
 	}
 }
@@ -55,19 +53,11 @@ func (s *snippetView) setKeybinding() {
 		//g.setGlobalKeybinding(event)
 		switch event.Key() {
 		case tcell.KeyCtrlR:
-			if s.curNodeView == nil {
-				break
-			}
-
-			tools.Log.Info().Msgf("Ctrl+R. request to execute node = %v", s.curNodeView.Node.ID)
-			// ToDo: for some reason the in-progress is not shown in the UX
-			s.rootUI.SetExecutionInProgress()
-			result, err := s.rootUI.Execute(s.curNodeView.Node, s.rootUI.execOutView, s.rootUI.execOutView)
-			if err != nil {
-				s.rootUI.StatusErrorf("Run: Execute(node): err = %v", err)
-				break
-			}
-			s.rootUI.SetCurrentNodeExecutionResult(result)
+			tools.Log.Info().Msgf("snippetView: Ctrl+R request to run node")
+			s.rootUI.ExecuteCurrentNode()
+		case tcell.KeyCtrlE:
+			tools.Log.Info().Msgf("snippetView: Ctrl+E request to edit node")
+			s.rootUI.EditCurrentNode()
 		}
 
 		switch event.Rune() {

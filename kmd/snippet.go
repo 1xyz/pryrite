@@ -234,7 +234,7 @@ func NewCmdSnippetEdit(gCtx *snippet.Context) *cobra.Command {
 
 			name := args[0]
 			tools.Log.Info().Msgf("edit name=%s", name)
-			_, err := snippet.EditSnippetNode(gCtx, name)
+			_, err := snippet.EditSnippetNode(gCtx, name, true /*save*/)
 			if err != nil {
 				return err
 			}
