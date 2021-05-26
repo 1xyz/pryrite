@@ -28,7 +28,7 @@ type Tui struct {
 	snippetView *snippetView
 	execOutView *executionOutputView
 	execResView *executionResultView
-	statusView  *DetailPane
+	statusView  *detailView
 
 	pages *tview.Pages // different pages in this UI
 	grid  *tview.Grid  //  layout for the run page

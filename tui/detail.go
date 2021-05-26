@@ -5,7 +5,8 @@ import (
 	"github.com/rivo/tview"
 )
 
-type DetailPane struct {
+// detailView is a resuable abstraction of TextView
+type detailView struct {
 	// Underlying view
 	*tview.TextView
 
@@ -13,7 +14,7 @@ type DetailPane struct {
 	rootUI *Tui
 }
 
-func NewDetailPane(title string, rootUI *Tui) *DetailPane {
+func NewDetailPane(title string, rootUI *Tui) *detailView {
 	textView := tview.NewTextView().
 		SetDynamicColors(true).
 		SetRegions(true)
@@ -22,7 +23,7 @@ func NewDetailPane(title string, rootUI *Tui) *DetailPane {
 		SetTitleAlign(tview.AlignLeft)
 	textView.SetDoneFunc(func(key tcell.Key) { rootUI.Navigate(key) })
 
-	return &DetailPane{
+	return &detailView{
 		rootUI:   rootUI,
 		TextView: textView,
 	}

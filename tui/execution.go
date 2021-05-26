@@ -9,7 +9,7 @@ import (
 
 // executionOutputView is a  rendered textview of a  NodeExecutionResult's stdout and stderr
 type executionOutputView struct {
-	*DetailPane
+	*detailView
 
 	// execResult refers to the result being rendered
 	execResult *graph.NodeExecutionResult
@@ -35,7 +35,7 @@ func (e *executionOutputView) setExecutionResult(res *graph.NodeExecutionResult)
 
 func newExecutionOutputView(rootUI *Tui) *executionOutputView {
 	e := &executionOutputView{
-		DetailPane: NewDetailPane("execution", rootUI),
+		detailView: NewDetailPane("execution", rootUI),
 	}
 	return e
 }

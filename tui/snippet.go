@@ -8,7 +8,7 @@ import (
 )
 
 type snippetView struct {
-	*DetailPane
+	*detailView
 
 	// Represents the current node snippet to be shown in the detail
 	curNodeView *graph.NodeView
@@ -16,7 +16,7 @@ type snippetView struct {
 
 func newSnippetView(rootUI *Tui) *snippetView {
 	s := &snippetView{
-		DetailPane: NewDetailPane("Snippet", rootUI),
+		detailView: NewDetailPane("Snippet", rootUI),
 	}
 	s.setKeybinding()
 	return s

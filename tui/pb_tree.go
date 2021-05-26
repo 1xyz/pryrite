@@ -21,12 +21,14 @@ type PlayBookTree struct {
 
 func NewPlaybookTree(root *Tui, playbook *graph.NodeView) (*PlayBookTree, error) {
 	tn := tview.NewTreeNode(playbook.Node.Title).
-		SetColor(tcell.ColorRed)
+		SetColor(tcell.ColorYellow).
+		SetReference(playbook).
+		SetSelectable(true)
 	tree := tview.NewTreeView().
 		SetRoot(tn).
 		SetCurrentNode(tn)
 	tree.SetBorder(true).
-		SetTitle("Playbook").
+		SetTitle("playbook").
 		SetTitleAlign(tview.AlignLeft)
 	// A helper function which adds the child nodes to the given target node.
 	add := func(target *tview.TreeNode, view *graph.NodeView) error {
@@ -36,7 +38,7 @@ func NewPlaybookTree(root *Tui, playbook *graph.NodeView) (*PlayBookTree, error)
 				SetReference(child).
 				SetSelectable(true)
 			if hasChildren {
-				tNode.SetColor(tcell.ColorGreen)
+				tNode.SetColor(tcell.ColorYellow)
 			}
 			target.AddChild(tNode)
 		}
