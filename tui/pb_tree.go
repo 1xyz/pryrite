@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"fmt"
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/tools"
 	tcell "github.com/gdamore/tcell/v2"
@@ -10,7 +11,7 @@ import (
 // PlayBookTree encapsulates the Tree view of a playbook (that is shown on the left pane)
 type PlayBookTree struct {
 	// Reference to the TreeView UI component
-	View *tview.TreeView
+	*tview.TreeView
 
 	// Reference ot the root UI component
 	rootUI *Tui
@@ -21,12 +22,14 @@ type PlayBookTree struct {
 
 func NewPlaybookTree(root *Tui, playbook *graph.NodeView) (*PlayBookTree, error) {
 	tn := tview.NewTreeNode(playbook.Node.Title).
-		SetColor(tcell.ColorRed)
+		SetColor(tcell.ColorYellow).
+		SetReference(playbook).
+		SetSelectable(true)
 	tree := tview.NewTreeView().
 		SetRoot(tn).
 		SetCurrentNode(tn)
 	tree.SetBorder(true).
-		SetTitle("Playbook").
+		SetTitle("playbook").
 		SetTitleAlign(tview.AlignLeft)
 	// A helper function which adds the child nodes to the given target node.
 	add := func(target *tview.TreeNode, view *graph.NodeView) error {
@@ -36,7 +39,7 @@ func NewPlaybookTree(root *Tui, playbook *graph.NodeView) (*PlayBookTree, error)
 				SetReference(child).
 				SetSelectable(true)
 			if hasChildren {
-				tNode.SetColor(tcell.ColorGreen)
+				tNode.SetColor(tcell.ColorYellow)
 			}
 			target.AddChild(tNode)
 		}
@@ -73,7 +76,14 @@ func NewPlaybookTree(root *Tui, playbook *graph.NodeView) (*PlayBookTree, error)
 
 	return &PlayBookTree{
 		rootUI:   root,
-		View:     tree,
+		TreeView: tree,
 		playbook: playbook,
 	}, nil
+}
+
+func (p *PlayBookTree) NavHelp() string {
+	help := " enter: select snippet"
+	navigate := " tab: selected snippet pane, shift+tab: previous pane"
+	navHelp := fmt.Sprintf(" commands \t| %s\n navigate \t| %s\n", help, navigate)
+	return navHelp
 }

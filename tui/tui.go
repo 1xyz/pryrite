@@ -23,17 +23,18 @@ type Tui struct {
 	// Primary UI Application component
 	App *tview.Application
 
-	info      *info
-	PbTree    *PlayBookTree
-	Snippet   *snippetView
-	Execution *executionView
-	Status    *DetailPane
+	info        *info
+	PbTree      *PlayBookTree
+	snippetView *snippetView
+	execOutView *executionOutputView
+	execResView *executionResultView
+	statusView  *detailView
 
 	pages *tview.Pages // different pages in this UI
 	grid  *tview.Grid  //  layout for the run page
 	run   *run.Run
 
-	Nav *Navigator
+	Nav *navigator
 }
 
 func NewTui(gCtx *snippet.Context, name string) (*Tui, error) {
@@ -48,9 +49,10 @@ func NewTui(gCtx *snippet.Context, name string) (*Tui, error) {
 	}
 
 	ui.info = newInfo(ui, gCtx)
-	ui.Snippet = newSnippetView(ui)
-	ui.Execution = newExecutionView(ui)
-	ui.Status = NewDetailPane("Status", ui)
+	ui.snippetView = newSnippetView(ui)
+	ui.execOutView = newExecutionOutputView(ui)
+	ui.execResView = newExecutionResultView(ui)
+	ui.statusView = newDetailView("", false, ui)
 	pbTree, err := NewPlaybookTree(ui, run.Root)
 	if err != nil {
 		return nil, fmt.Errorf("newPlaybookTree: err = %v", err)
@@ -58,91 +60,77 @@ func NewTui(gCtx *snippet.Context, name string) (*Tui, error) {
 	ui.PbTree = pbTree
 
 	ui.setupNavigator()
-	// 100 x 100 grid
 	ui.grid = tview.NewGrid().
-		SetRows(3, 0, -3, 3).
+		SetRows(5, 0, 6, 0, 4).
 		AddItem(ui.info, 0, 0, 1, 5, 0, 0, false).
-		AddItem(pbTree.View, 1, 0, 2, 1, 0, 0, true).
-		AddItem(ui.Snippet, 1, 1, 1, 4, 0, 0, false).
-		AddItem(ui.Execution, 2, 1, 1, 4, 0, 0, false).
-		AddItem(ui.Status, 3, 0, 1, 5, 0, 0, false)
+		AddItem(ui.PbTree, 1, 0, 3, 1, 0, 0, true).
+		AddItem(ui.snippetView, 1, 1, 1, 4, 0, 0, false).
+		AddItem(ui.execResView, 2, 1, 1, 4, 0, 0, false).
+		AddItem(ui.execOutView, 3, 1, 1, 4, 0, 0, false).
+		AddItem(ui.statusView, 4, 0, 1, 5, 0, 0, false)
 	ui.pages = tview.NewPages().AddPage("main", ui.grid, true, true)
 	ui.App.SetRoot(ui.pages, true)
+	ui.setFocusedItem()
 	return ui, nil
 }
 
-func (t *Tui) Run() error             { return t.App.Run() }
-func (t *Tui) Navigate(key tcell.Key) { t.Nav.Navigate(key) }
+func (t *Tui) Run() error { return t.App.Run() }
+
+func (t *Tui) Navigate(key tcell.Key) {
+	t.Nav.Navigate(key)
+	t.setFocusedItem()
+}
+
 func (t *Tui) setupNavigator() {
-	t.Nav = &Navigator{
+	t.Nav = &navigator{
 		rootUI:  t.App,
-		Entries: []tview.Primitive{t.PbTree.View, t.Snippet, t.Execution, t.Status},
+		Entries: []navigable{t.PbTree, t.snippetView, t.execResView, t.execOutView, t.statusView},
 	}
 }
 
 func (t *Tui) SetCurrentNodeView(nodeView *graph.NodeView) {
-	t.Snippet.SetCurrentNodeView(nodeView)
+	t.snippetView.SetCurrentNodeView(nodeView)
 }
 
 func (t *Tui) SetCurrentNodeExecutionResult(res *graph.NodeExecutionResult) {
-	t.Execution.setExecutionResult(res)
+	t.execOutView.setExecutionResult(res)
+	t.execResView.setExecutionResult(res)
 }
 
-func (t *Tui) Statusf(format string, v ...interface{}) {
+func (t *Tui) SetExecutionInProgress() {
+	t.execOutView.setExecutionResult(nil)
+	t.execResView.setExecutionInProgress()
+}
+
+func (t *Tui) setFocusedItem() {
+	n, found := t.Nav.CurrentFocusedItem()
+	if !found {
+		return
+	}
+	t.setStatusHelp(n.NavHelp())
+}
+
+func (t *Tui) setStatusHelp(s string) {
+	t.statusView.Clear()
+	t.statusView.SetTextAlign(tview.AlignLeft)
+	t.statusView.SetTextColor(tcell.ColorDarkCyan)
+	_, err := t.statusView.Write([]byte(s))
+	if err != nil {
+		tools.Log.Err(err).Msgf("StatusHelp: err = %v", err)
+	}
+}
+
+func (t *Tui) StatusErrorf(format string, v ...interface{}) {
 	s := fmt.Sprintf(format, v...)
 	tools.Log.Info().Msg(s)
-	if _, err := t.Status.Write([]byte(s)); err != nil {
+	t.statusView.Clear()
+	t.statusView.SetTextAlign(tview.AlignLeft)
+	t.statusView.SetTextColor(tcell.ColorRed)
+	if _, err := t.statusView.Write([]byte(s)); err != nil {
 		tools.Log.Err(err).Msgf("WriteStatus: err = %v", err)
 	}
 }
 
 func (t *Tui) Execute(n *graph.Node, stdout, stderr io.Writer) (*graph.NodeExecutionResult, error) {
 	return t.run.Execute(n, stdout, stderr)
-}
-
-type Navigator struct {
-	rootUI  *tview.Application
-	Entries []tview.Primitive
-}
-
-func (n *Navigator) Navigate(key tcell.Key) {
-	switch key {
-	case tcell.KeyBacktab:
-		n.Prev()
-	case tcell.KeyTab:
-		n.Next()
-	}
-}
-
-func (n *Navigator) Next() {
-	index := n.getCurrentFocus()
-	next := 0
-	if index == -1 || index == len(n.Entries)-1 {
-		next = 0
-	} else {
-		next = index + 1
-	}
-	n.rootUI.SetFocus(n.Entries[next])
-}
-
-func (n *Navigator) Prev() {
-	index := n.getCurrentFocus()
-	next := 0
-	if index == 0 {
-		next = len(n.Entries) - 1
-	} else if index == -1 {
-		next = 0
-	} else {
-		next = index - 1
-	}
-	n.rootUI.SetFocus(n.Entries[next])
-}
-
-func (n *Navigator) getCurrentFocus() int {
-	for i, e := range n.Entries {
-		if e.HasFocus() {
-			return i
-		}
-	}
-	return -1
 }
