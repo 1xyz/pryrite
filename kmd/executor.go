@@ -6,16 +6,18 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	executor "github.com/aardlabs/terminal-poc/executors"
 	"github.com/spf13/cobra"
 )
 
 func NewCmdExecutor() *cobra.Command {
+	var timeout time.Duration
 	cmd := &cobra.Command{
 		Use:   "exec",
 		Short: "Execute",
-		Args:  MinimumArgs(1, "You need to specify something to execute"),
+		Args:  MinimumArgs(2, "You need to specify something to execute"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			register, err := executor.NewRegister()
 			if err != nil {
@@ -40,12 +42,21 @@ func NewCmdExecutor() *cobra.Command {
 					prefix: []byte(fmt.Sprint(count, "-err> ")),
 				})
 
-				res := register.Execute(context.Background(), req)
-				if res.Err != nil {
-					return res.Err
+				var ctx context.Context
+				if timeout > 0 {
+					var cancel context.CancelFunc
+					ctx, cancel = context.WithTimeout(context.Background(), timeout)
+					defer cancel()
+				} else {
+					ctx = context.Background()
 				}
 
-				cmd.Printf("Exit status: %d\n", res.ExitStatus)
+				res := register.Execute(ctx, req)
+				if res.Err != nil {
+					cmd.PrintErrf("Execution failed: %v\n", res.Err)
+				} else {
+					cmd.Printf("Exit status: %d\n", res.ExitStatus)
+				}
 			}
 
 			register.Cleanup()
@@ -53,6 +64,8 @@ func NewCmdExecutor() *cobra.Command {
 			return nil
 		},
 	}
+	cmd.Flags().DurationVarP(&timeout, "timeout", "t",
+		0, "Wait some amount of time before giving up on a command to return")
 
 	return cmd
 }
@@ -63,7 +76,6 @@ type prefixWriter struct {
 }
 
 func (pw *prefixWriter) Write(data []byte) (int, error) {
-	// println("barfwrite", string(data))
 	pw.writer.Write(pw.prefix)
 	return pw.writer.Write(data)
 }

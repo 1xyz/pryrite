@@ -2,16 +2,18 @@ package run
 
 import (
 	"bufio"
+	"bytes"
 	"container/list"
 	"context"
 	"fmt"
+	"io"
+	"strings"
+
 	executor "github.com/aardlabs/terminal-poc/executors"
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/snippet"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/google/uuid"
-	"io"
-	"strings"
 )
 
 // Run encapsulates a playbook's execution
@@ -142,14 +144,18 @@ func (r *Run) Execute(n *graph.Node, stdout, stderr io.Writer) (*graph.NodeExecu
 	// Define a new execution result
 	execResult := graph.NewNodeExecutionResult(executionID, nodeID, reqID)
 	defer func() {
+		// This can take a while for rendering large captures…
+		io.Copy(stdout, bytes.NewBuffer(execResult.Stdout))
+		io.Copy(stderr, bytes.NewBuffer(execResult.Stderr))
 		if err := execResult.Close(); err != nil {
 			tools.Log.Err(err).Msgf("Execute: execResult.close() err = %v", err)
 		}
 	}()
 
-	// The execution stdout and stderr will be mirrored to the executionResult
-	outWriter := bufio.NewWriter(io.MultiWriter(stdout, execResult.StdoutWriter))
-	errWriter := bufio.NewWriter(io.MultiWriter(stderr, execResult.StderrWriter))
+	// Capture all the output first, before relaying to the slow TUI render writer0
+	outWriter := bufio.NewWriter(execResult.StdoutWriter)
+	errWriter := bufio.NewWriter(execResult.StderrWriter)
+
 	req := &executor.ExecRequest{
 		Hdr:     &executor.RequestHdr{ID: reqID, ExecutionID: executionID, NodeID: nodeID},
 		Content: []byte(n.Content),

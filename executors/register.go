@@ -33,7 +33,7 @@ func (r Register) Register(executor Executor) error {
 
 	// do our best to kill/reap children when interrupted
 	shutdown := make(chan os.Signal, 1)
-	signal.Notify(shutdown, os.Interrupt, syscall.SIGHUP)
+	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-shutdown
 		signal.Stop(shutdown)

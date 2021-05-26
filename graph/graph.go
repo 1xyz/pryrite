@@ -2,10 +2,11 @@ package graph
 
 import (
 	"fmt"
-	"github.com/aardlabs/terminal-poc/tools"
 	"io"
 	"strings"
 	"time"
+
+	"github.com/aardlabs/terminal-poc/tools"
 )
 
 type Metadata struct {
