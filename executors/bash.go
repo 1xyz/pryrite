@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"errors"
-	"io"
 	"os"
 	"os/exec"
 	"strconv"
@@ -157,15 +156,18 @@ func (b *BashExecutor) collectStatus(ready chan *collectorResult) {
 }
 
 type readWriterProxy struct {
-	reader io.Reader
-	writer io.Writer
+	reader *bufio.Reader
+	writer *bufio.Writer
 }
 
-func (proxy *readWriterProxy) SetReader(reader io.Reader) {
+func (proxy *readWriterProxy) SetReader(reader *bufio.Reader) {
 	proxy.reader = reader
 }
 
-func (proxy *readWriterProxy) SetWriter(writer io.Writer) {
+func (proxy *readWriterProxy) SetWriter(writer *bufio.Writer) {
+	if writer == nil && proxy.writer != nil {
+		proxy.writer.Flush()
+	}
 	proxy.writer = writer
 }
 
