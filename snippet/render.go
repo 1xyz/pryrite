@@ -2,13 +2,14 @@ package snippet
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/charmbracelet/glamour"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/rs/zerolog/log"
-	"strings"
 )
 
 const (
@@ -26,30 +27,26 @@ const (
 	idColLen = 60 + padLen
 )
 
-func RenderSnippetNodeView(cfg *config.Config, nv *graph.NodeView) error {
+func RenderSnippetNodeView(entry *config.Entry, nv *graph.NodeView) error {
 	nr := &nodeRender{
 		view:       nv,
-		serviceURL: getServiceURL(cfg),
+		serviceURL: getServiceURL(entry),
 	}
 	nr.Render()
 	return nil
 }
 
-func RenderSnippetNodes(cfg *config.Config, nodes []graph.Node, kind graph.Kind) error {
+func RenderSnippetNodes(entry *config.Entry, nodes []graph.Node, kind graph.Kind) error {
 	if len(nodes) == 0 {
 		tools.LogStdout("No results found!")
 		return nil
 	}
-	nr := &nodesRender{Nodes: nodes, kind: kind, serviceURL: getServiceURL(cfg)}
+	nr := &nodesRender{Nodes: nodes, kind: kind, serviceURL: getServiceURL(entry)}
 	nr.Render()
 	return nil
 }
 
-func getServiceURL(cfg *config.Config) string {
-	entry, found := cfg.GetDefaultEntry()
-	if !found {
-		tools.Log.Warn().Msgf("RenderSnippetNodeView(s): cannot find default entry!")
-	}
+func getServiceURL(entry *config.Entry) string {
 	serviceURL := entry.ServiceUrl
 	if !strings.HasSuffix(serviceURL, "/") {
 		serviceURL += "/"

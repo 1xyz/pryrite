@@ -19,7 +19,7 @@ func NewCmdHui(gCtx *snippet.Context) *cobra.Command {
               $ {AppName} run <name>`),
 		Args: cobra.MinimumNArgs(1),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			return IsUserLoggedIn(gCtx.Config)
+			return IsUserLoggedIn(gCtx.ConfigEntry)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]

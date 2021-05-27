@@ -2,9 +2,11 @@ package tui
 
 import (
 	"fmt"
+
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/charmbracelet/glamour"
+	"github.com/dustin/go-humanize"
 	"github.com/gdamore/tcell/v2"
 )
 
@@ -42,6 +44,13 @@ func (s *snippetView) updateDetailsContent(view *graph.NodeView) {
 		s.rootUI.StatusErrorf("updateDetailsContent: render markdown: err = %v", err)
 		return
 	}
+
+	if view.Node.LastExecutedAt != nil {
+		// include last execution info (FIXME: there is certainly a better way to include this)
+		out += fmt.Sprintf("\n\n[ Most recently run by %s %s. ]\n",
+			view.Node.LastExecutedBy, humanize.Time(*view.Node.LastExecutedAt))
+	}
+
 	if _, err := s.Write([]byte(out)); err != nil {
 		s.rootUI.StatusErrorf("updateDetailsContent: render markdown: err = %v", err)
 		return

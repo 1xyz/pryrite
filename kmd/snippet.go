@@ -42,7 +42,7 @@ func NewCmdSnippetSearch(gCtx *snippet.Context) *cobra.Command {
 		`),
 		Args: MinimumArgs(1, "You need to specify a search query"),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			return IsUserLoggedIn(gCtx.Config)
+			return IsUserLoggedIn(gCtx.ConfigEntry)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			query := args[0]
@@ -56,7 +56,7 @@ func NewCmdSnippetSearch(gCtx *snippet.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if err := snippet.RenderSnippetNodes(gCtx.Config, nodes, kind); err != nil {
+			if err := snippet.RenderSnippetNodes(gCtx.ConfigEntry, nodes, kind); err != nil {
 				return err
 			}
 			return nil
@@ -95,7 +95,7 @@ func NewCmdSnippetList(gCtx *snippet.Context) *cobra.Command {
 		Aliases: []string{"ls"},
 		Args:    cobra.NoArgs,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			return IsUserLoggedIn(gCtx.Config)
+			return IsUserLoggedIn(gCtx.ConfigEntry)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			limit := opts.Limit
@@ -108,7 +108,7 @@ func NewCmdSnippetList(gCtx *snippet.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if err := snippet.RenderSnippetNodes(gCtx.Config, nodes, kind); err != nil {
+			if err := snippet.RenderSnippetNodes(gCtx.ConfigEntry, nodes, kind); err != nil {
 				return err
 			}
 			return nil
@@ -141,7 +141,7 @@ func NewCmdSnippetDesc(gCtx *snippet.Context) *cobra.Command {
 		`),
 		Args: MinimumArgs(1, "no name specified"),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			return IsUserLoggedIn(gCtx.Config)
+			return IsUserLoggedIn(gCtx.ConfigEntry)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
@@ -151,7 +151,7 @@ func NewCmdSnippetDesc(gCtx *snippet.Context) *cobra.Command {
 				return err
 			}
 
-			if err := snippet.RenderSnippetNodeView(gCtx.Config, view); err != nil {
+			if err := snippet.RenderSnippetNodeView(gCtx.ConfigEntry, view); err != nil {
 				return err
 			}
 			return nil
@@ -180,7 +180,7 @@ func NewCmdSnippetSave(gCtx *snippet.Context) *cobra.Command {
 		`),
 		Args: MinimumArgs(1, "no content specified"),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			return IsUserLoggedIn(gCtx.Config)
+			return IsUserLoggedIn(gCtx.ConfigEntry)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if args[0] == "-h" || args[0] == "--help" {
@@ -225,7 +225,7 @@ func NewCmdSnippetEdit(gCtx *snippet.Context) *cobra.Command {
 		`),
 		Args: MinimumArgs(1, "no name specified"),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			return IsUserLoggedIn(gCtx.Config)
+			return IsUserLoggedIn(gCtx.ConfigEntry)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if args[0] == "-h" || args[0] == "--help" {

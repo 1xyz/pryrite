@@ -2,16 +2,18 @@ package auth
 
 import (
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
-
-	"github.com/aardlabs/terminal-poc/tools"
 
 	"github.com/1xyz/sseclient"
 	"github.com/aardlabs/terminal-poc/config"
+	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/cristalhq/jwt/v3"
 )
 
 const ClientTimeout = 30 * time.Second
@@ -51,21 +53,36 @@ func AuthUser(entry *config.Entry, serviceUrl string) error {
 		return fmt.Errorf("authUser err = %v", err)
 	}
 
-	var token string
+	var tokenString string
 	for event := range events {
 		if url, ok := event.Data["authorize_url"]; ok {
 			fmt.Println("Please open this link to authorize this app:", url)
 		} else if t, ok := event.Data["bearer_token"]; ok {
 			fmt.Println("Authorization is complete!")
-			token = t.(string)
+			tokenString = strings.TrimSpace(t.(string))
 			break
 		} else {
 			fmt.Println("Unknown event", event.Name, event.Data)
 		}
 	}
 
+	// NOTE: this does _NOT_ verify since we don't download the issuer's key
+	//       this is purely to snag the user info out of the jwt
+	token, err := jwt.ParseString(tokenString)
+	if err == nil {
+		var claims map[string]interface{}
+		err = json.Unmarshal(token.RawClaims(), &claims)
+		if err != nil {
+			return err
+		}
+		entry.Email = claims["email"].(string)
+	} else {
+		// FIXME: remove this when we stop supporting Silly auth
+		entry.Email = tokenString
+	}
+
 	entry.ServiceUrl = serviceUrl
-	entry.User = token
+	entry.User = tokenString
 	entry.AuthScheme = "Bearer"
 	return config.SetEntry(entry)
 }

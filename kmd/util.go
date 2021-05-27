@@ -2,7 +2,6 @@ package kmd
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/aardlabs/terminal-poc/auth"
 	"github.com/aardlabs/terminal-poc/config"
@@ -22,12 +21,8 @@ func MinimumArgs(n int, msg string) cobra.PositionalArgs {
 	}
 }
 
-func IsUserLoggedIn(cfg *config.Config) error {
-	entry, found := cfg.GetDefaultEntry()
-	if !found {
-		return fmt.Errorf("no named entry found in configuration")
-	}
-	_, found = auth.GetLoggedInUser(entry)
+func IsUserLoggedIn(entry *config.Entry) error {
+	_, found := auth.GetLoggedInUser(entry)
 	if !found {
 		return auth.AuthUser(entry, "")
 	}

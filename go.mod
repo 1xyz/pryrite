@@ -12,7 +12,9 @@ require (
 	github.com/charmbracelet/bubbletea v0.13.4 // indirect
 	github.com/charmbracelet/glamour v0.3.0 // indirect
 	github.com/creack/pty v1.1.11
+	github.com/cristalhq/jwt/v3 v3.0.14 // indirect
 	github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815
+	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/gdamore/tcell v1.4.0 // indirect
 	github.com/gdamore/tcell/v2 v2.3.3 // indirect
 	github.com/go-resty/resty/v2 v2.5.0

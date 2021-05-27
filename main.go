@@ -18,8 +18,6 @@ var (
 	commitHash string
 	//go:embed build_time.txt
 	buildTime string
-
-	whitespace = " \t\r\n"
 )
 
 func main() {
@@ -43,9 +41,9 @@ func main() {
 	}
 	// the error is handled by cobra (so let us not handle it)
 	kmd.Execute(cfg, &kmd.VersionInfo{
-		Version:    strings.Trim(version, whitespace),
-		CommitHash: strings.Trim(commitHash, whitespace),
-		BuildTime:  strings.Trim(buildTime, whitespace),
+		Version:    strings.TrimSpace(version),
+		CommitHash: strings.TrimSpace(commitHash),
+		BuildTime:  strings.TrimSpace(buildTime),
 	})
 }
 

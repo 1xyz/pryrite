@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+
 	"github.com/aardlabs/terminal-poc/snippet"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -26,13 +27,7 @@ func newInfo(rootUI *Tui, gCtx *snippet.Context) *info {
 
 func (i *info) display() {
 	agentInfo := fmt.Sprintf("ver:%s", i.gCtx.Metadata.Agent)
-	e, found := i.gCtx.Config.GetDefaultEntry()
-	if !found {
-		i.rootUI.StatusErrorf("info.Display: config.GetDefaultEntry not found")
-		return
-	}
-
-	serviceEndpoint := fmt.Sprintf("endpoint:%s", e.ServiceUrl)
+	serviceEndpoint := fmt.Sprintf("endpoint:%s", i.gCtx.ConfigEntry.ServiceUrl)
 	userName := fmt.Sprintf("%s", "<foobar@aardvarklabs.com>")
 
 	i.SetTextColor(tcell.ColorYellow)

@@ -34,6 +34,9 @@ type Node struct {
 	Content          string     `json:"content,omitempty"`
 	ContentLanguage  string     `json:"content_language,omitempty"`
 	Children         string     `json:"children,omitempty"`
+	IsShared         bool       `json:"is_shared"`
+	LastExecutedAt   *time.Time `json:"last_executed_at"`
+	LastExecutedBy   string     `json:"last_executed_by"`
 }
 
 func (n *Node) GetChildIDs() []string {

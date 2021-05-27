@@ -175,7 +175,7 @@ func (b *BashExecutor) collectStatus(ready chan *collectorResult) {
 		return
 	}
 
-	result.exitStatus, result.err = strconv.Atoi(strings.Trim(status, " \t\r\n"))
+	result.exitStatus, result.err = strconv.Atoi(strings.TrimSpace(status))
 	if result.err != nil {
 		result.exitStatus = -1
 	}

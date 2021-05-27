@@ -4,9 +4,6 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
-	"github.com/aardlabs/terminal-poc/config"
-	"github.com/aardlabs/terminal-poc/graph"
-	"github.com/aardlabs/terminal-poc/tools"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -15,11 +12,19 @@ import (
 	"os/exec"
 	"strings"
 	"time"
+
+	"github.com/aardlabs/terminal-poc/config"
+	"github.com/aardlabs/terminal-poc/graph"
+	"github.com/aardlabs/terminal-poc/tools"
 )
 
-func NewContext(c *config.Config, agent string) *Context {
+func NewContext(cfg *config.Config, agent string) *Context {
+	entry, found := cfg.GetDefaultEntry()
+	if !found {
+		panic("default config is nil")
+	}
 	return &Context{
-		Config: c,
+		ConfigEntry: entry,
 		Metadata: &graph.Metadata{
 			Agent: agent,
 		},
@@ -27,8 +32,8 @@ func NewContext(c *config.Config, agent string) *Context {
 }
 
 type Context struct {
-	Config   *config.Config
-	Metadata *graph.Metadata
+	ConfigEntry *config.Entry
+	Metadata    *graph.Metadata
 }
 
 func GetSnippetNode(ctx *Context, id string) (*graph.Node, error) {
@@ -36,12 +41,8 @@ func GetSnippetNode(ctx *Context, id string) (*graph.Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	entry, found := ctx.Config.GetDefaultEntry()
-	if !found {
-		return nil, fmt.Errorf("default config is nil")
-	}
 
-	store := graph.NewStore(entry, ctx.Metadata)
+	store := graph.NewStore(ctx.ConfigEntry, ctx.Metadata)
 	n, err := store.GetNode(id)
 	if err != nil {
 		ctxMsg := fmt.Sprintf("GetSnippetNode(%s) = %v", id, err)
@@ -57,12 +58,7 @@ func GetSnippetNode(ctx *Context, id string) (*graph.Node, error) {
 }
 
 func UpdateSnippetNode(ctx *Context, n *graph.Node) error {
-	entry, found := ctx.Config.GetDefaultEntry()
-	if !found {
-		return fmt.Errorf("default config is nil")
-	}
-
-	store := graph.NewStore(entry, ctx.Metadata)
+	store := graph.NewStore(ctx.ConfigEntry, ctx.Metadata)
 	err := store.UpdateNode(n)
 	if err != nil {
 		ctxMsg := fmt.Sprintf("UpdateSnippetNode(%s) = %v", n.ID, err)
@@ -78,13 +74,8 @@ func UpdateSnippetNode(ctx *Context, n *graph.Node) error {
 }
 
 func SearchSnippetNodes(ctx *Context, query string, limit int, kind graph.Kind) ([]graph.Node, error) {
-	entry, found := ctx.Config.GetDefaultEntry()
-	if !found {
-		return nil, fmt.Errorf("default config is nil")
-	}
-
 	ctxMsg := fmt.Sprintf("SearchSnippetNodes query=%s(limit=%d, kind=%v)", query, limit, kind)
-	store := graph.NewStore(entry, ctx.Metadata)
+	store := graph.NewStore(ctx.ConfigEntry, ctx.Metadata)
 	n, err := store.SearchNodes(query, limit, kind)
 	if err != nil {
 		var ghe *graph.HttpError
@@ -100,13 +91,8 @@ func SearchSnippetNodes(ctx *Context, query string, limit int, kind graph.Kind) 
 }
 
 func GetSnippetNodes(ctx *Context, limit int, kind graph.Kind) ([]graph.Node, error) {
-	entry, found := ctx.Config.GetDefaultEntry()
-	if !found {
-		return nil, fmt.Errorf("default config is nil")
-	}
-
 	ctxMsg := fmt.Sprintf("GetSnippetNodes(limit=%d, kind=%v)", limit, kind)
-	store := graph.NewStore(entry, ctx.Metadata)
+	store := graph.NewStore(ctx.ConfigEntry, ctx.Metadata)
 	n, err := store.GetNodes(limit, kind)
 	if err != nil {
 		var ghe *graph.HttpError
@@ -122,12 +108,7 @@ func GetSnippetNodes(ctx *Context, limit int, kind graph.Kind) ([]graph.Node, er
 }
 
 func AddSnippetNode(ctx *Context, content string) (*graph.Node, error) {
-	entry, found := ctx.Config.GetDefaultEntry()
-	if !found {
-		return nil, fmt.Errorf("default config is nil")
-	}
-
-	store := graph.NewStore(entry, ctx.Metadata)
+	store := graph.NewStore(ctx.ConfigEntry, ctx.Metadata)
 	n, err := graph.NewNode(graph.Command, "", "", content, *ctx.Metadata)
 	if err != nil {
 		return nil, err
@@ -209,12 +190,8 @@ func GetSnippetNodeViewWithChildren(ctx *Context, id string) (*graph.NodeView, e
 	if err != nil {
 		return nil, err
 	}
-	entry, found := ctx.Config.GetDefaultEntry()
-	if !found {
-		return nil, fmt.Errorf("default config is nil")
-	}
 
-	store := graph.NewStore(entry, ctx.Metadata)
+	store := graph.NewStore(ctx.ConfigEntry, ctx.Metadata)
 	nv, err := GetSnippetNodeView(store, id)
 	if err != nil {
 		return nil, err
@@ -277,12 +254,7 @@ func GetID(idOrURL string) (string, error) {
 }
 
 func NewStoreFromContext(ctx *Context) (graph.Store, error) {
-	entry, found := ctx.Config.GetDefaultEntry()
-	if !found {
-		return nil, fmt.Errorf("default config is nil")
-	}
-
-	store := graph.NewStore(entry, ctx.Metadata)
+	store := graph.NewStore(ctx.ConfigEntry, ctx.Metadata)
 	return store, nil
 }
 

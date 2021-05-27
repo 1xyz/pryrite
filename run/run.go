@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	executor "github.com/aardlabs/terminal-poc/executors"
 	"github.com/aardlabs/terminal-poc/graph"
@@ -167,6 +168,15 @@ func (r *Run) Execute(n *graph.Node, stdout, stderr io.Writer) (*graph.NodeExecu
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	res := exec.Execute(ctx, req)
+
+	// Update our view and notify the service of the execution
+	now := time.Now()
+	n.LastExecutedAt = &now
+	n.LastExecutedBy = r.gCtx.ConfigEntry.Email
+	err = r.Store.UpdateNode(&graph.Node{ID: n.ID, LastExecutedAt: n.LastExecutedAt})
+	if err != nil {
+		tools.Log.Err(err).Msgf("Execute: failed to record run with service, err = %v", err)
+	}
 
 	// Update the execution result and add it to the index
 	execResult.ExitStatus = res.ExitStatus

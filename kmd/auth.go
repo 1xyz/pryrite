@@ -35,7 +35,7 @@ func NewCmdAuthLogin(cfg *config.Config) *cobra.Command {
 			if err := auth.AuthUser(entry, serviceURL); err != nil {
 				return err
 			}
-			tools.LogStdout(fmt.Sprintf("user logged in"))
+			tools.LogStdout(fmt.Sprintf("User logged in as %s", entry.Email))
 			return nil
 		},
 	}
