@@ -2,6 +2,8 @@ package snippet
 
 import (
 	"fmt"
+	"io"
+	"os"
 	"strings"
 
 	"github.com/aardlabs/terminal-poc/config"
@@ -60,21 +62,7 @@ type nodeRender struct {
 }
 
 func (nr *nodeRender) Render() {
-	w, err := tools.OpenOutputWriter()
-	if err != nil {
-		tools.LogStdout(fmt.Sprintf("Render: tools.OpenOutputWriter: err = %v", err))
-		return
-	}
-	tools.Log.Info().Msgf("Render: OpenOutputWriter opened SupportRawControlChars: %b",
-		w.SupportRawControlChars())
-
-	defer func() {
-		if err := w.Close(); err != nil {
-			tools.Log.Err(err).Msgf("Render: defer: error closing writer")
-			return
-		}
-	}()
-
+	w := os.Stdout
 	nr.renderNodeView(nr.view, w)
 	if nr.view.Children != nil && len(nr.view.Children) > 0 {
 		for _, child := range nr.view.Children {
@@ -85,7 +73,7 @@ func (nr *nodeRender) Render() {
 	tools.Log.Info().Msgf("Render complete for node %v", nr.view.Node.ID)
 }
 
-func (nr *nodeRender) renderNodeView(nv *graph.NodeView, w tools.OutputWriteCloser) {
+func (nr *nodeRender) renderNodeView(nv *graph.NodeView, w io.Writer) {
 	t := table.NewWriter()
 	t.SetStyle(table.StyleBold)
 	t.SetOutputMirror(w)
@@ -99,16 +87,8 @@ func (nr *nodeRender) renderNodeView(nv *graph.NodeView, w tools.OutputWriteClos
 	t.AppendSeparator()
 	t.Render()
 
-	var renderOpts []glamour.TermRendererOption
-	if w.SupportRawControlChars() {
-		colLen := nr.getColumnLen()
-		renderOpts = []glamour.TermRendererOption{
-			glamour.WithAutoStyle(), glamour.WithWordWrap(colLen),
-		}
-	} else {
-		renderOpts = []glamour.TermRendererOption{
-			glamour.WithStylePath("notty"),
-		}
+	renderOpts := []glamour.TermRendererOption{
+		glamour.WithStylePath("notty"),
 	}
 
 	var out string
@@ -158,18 +138,7 @@ type nodesRender struct {
 }
 
 func (nr *nodesRender) Render() {
-	w, err := tools.OpenOutputWriter()
-	if err != nil {
-		tools.LogStdout(fmt.Sprintf("Render: tools.OpenOutputWriter: err = %v", err))
-		return
-	}
-	defer func() {
-		if err := w.Close(); err != nil {
-			tools.Log.Err(err).Msgf("Render defer: error closing writer")
-			return
-		}
-	}()
-
+	w := os.Stdout
 	t := table.NewWriter()
 	t.SetStyle(table.StyleBold)
 	t.SetOutputMirror(w)
