@@ -58,6 +58,10 @@ func (n *Node) GetChildIDs() []string {
 	return result
 }
 
+func (n *Node) HasSnippets() bool {
+	return n.Snippets != nil && len(n.Snippets) > 0
+}
+
 func (n Node) String() string {
 	sb := strings.Builder{}
 	sb.WriteString(fmt.Sprintf("ID=%s kind=%v Title=%s MD=%s Children=%s",

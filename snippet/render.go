@@ -9,7 +9,6 @@ import (
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/tools"
-	"github.com/charmbracelet/glamour"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/rs/zerolog/log"
 )
@@ -74,42 +73,25 @@ func (nr *nodeRender) Render() {
 }
 
 func (nr *nodeRender) renderNodeView(nv *graph.NodeView, w io.Writer) {
+	snippetCount := 0
+	if nv.Node.HasSnippets() {
+		snippetCount = len(nv.Node.Snippets)
+	}
+
 	t := table.NewWriter()
 	t.SetStyle(table.StyleBold)
 	t.SetOutputMirror(w)
-	t.AppendRow(table.Row{"Id", fmtID(nr.serviceURL, nv.Node.ID)})
-	t.AppendRow(table.Row{"Kind", nv.Node.Kind})
-	t.AppendSeparator()
-	t.AppendRows([]table.Row{
-		{"Date", tools.FmtTime(nv.Node.OccurredAt)},
-		{"Agent", nv.Node.Metadata.Agent},
-	})
+	t.AppendRow(table.Row{"URL", fmtID(nr.serviceURL, nv.Node.ID)})
+	t.AppendRow(table.Row{"Snippet-Count", snippetCount})
+	t.AppendRow(table.Row{"Created-On", tools.FmtTime(nv.Node.CreatedAt)})
 	t.AppendSeparator()
 	t.Render()
 
-	renderOpts := []glamour.TermRendererOption{
-		glamour.WithStylePath("notty"),
-	}
-
-	var out string
-	r, err := glamour.NewTermRenderer(renderOpts...)
-	if err != nil {
-		tools.Log.Err(err).Msgf("newTermRender %v failed %v", renderOpts, err)
-		if _, err := fmt.Fprint(w, out); err != nil {
-			tools.Log.Err(err).Msgf("renderNodeView: id = %v fmt.Fprintf()", nv.Node.ID)
-		}
+	if _, err := fmt.Fprintf(w, "%s\n\n", nv.View); err != nil {
+		tools.LogStderr(err, "nodeRender: fmt.Fprintf(w, out):")
 		return
 	}
 
-	out, err = r.Render(nv.View)
-	if err != nil {
-		tools.Log.Err(err).Msgf("renderNodeView: id = %v fmt.Fprintf()", nv.Node.ID)
-		return
-	}
-	if _, err := fmt.Fprint(w, out); err != nil {
-		tools.Log.Err(err).Msgf("renderNodeView: id = %v fmt.Fprintf()", nv.Node.ID)
-		return
-	}
 	tools.Log.Info().Msgf("renderNodeView: id=%v complete", nv.Node.ID)
 }
 

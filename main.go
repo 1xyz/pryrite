@@ -33,11 +33,11 @@ func main() {
 	}()
 
 	if err := config.CreateDefaultConfigIfEmpty(); err != nil {
-		tools.LogStderrExit("CreateDefaultConfig", err)
+		tools.LogStderrExit(err, "CreateDefaultConfig")
 	}
 	cfg, err := config.Default()
 	if err != nil {
-		tools.LogStderrExit("config.Default", err)
+		tools.LogStderrExit(err, "config.Default")
 	}
 	// the error is handled by cobra (so let us not handle it)
 	kmd.Execute(cfg, &kmd.VersionInfo{

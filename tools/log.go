@@ -116,19 +116,23 @@ func FmtTime(t *time.Time) string {
 	return t.In(time.Local).Format("Jan _2 3:04PM")
 }
 
-func LogStderrExit(message string, err error) {
-	Log.Err(err).Msgf("%s. error: %v.", message, err)
-	_, fErr := fmt.Fprintf(os.Stderr, "%s. error: %v.\n", message, err)
-	if fErr != nil {
-		panic(fErr)
-	}
-	os.Exit(1)
-}
-
 func LogStdout(message string) {
 	Log.Info().Msg(message)
 	_, fErr := fmt.Fprintln(os.Stdout, message)
 	if fErr != nil {
 		panic(fErr)
 	}
+}
+
+func LogStderr(err error, format string, v ...interface{}) {
+	Log.Err(err).Msgf(format, v...)
+	_, fErr := fmt.Fprintf(os.Stderr, format, v...)
+	if fErr != nil {
+		panic(fErr)
+	}
+}
+
+func LogStderrExit(err error, format string, v ...interface{}) {
+	LogStderr(err, format, v...)
+	os.Exit(1)
 }
