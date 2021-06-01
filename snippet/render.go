@@ -121,7 +121,7 @@ func (nr *nodeRender) renderNodeView(nv *graph.NodeView, w tools.OutputWriteClos
 		return
 	}
 
-	out, err = r.Render(nv.ContentMarkdown)
+	out, err = r.Render(nv.View)
 	if err != nil {
 		tools.Log.Err(err).Msgf("renderNodeView: id = %v fmt.Fprintf()", nv.Node.ID)
 		return
@@ -222,11 +222,13 @@ func (nr *nodesRender) getSummary(n *graph.Node) string {
 	if len(n.Title) > 0 {
 		return tools.TrimLength(n.Title, colLen)
 	}
-	if len(n.Description) > 0 {
-		return tools.TrimLength(n.Description, colLen)
+	if len(n.Markdown) > 0 {
+		return tools.TrimLength(n.Markdown, colLen)
 	}
-	if len(n.Content) > 0 {
-		return tools.TrimLength(n.Content, colLen)
+	if len(n.Snippets) > 0 {
+		for _, snippet := range n.Snippets {
+			return tools.TrimLength(snippet.Content, colLen)
+		}
 	}
 	return "No-Content"
 }

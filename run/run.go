@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"container/list"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -128,7 +129,11 @@ func (r *Run) getNodeView(id string) (*graph.NodeView, error) {
 // Execute runs the specified node with the executor
 func (r *Run) Execute(n *graph.Node, stdout, stderr io.Writer) (*graph.NodeExecutionResult, error) {
 	// find a matching executor.
-	contentType := executor.ContentType(n.ContentLanguage)
+	if len(n.Snippets) > 1 {
+		return nil, errors.New("refusing to execute node with more than one snippet FIXME")
+	}
+	snippet := n.Snippets[0]
+	contentType := executor.ContentType(snippet.ContentType)
 	if contentType == executor.Empty {
 		contentType = executor.Shell
 	}
@@ -159,7 +164,7 @@ func (r *Run) Execute(n *graph.Node, stdout, stderr io.Writer) (*graph.NodeExecu
 
 	req := &executor.ExecRequest{
 		Hdr:     &executor.RequestHdr{ID: reqID, ExecutionID: executionID, NodeID: nodeID},
-		Content: []byte(n.Content),
+		Content: []byte(snippet.Content),
 		Stdout:  outWriter,
 		Stderr:  errWriter,
 	}
@@ -204,7 +209,7 @@ func (r *Run) EditSnippet(nodeID string) (*graph.NodeView, error) {
 	}
 
 	view.Node = updatedView.Node
-	view.ContentMarkdown = updatedView.ContentMarkdown
+	view.View = updatedView.View
 	return view, nil
 }
 

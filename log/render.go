@@ -2,12 +2,13 @@ package log
 
 import (
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/rs/zerolog/log"
-	"os"
-	"strings"
 )
 
 type NodesRender struct {
@@ -97,8 +98,8 @@ func (nr *NodeRender) Render() {
 	t.Render()
 
 	if nr.RenderDetail {
-		if len(nr.Node.Description) > 0 {
-			fmt.Println(nr.Node.Description)
+		if len(nr.Node.Markdown) > 0 {
+			fmt.Println(nr.Node.Markdown)
 		}
 		d, err := nr.Node.DecodeDetails()
 		if err != nil {
@@ -136,7 +137,7 @@ type NodeSummary struct {
 }
 
 func (ns *NodeSummary) createSummary() error {
-	if err := ns.append(ns.n.Description); err != nil {
+	if err := ns.append(ns.n.Markdown); err != nil {
 		return err
 	}
 	d, err := ns.n.DecodeDetails()

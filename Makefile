@@ -9,6 +9,7 @@ BUILD_BINARY=$(BIN_DIR)/$(BINARY)
 SRC := $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 # current git version short-hash
 VER := $(shell git rev-parse --short HEAD)
+WATCH := (.go$$)
 
 info:
 	@echo " target         ⾖ Description.                                    "
@@ -27,6 +28,10 @@ rebuild: clean build
 build: fmt verinfo
 	$(GO) build -o $(BUILD_BINARY) -v main.go
 	cp misc/**/*.sh $(BIN_DIR)/
+
+watch: $(BIN_DIR)/.reflex-installed
+	reflex -r "$(WATCH)" -s -- make build
+.PHONY: watch
 
 .PHONY: clean
 clean:
@@ -59,5 +64,11 @@ commit_hash.txt: FORCE
 
 build_time.txt: FORCE
 	echo "$$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$@"
+
+$(BIN_DIR)/.reflex-installed:
+	@cd /tmp && \
+	  go get -u github.com/cespare/reflex && \
+	  go install github.com/cespare/reflex@latest
+	@touch $@
 
 FORCE:

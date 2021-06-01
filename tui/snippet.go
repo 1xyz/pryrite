@@ -39,7 +39,7 @@ func (s *snippetView) updateDetailsContent(view *graph.NodeView) {
 		return
 	}
 
-	out, err = r.Render(view.ContentMarkdown)
+	out, err = r.Render(view.Node.Markdown)
 	if err != nil {
 		s.rootUI.StatusErrorf("updateDetailsContent: render markdown: err = %v", err)
 		return

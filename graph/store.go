@@ -5,10 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
+
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/go-resty/resty/v2"
-	"strconv"
 )
 
 type Store interface {
@@ -57,8 +58,9 @@ func (r *remoteStore) GetNodes(limit int, kind Kind) ([]Node, error) {
 	req := client.R().
 		SetHeader("Accept", "application/json").
 		SetQueryParams(map[string]string{
-			"Limit": strconv.Itoa(limit),
-			"Kind":  kindStr,
+			"limit":   strconv.Itoa(limit),
+			"kind":    kindStr,
+			"include": "snippets",
 		})
 	resp, err := req.Get("/api/v1/nodes")
 	if err != nil {
@@ -78,7 +80,11 @@ func (r *remoteStore) GetNode(id string) (*Node, error) {
 	client := r.newHTTPClient(false)
 	req := client.R().
 		SetPathParam("nodeId", id).
-		SetHeader("Accept", "application/json")
+		SetHeader("Accept", "application/json").
+		SetQueryParams(map[string]string{
+			"include": "snippets",
+			"view":    "text",
+		})
 	resp, err := req.Get("/api/v1/nodes/{nodeId}")
 	if err != nil {
 		return nil, fmt.Errorf("http.get err: %v", err)
@@ -94,22 +100,13 @@ func (r *remoteStore) GetNode(id string) (*Node, error) {
 }
 
 func (r *remoteStore) GetNodeView(id string) (*NodeView, error) {
-	client := r.newHTTPClient(false)
-	req := client.R().
-		SetPathParam("nodeId", id).
-		SetQueryParam("IncludeTitle", "true").
-		SetQueryParam("HtmlAsText", "true").
-		SetHeader("Accept", "application/json")
-	resp, err := req.Get("/api/v1/nodes/{nodeId}/termview")
+	node, err := r.GetNode(id)
 	if err != nil {
 		return nil, fmt.Errorf("http.get err: %v", err)
 	}
-	if err := checkHTTP2XX(fmt.Sprintf("getNode(%s)", id), resp.StatusCode()); err != nil {
-		return nil, err
-	}
-	result := NodeView{}
-	if err := json.NewDecoder(resp.RawBody()).Decode(&result); err != nil {
-		return nil, &Error{"GetNode", err}
+	result := NodeView{
+		Node: node,
+		View: node.View,
 	}
 	return &result, nil
 }

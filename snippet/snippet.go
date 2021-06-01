@@ -136,15 +136,17 @@ func EditSnippetNode(ctx *Context, id string, save bool) (*graph.Node, error) {
 	}
 
 	// Write the content to temporary file
-	if len(n.Content) > 0 {
-		if err := ioutil.WriteFile(filename, []byte(n.Content), 0600); err != nil {
+	if len(n.Snippets) > 0 {
+		if len(n.Snippets) > 1 {
+			tools.Log.Error().Msgf("EditSnippetNode (%s). TODO: handle more than one snippet", n.ID)
+		}
+		if err := ioutil.WriteFile(filename, []byte(n.Snippets[0].Content), 0600); err != nil {
 			return nil, err
 		}
 		tools.Log.Info().Msgf("EditSnippetNode (%s). wrote n=%d bytes to %s",
-			n.ID, len(n.Content), filename)
+			n.ID, len(n.Snippets), filename)
 	} else {
-		tools.Log.Info().Msgf("EditSnippetNode (%s). no content to write to file",
-			n.ID, filename)
+		tools.Log.Info().Msgf("EditSnippetNode (%s). no content to write to file", n.ID)
 	}
 
 	// Compute the file hash before
@@ -174,7 +176,7 @@ func EditSnippetNode(ctx *Context, id string, save bool) (*graph.Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	n.Content = string(newContent)
+	n.Snippets[0].Content = string(newContent)
 
 	if save {
 		tools.Log.Info().Msgf("EditSnippetNode: Save %s to remote service.", n.ID)

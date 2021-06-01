@@ -2,15 +2,16 @@ package cmd
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/history"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/docopt/docopt-go"
-	"io/ioutil"
-	"os"
-	"strings"
-	"time"
 )
 
 func HistoryCmd(entry *config.Entry, params *Params) error {
@@ -36,13 +37,13 @@ Examples(s):
   ┃    91 ┃ Apr  1 2:11PM  ┃ cd /    ┃
   ┃    92 ┃ Apr  1 2:11PM  ┃ ls -la  ┃
   ┗━━━━━━━┻━━━━━━━━━━━━━━━━┻━━━━━━━━━┛
-  # Note: the above result show last three history entries   
+  # Note: the above result show last three history entries
 
   # Log a specific history entry, by index to the aard remote log.
   $ aard history log 102 -m "list longform with hidden attrs"
- 
-  # Append to the local history. Note: Intended to be call by shell hooks. 
-  $ aard history append "ls -l " 
+
+  # Append to the local history. Note: Intended to be call by shell hooks.
+  $ aard history append "ls -l "
 `
 	opts, err := docopt.ParseArgs(usage, params.Argv, params.Version)
 	if err != nil {
@@ -114,8 +115,9 @@ func appendHistory(cmd string) error {
 	if err != nil {
 		return err
 	}
+	now := time.Now().UTC()
 	item := &history.Item{
-		CreatedAt: time.Now().UTC(),
+		CreatedAt: &now,
 		Command:   cmd,
 	}
 	if err := h.Append(item); err != nil {

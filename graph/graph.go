@@ -22,21 +22,28 @@ func NewMetadata(agent, version string) *Metadata {
 }
 
 type Node struct {
-	ID               string     `json:"id,omitempty"`
-	CreatedAt        *time.Time `json:"created_at"`
-	OccurredAt       *time.Time `json:"occurred_at,omitempty"`
-	DeletedAt        *time.Time `json:"deleted_at,omitempty"`
-	Kind             Kind       `json:"Kind"`
-	Metadata         Metadata   `json:"Metadata"`
-	Title            string     `json:"title,omitempty"`
-	IsTitleGenerated bool       `json:"title_was_generated"`
-	Description      string     `json:"description,omitempty"`
-	Content          string     `json:"content,omitempty"`
-	ContentLanguage  string     `json:"content_language,omitempty"`
-	Children         string     `json:"children,omitempty"`
-	IsShared         bool       `json:"is_shared"`
-	LastExecutedAt   *time.Time `json:"last_executed_at"`
-	LastExecutedBy   string     `json:"last_executed_by"`
+	ID             string     `json:"id,omitempty"`
+	CreatedAt      *time.Time `json:"created_at"`
+	OccurredAt     *time.Time `json:"occurred_at,omitempty"`
+	DeletedAt      *time.Time `json:"deleted_at,omitempty"`
+	Kind           Kind       `json:"kind"`
+	Metadata       Metadata   `json:"metadata"`
+	Title          string     `json:"title,omitempty"`
+	Markdown       string     `json:"markdown,omitempty"`
+	View           string     `json:"view"`
+	Snippets       []*Snippet `json:"snippets,omitempty"`
+	Children       string     `json:"children,omitempty"`
+	IsShared       bool       `json:"is_shared"`
+	LastExecutedAt *time.Time `json:"last_executed_at"`
+	LastExecutedBy string     `json:"last_executed_by"`
+}
+
+type Snippet struct {
+	ID          string     `json:"id,omitempty"`
+	CreatedAt   *time.Time `json:"created_at"`
+	Content     string     `json:"content"`
+	ContentType string     `json:"content_type"`
+	MD5         string     `json:"md5"`
 }
 
 func (n *Node) GetChildIDs() []string {
@@ -53,29 +60,32 @@ func (n *Node) GetChildIDs() []string {
 
 func (n Node) String() string {
 	sb := strings.Builder{}
-	sb.WriteString(fmt.Sprintf("ID=%s kind=%v Title=%s Desc=%s Children=%s",
-		n.ID, n.Kind, n.Title, n.Description, n.Children))
+	sb.WriteString(fmt.Sprintf("ID=%s kind=%v Title=%s MD=%s Children=%s",
+		n.ID, n.Kind, n.Title, n.Markdown, n.Children))
 	return sb.String()
 }
 
 func NewNode(kind Kind, title, description, content string, metadata Metadata) (*Node, error) {
 	now := time.Now().UTC()
+	snippet := &Snippet{
+		CreatedAt: &now,
+		Content:   content,
+	}
 	return &Node{
-		CreatedAt:   &now,
-		OccurredAt:  &now,
-		Kind:        kind,
-		Title:       title,
-		Description: description,
-		Content:     content,
-		Metadata:    metadata,
+		CreatedAt:  &now,
+		OccurredAt: &now,
+		Kind:       kind,
+		Title:      title,
+		Markdown:   description,
+		Snippets:   []*Snippet{snippet},
+		Metadata:   metadata,
 	}, nil
 }
 
-// NodeView is a node rendered server-side.
 type NodeView struct {
-	Node            *Node  `json:"node"`
-	ContentMarkdown string `json:"content_markdown"`
-	Children        []*NodeView
+	Node     *Node  `json:"node"`
+	View     string `json:"view"`
+	Children []*NodeView
 }
 
 func (n NodeView) String() string {
