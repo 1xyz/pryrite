@@ -3,7 +3,6 @@ package tui
 import (
 	"fmt"
 	"github.com/charmbracelet/glamour"
-	"os"
 	"strconv"
 	"strings"
 
@@ -14,13 +13,14 @@ import (
 
 type snippetView struct {
 	*detailView
-	nCodeBlocks int
+	codeBlocks    *blockIndex  // An index of code blocks
+	selectedBlock *graph.Block // Indicates the currently selected block
 }
 
 // Refresh refreshes the view with the provided nodeview object
 func (s *snippetView) Refresh(view *graph.NodeView) {
 	s.Clear()
-	s.nCodeBlocks = 0
+	s.codeBlocks.clear()
 	s.updateDetailsContent(view.Node)
 }
 
@@ -36,16 +36,17 @@ func (s *snippetView) updateDetailsContent(n *graph.Node) {
 		return
 	}
 
-	nCodeBlocks := 0
+	s.codeBlocks.clear()
 	// construct the markdown manually but inject blocks
 	mdBuf := strings.Builder{}
 	if n.HasBlocks() {
 		for _, b := range n.Blocks {
 			var blockContent string
 			if b.IsCode() {
-				blockContent = fmt.Sprintf(`["%d"]%s[""]`, nCodeBlocks, strings.TrimSpace(b.Content))
+				// Inject region blocks. each region block is of the format ["0"]...[""]
+				blockContent = fmt.Sprintf(`["%d"]%s[""]`, s.codeBlocks.count(), strings.TrimSpace(b.Content))
 				blockContent += "\n"
-				nCodeBlocks++
+				s.codeBlocks.add(b)
 			} else {
 				blockContent = b.Content
 			}
@@ -53,21 +54,21 @@ func (s *snippetView) updateDetailsContent(n *graph.Node) {
 		}
 	}
 	md := mdBuf.String()
-	os.WriteFile("/tmp/foo.md", []byte(md), 0600)
+	//os.WriteFile("/tmp/foo.md", []byte(md), 0600)
 
 	var out string
 	r, err := glamour.NewTermRenderer(glamour.WithStylePath("notty"))
 	if err != nil {
 		s.rootUI.StatusErrorf("SetSelectedFunc: NewTermRenderer err =  %v", err)
+		s.codeBlocks.clear()
 		return
 	}
 	out, err = r.Render(md)
 	if err != nil {
 		s.rootUI.StatusErrorf("updateDetailsContent: render markdown: err = %v", err)
+		s.codeBlocks.clear()
 		return
 	}
-
-	s.nCodeBlocks = nCodeBlocks
 
 	////if n.LastExecutedAt != nil {
 	////	// include last execution info (FIXME: there is certainly a better way to include this)
@@ -89,7 +90,7 @@ func (s *snippetView) setKeybinding() {
 		switch event.Key() {
 		case tcell.KeyCtrlR:
 			tools.Log.Info().Msgf("snippetView: Ctrl+R request to run node")
-			s.rootUI.ExecuteCurrentNode()
+			s.rootUI.ExecuteSelectedBlock(s.selectedBlock)
 		case tcell.KeyCtrlE:
 			tools.Log.Info().Msgf("snippetView: Ctrl+E request to edit node")
 			s.rootUI.EditCurrentNode()
@@ -126,13 +127,14 @@ func (s *snippetView) setDoneFn() {
 				// if that block is the last selected one
 				// Tab should take it to the next pane.
 				// Toggle the highlight and send it to the rootUI
-				if index == s.nCodeBlocks-1 {
+				if index == s.codeBlocks.count()-1 {
 					s.Highlight()
 					s.rootUI.Navigate(key)
+					s.selectedBlock = nil
 					return
 				}
 				// This is not the last selected one
-				index = (index + 1) % s.nCodeBlocks
+				index = (index + 1) % s.codeBlocks.count()
 			} else if key == tcell.KeyBacktab {
 				// this is the first selected block
 				// BackTab should take it to the previous pane
@@ -140,20 +142,24 @@ func (s *snippetView) setDoneFn() {
 				if index == 0 {
 					s.Highlight()
 					s.rootUI.Navigate(key)
+					s.selectedBlock = nil
 					return
 				}
 				// THis is not the first selected one
-				index = (index - 1 + s.nCodeBlocks) % s.nCodeBlocks
+				index = (index - 1 + s.codeBlocks.count()) % s.codeBlocks.count()
 			} else {
 				return
 			}
 			// Hight the current selected one
 			s.Highlight(strconv.Itoa(index)).ScrollToHighlight()
-		} else if s.nCodeBlocks > 0 {
+			s.selectedBlock = s.codeBlocks.get(index)
+		} else if s.codeBlocks.count() > 0 {
 			// Nothing is selected so let us find the zero element and tab
 			s.Highlight("0").ScrollToHighlight()
+			s.selectedBlock = s.codeBlocks.get(0)
 		} else {
 			s.rootUI.Navigate(key)
+			s.selectedBlock = nil
 			return
 		}
 	})
@@ -161,10 +167,19 @@ func (s *snippetView) setDoneFn() {
 
 func newSnippetView(rootUI *Tui) *snippetView {
 	s := &snippetView{
-		detailView:  newDetailView("selected snippet", true, rootUI),
-		nCodeBlocks: 0,
+		detailView:    newDetailView("selected snippet", true, rootUI),
+		codeBlocks:    newBlockIndex(),
+		selectedBlock: nil,
 	}
 	s.setKeybinding()
 	s.setDoneFn()
 	return s
 }
+
+type blockIndex struct{ index []*graph.Block }
+
+func newBlockIndex() *blockIndex                 { return &blockIndex{[]*graph.Block{}} }
+func (b *blockIndex) add(blk *graph.Block)       { b.index = append(b.index, blk) }
+func (b *blockIndex) clear()                     { b.index = []*graph.Block{} }
+func (b *blockIndex) get(index int) *graph.Block { return b.index[index] }
+func (b *blockIndex) count() int                 { return len(b.index) }

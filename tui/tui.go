@@ -112,9 +112,9 @@ func (t *Tui) Refresh() error {
 	}
 	t.snippetView.Refresh(view)
 
-	execResult, _ := t.run.ExecIndex.Get(t.curNodeID)
-	t.execResView.Refresh(execResult)
-	t.execOutView.Refresh(execResult)
+	execResults, _ := t.run.ExecIndex.Get(t.curNodeID)
+	t.execResView.Refresh(execResults)
+	t.execOutView.Refresh(execResults)
 	return nil
 }
 
@@ -157,31 +157,34 @@ func (t *Tui) StatusErrorf(format string, v ...interface{}) {
 	}
 }
 
-func (t *Tui) Execute(n *graph.Node, stdout, stderr io.Writer) (*graph.NodeExecutionResult, error) {
-	return t.run.Execute(n, stdout, stderr)
+func (t *Tui) Execute(n *graph.Node, b *graph.Block, stdout, stderr io.Writer) (*graph.BlockExecutionResult, error) {
+	return t.run.ExecuteBlock(n, b, stdout, stderr)
 }
 
-func (t *Tui) ExecuteCurrentNode() {
+func (t *Tui) ExecuteSelectedBlock(b *graph.Block) {
+	if b == nil {
+		t.StatusErrorf("ExecuteSelectedBlock: no block selected to execute")
+	}
+
 	tools.Log.Info().Msgf("Execute current node id:[%s]", t.curNodeID)
 	if t.curNodeID == "" {
-		t.StatusErrorf("ExecuteCurrentNode: cannot execute empty node")
-		return
+		t.StatusErrorf("ExecuteSelectedBlock: no node is selected")
 	}
 
 	// ToDo: for some reason the in-progress is not shown in the UX
 	t.SetExecutionInProgress()
 	view, err := t.run.ViewIndex.Get(t.curNodeID)
 	if err != nil {
-		t.StatusErrorf("ExecuteCurrentNode: err = %v", err)
+		t.StatusErrorf("ExecuteSelectedBlock: err = %v", err)
 	}
 
-	if _, err := t.Execute(view.Node, t.execOutView, t.execOutView); err != nil {
-		t.StatusErrorf("ExecuteCurrentNode  id:[%s]: err = %v", t.curNodeID, err)
+	if _, err := t.Execute(view.Node, b, t.execOutView, t.execOutView); err != nil {
+		t.StatusErrorf("ExecuteSelectedBlock  id:[%s]: err = %v", t.curNodeID, err)
 		return
 	}
 
 	if err := t.Refresh(); err != nil {
-		t.StatusErrorf("ExecuteCurrentNode: Refresh: err = %v", err)
+		t.StatusErrorf("ExecuteSelectedBlock: Refresh: err = %v", err)
 	}
 }
 

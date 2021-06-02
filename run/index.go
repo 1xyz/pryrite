@@ -29,10 +29,18 @@ func (ni NodeViewIndex) Get(id string) (*graph.NodeView, error) {
 	return e, nil
 }
 
-type NodeExecResultIndex map[string]*graph.NodeExecutionResult
+type BlockExecutionResults []*graph.BlockExecutionResult
+type NodeExecResultIndex map[string]BlockExecutionResults
 
-func (n NodeExecResultIndex) Set(res *graph.NodeExecutionResult) { n[res.NodeID] = res }
-func (n NodeExecResultIndex) Get(nodeID string) (*graph.NodeExecutionResult, bool) {
-	entry, found := n[nodeID]
-	return entry, found
+func (n NodeExecResultIndex) Append(res *graph.BlockExecutionResult) {
+	_, found := n[res.NodeID]
+	if !found {
+		n[res.NodeID] = make(BlockExecutionResults, 0)
+	}
+	n[res.NodeID] = append(n[res.NodeID], res)
+}
+
+func (n NodeExecResultIndex) Get(nodeID string) (BlockExecutionResults, bool) {
+	e, found := n[nodeID]
+	return e, found
 }

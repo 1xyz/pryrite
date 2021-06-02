@@ -2,11 +2,10 @@ package graph
 
 import (
 	"fmt"
+	"github.com/aardlabs/terminal-poc/tools"
 	"io"
 	"strings"
 	"time"
-
-	"github.com/aardlabs/terminal-poc/tools"
 )
 
 type Metadata struct {
@@ -178,4 +177,49 @@ func (b *byteWriter) Close() error {
 		b.fn(b.bytes)
 	}
 	return nil
+}
+
+// BlockExecutionResult encapsulates a node's execution result
+type BlockExecutionResult struct {
+	ExecutionID string `json:"execution_id"`
+	NodeID      string `json:"node_id"`
+	BlockID     string `json:"block_id"`
+	RequestID   string `json:"request_id"`
+	Err         error  `json:"err"`
+	ExitStatus  int    `json:"exit_status"`
+	Stdout      []byte `json:"stdout"`
+	Stderr      []byte `json:"stderr"`
+
+	StdoutWriter io.WriteCloser
+	StderrWriter io.WriteCloser
+}
+
+func (b *BlockExecutionResult) Close() error {
+	w := []io.Closer{b.StderrWriter, b.StdoutWriter}
+	for _, c := range w {
+		if c != nil {
+			if err := c.Close(); err != nil {
+				tools.Log.Err(err).Msgf("close writer %v", err)
+			}
+		}
+	}
+	return nil
+}
+
+func NewBlockExecutionResult(executionID, nodeID, blockID, requestID string) *BlockExecutionResult {
+	res := &BlockExecutionResult{
+		ExecutionID: executionID,
+		NodeID:      nodeID,
+		BlockID:     blockID,
+		RequestID:   requestID,
+		Err:         nil,
+		ExitStatus:  0,
+	}
+	res.StdoutWriter = newByteWriter(func(bytes []byte) {
+		res.Stdout = bytes
+	})
+	res.StderrWriter = newByteWriter(func(bytes []byte) {
+		res.Stderr = bytes
+	})
+	return res
 }
