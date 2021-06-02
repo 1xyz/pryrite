@@ -70,7 +70,7 @@ func (r *remoteStore) GetNodes(limit int, kind Kind) ([]Node, error) {
 		SetQueryParams(map[string]string{
 			"limit":   strconv.Itoa(limit),
 			"kind":    kindStr,
-			"include": "snippets",
+			"include": "blocks",
 		})
 	resp, err := req.Get("/api/v1/nodes")
 	if err != nil {
