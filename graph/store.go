@@ -82,7 +82,7 @@ func (r *remoteStore) GetNode(id string) (*Node, error) {
 		SetPathParam("nodeId", id).
 		SetHeader("Accept", "application/json").
 		SetQueryParams(map[string]string{
-			"include": "snippets",
+			"include": "blocks",
 			"view":    "text",
 		})
 	resp, err := req.Get("/api/v1/nodes/{nodeId}")

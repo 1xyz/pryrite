@@ -31,6 +31,7 @@ type Node struct {
 	Title          string     `json:"title,omitempty"`
 	Markdown       string     `json:"markdown,omitempty"`
 	View           string     `json:"view"`
+	Blocks         []*Block   `json:"blocks,omitempty"`
 	Snippets       []*Snippet `json:"snippets,omitempty"`
 	Children       string     `json:"children,omitempty"`
 	IsShared       bool       `json:"is_shared"`
@@ -38,13 +39,20 @@ type Node struct {
 	LastExecutedBy string     `json:"last_executed_by"`
 }
 
-type Snippet struct {
+type Block struct {
 	ID          string     `json:"id,omitempty"`
 	CreatedAt   *time.Time `json:"created_at"`
 	Content     string     `json:"content"`
 	ContentType string     `json:"content_type"`
 	MD5         string     `json:"md5"`
 }
+
+func (block *Block) IsCode() bool {
+	return strings.HasPrefix(block.ContentType, "text/") &&
+		!strings.HasSuffix(block.ContentType, "markdown")
+}
+
+type Snippet Block
 
 func (n *Node) GetChildIDs() []string {
 	ids := strings.Split(n.Children, ",")
@@ -58,8 +66,8 @@ func (n *Node) GetChildIDs() []string {
 	return result
 }
 
-func (n *Node) HasSnippets() bool {
-	return n.Snippets != nil && len(n.Snippets) > 0
+func (n *Node) HasBlocks() bool {
+	return n.Blocks != nil && len(n.Blocks) > 0
 }
 
 func (n Node) String() string {

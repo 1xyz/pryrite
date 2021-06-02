@@ -2,6 +2,7 @@ package snippet
 
 import (
 	"fmt"
+	"github.com/charmbracelet/glamour"
 	"io"
 	"os"
 	"strings"
@@ -73,22 +74,32 @@ func (nr *nodeRender) Render() {
 }
 
 func (nr *nodeRender) renderNodeView(nv *graph.NodeView, w io.Writer) {
-	snippetCount := 0
-	if nv.Node.HasSnippets() {
-		snippetCount = len(nv.Node.Snippets)
+	nBlocks := 0
+	if nv.Node.HasBlocks() {
+		nBlocks = len(nv.Node.Blocks)
 	}
 
 	t := table.NewWriter()
 	t.SetStyle(table.StyleBold)
 	t.SetOutputMirror(w)
 	t.AppendRow(table.Row{"URL", fmtID(nr.serviceURL, nv.Node.ID)})
-	t.AppendRow(table.Row{"Snippet-Count", snippetCount})
+	t.AppendRow(table.Row{"Total-Blocks", nBlocks})
 	t.AppendRow(table.Row{"Created-On", tools.FmtTime(nv.Node.CreatedAt)})
 	t.AppendSeparator()
 	t.Render()
 
-	if _, err := fmt.Fprintf(w, "%s\n\n", nv.View); err != nil {
-		tools.LogStderr(err, "nodeRender: fmt.Fprintf(w, out):")
+	tr, err := glamour.NewTermRenderer(glamour.WithStylePath("notty"))
+	if err != nil {
+		tools.LogStderr(err, "renderNodeView: NewTermRender:")
+		return
+	}
+	out, err := tr.Render(nv.Node.Markdown)
+	if err != nil {
+		tools.LogStderr(err, "renderNodeView: tr.Render(node.Markdown):")
+		return
+	}
+	if _, err := fmt.Fprintf(w, out); err != nil {
+		tools.LogStderr(err, "renderNodeView: fmt.Fprintf(w, out):")
 		return
 	}
 
