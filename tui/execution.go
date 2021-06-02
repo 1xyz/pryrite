@@ -55,12 +55,17 @@ func (e *executionResultView) Refresh(results run.BlockExecutionResults) {
 	}
 
 	res := results[len(results)-1]
-	execInfo := fmt.Sprintf("request-id:%s exit-code:%d", res.RequestID, res.ExitStatus)
+	execInfo := fmt.Sprintf("node-id:%s snippet-id:%s request-id:%s exit-code:%d",
+		res.NodeID, res.BlockID, res.RequestID, res.ExitStatus)
 	status := "status:Ok"
 	e.SetTextColor(tcell.ColorGreen)
 	if res.ExitStatus != 0 || res.Err != nil {
 		e.SetTextColor(tcell.ColorRed)
 		status = "status:Failed"
+	}
+	if res.ExecutedAt != nil {
+		status += fmt.Sprintf(" executed-by:%s executed-at:%v",
+			res.ExecutedBy, res.ExecutedAt.Format("2006-01-02T15:04:05Z07:00"))
 	}
 	errInfo := "none"
 	if res.Err != nil {

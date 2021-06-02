@@ -29,7 +29,10 @@ func (ni NodeViewIndex) Get(id string) (*graph.NodeView, error) {
 	return e, nil
 }
 
+// BlockExecutionResults is a log of execution results
 type BlockExecutionResults []*graph.BlockExecutionResult
+
+// NodeExecResultIndex is map of BlockExecutionResults indexed by nodeID
 type NodeExecResultIndex map[string]BlockExecutionResults
 
 func (n NodeExecResultIndex) Append(res *graph.BlockExecutionResult) {

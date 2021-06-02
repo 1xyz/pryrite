@@ -6,15 +6,13 @@ import (
 	"container/list"
 	"context"
 	"fmt"
-	"io"
-	"strings"
-	"time"
-
 	executor "github.com/aardlabs/terminal-poc/executors"
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/snippet"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/google/uuid"
+	"io"
+	"strings"
 )
 
 // Run encapsulates a playbook's execution
@@ -144,6 +142,7 @@ func (r *Run) ExecuteBlock(n *graph.Node, b *graph.Block, stdout, stderr io.Writ
 		return nil, err
 	}
 
+	executedBy := r.gCtx.ConfigEntry.Email
 	executionID := r.ID
 	nodeID := n.ID
 	blockID := b.ID
@@ -152,7 +151,7 @@ func (r *Run) ExecuteBlock(n *graph.Node, b *graph.Block, stdout, stderr io.Writ
 		executionID, nodeID, blockID, contentType, reqID)
 
 	// Define a new execution result
-	execResult := graph.NewBlockExecutionResult(executionID, nodeID, blockID, reqID)
+	execResult := graph.NewBlockExecutionResult(executionID, nodeID, blockID, reqID, executedBy)
 	defer func() {
 		// This can take a while for rendering large captures…
 		if _, err := io.Copy(stdout, bytes.NewBuffer(execResult.Stdout)); err != nil {
@@ -182,10 +181,9 @@ func (r *Run) ExecuteBlock(n *graph.Node, b *graph.Block, stdout, stderr io.Writ
 	defer cancel()
 	res := exec.Execute(ctx, req)
 
-	// Update our view and notify the service of the execution
-	now := time.Now()
-	n.LastExecutedAt = &now
-	n.LastExecutedBy = r.gCtx.ConfigEntry.Email
+	n.LastExecutedAt = execResult.ExecutedAt
+	n.LastExecutedBy = execResult.ExecutedBy
+
 	// ToDo: update this to reflect lastexecuted at BlockLevel
 	err = r.Store.UpdateNode(&graph.Node{ID: n.ID, LastExecutedAt: n.LastExecutedAt})
 	if err != nil {
@@ -198,70 +196,6 @@ func (r *Run) ExecuteBlock(n *graph.Node, b *graph.Block, stdout, stderr io.Writ
 	r.ExecIndex.Append(execResult)
 	return execResult, nil
 }
-
-// Execute runs the specified node with the executor
-//func (r *Run) Execute(n *graph.Node, stdout, stderr io.Writer) (*graph.NodeExecutionResult, error) {
-//	// find a matching executor.
-//	if len(n.Snippets) > 1 {
-//		return nil, errors.New("refusing to execute node with more than one snippet FIXME")
-//	}
-//	snippet := n.Snippets[0]
-//	contentType := executor.ContentType(snippet.ContentType)
-//	if contentType == executor.Empty {
-//		contentType = executor.Shell
-//	}
-//	exec, err := r.Register.Get(contentType)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	tools.Log.Info().Msgf("execute node %v content-type %v", n.ID, contentType)
-//	nodeID := n.ID
-//	executionID := r.ID
-//	reqID := uuid.NewString()
-//
-//	// Define a new execution result
-//	execResult := graph.NewNodeExecutionResult(executionID, nodeID, reqID)
-//	defer func() {
-//		// This can take a while for rendering large captures…
-//		io.Copy(stdout, bytes.NewBuffer(execResult.Stdout))
-//		io.Copy(stderr, bytes.NewBuffer(execResult.Stderr))
-//		if err := execResult.Close(); err != nil {
-//			tools.Log.Err(err).Msgf("Execute: execResult.close() err = %v", err)
-//		}
-//	}()
-//
-//	// Capture all the output first, before relaying to the slow TUI render writer0
-//	outWriter := bufio.NewWriter(execResult.StdoutWriter)
-//	errWriter := bufio.NewWriter(execResult.StderrWriter)
-//
-//	req := &executor.ExecRequest{
-//		Hdr:     &executor.RequestHdr{ID: reqID, ExecutionID: executionID, NodeID: nodeID},
-//		Content: []byte(snippet.Content),
-//		Stdout:  outWriter,
-//		Stderr:  errWriter,
-//	}
-//
-//	// Call the underlying executor
-//	ctx, cancel := context.WithCancel(context.Background())
-//	defer cancel()
-//	res := exec.Execute(ctx, req)
-//
-//	// Update our view and notify the service of the execution
-//	now := time.Now()
-//	n.LastExecutedAt = &now
-//	n.LastExecutedBy = r.gCtx.ConfigEntry.Email
-//	err = r.Store.UpdateNode(&graph.Node{ID: n.ID, LastExecutedAt: n.LastExecutedAt})
-//	if err != nil {
-//		tools.Log.Err(err).Msgf("Execute: failed to record run with service, err = %v", err)
-//	}
-//
-//	// Update the execution result and add it to the index
-//	execResult.ExitStatus = res.ExitStatus
-//	execResult.Err = res.Err
-//	r.ExecIndex.Set(execResult)
-//	return execResult, nil
-//}
 
 func (r *Run) EditSnippet(nodeID string) (*graph.NodeView, error) {
 	view, err := r.ViewIndex.Get(nodeID)

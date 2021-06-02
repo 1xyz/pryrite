@@ -111,49 +111,6 @@ func (n NodeView) String() string {
 	return sb.String()
 }
 
-// NodeExecutionResult encapsulates a node's execution result
-type NodeExecutionResult struct {
-	ExecutionID string `json:"execution_id"`
-	NodeID      string `json:"node_id"`
-	RequestID   string `json:"request_id"`
-	Stdout      []byte `json:"stdout"`
-	Stderr      []byte `json:"stderr"`
-	Err         error  `json:"err"`
-	ExitStatus  int    `json:"exit_status"`
-
-	StdoutWriter io.WriteCloser
-	StderrWriter io.WriteCloser
-}
-
-func (n *NodeExecutionResult) Close() error {
-	w := []io.Closer{n.StderrWriter, n.StdoutWriter}
-	for _, c := range w {
-		if c != nil {
-			if err := c.Close(); err != nil {
-				tools.Log.Err(err).Msgf("close writer %v", err)
-			}
-		}
-	}
-	return nil
-}
-
-func NewNodeExecutionResult(executionID, nodeID, requestID string) *NodeExecutionResult {
-	res := &NodeExecutionResult{
-		ExecutionID: executionID,
-		NodeID:      nodeID,
-		RequestID:   requestID,
-		Err:         nil,
-		ExitStatus:  0,
-	}
-	res.StdoutWriter = newByteWriter(func(bytes []byte) {
-		res.Stdout = bytes
-	})
-	res.StderrWriter = newByteWriter(func(bytes []byte) {
-		res.Stderr = bytes
-	})
-	return res
-}
-
 type bytesSetFn = func(bytes []byte)
 
 type byteWriter struct {
@@ -182,14 +139,16 @@ func (b *byteWriter) Close() error {
 
 // BlockExecutionResult encapsulates a node's execution result
 type BlockExecutionResult struct {
-	ExecutionID string `json:"execution_id"`
-	NodeID      string `json:"node_id"`
-	BlockID     string `json:"block_id"`
-	RequestID   string `json:"request_id"`
-	Err         error  `json:"err"`
-	ExitStatus  int    `json:"exit_status"`
-	Stdout      []byte `json:"stdout"`
-	Stderr      []byte `json:"stderr"`
+	ExecutionID string     `json:"execution_id"`
+	NodeID      string     `json:"node_id"`
+	BlockID     string     `json:"block_id"`
+	RequestID   string     `json:"request_id"`
+	Err         error      `json:"err"`
+	ExitStatus  int        `json:"exit_status"`
+	Stdout      []byte     `json:"stdout"`
+	Stderr      []byte     `json:"stderr"`
+	ExecutedAt  *time.Time `json:"executed_at"`
+	ExecutedBy  string     `json:"executed_by"`
 
 	StdoutWriter io.WriteCloser
 	StderrWriter io.WriteCloser
@@ -207,12 +166,15 @@ func (b *BlockExecutionResult) Close() error {
 	return nil
 }
 
-func NewBlockExecutionResult(executionID, nodeID, blockID, requestID string) *BlockExecutionResult {
+func NewBlockExecutionResult(executionID, nodeID, blockID, requestID, executedBy string) *BlockExecutionResult {
+	now := time.Now().UTC()
 	res := &BlockExecutionResult{
 		ExecutionID: executionID,
 		NodeID:      nodeID,
 		BlockID:     blockID,
 		RequestID:   requestID,
+		ExecutedAt:  &now,
+		ExecutedBy:  executedBy,
 		Err:         nil,
 		ExitStatus:  0,
 	}
