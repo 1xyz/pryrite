@@ -76,11 +76,12 @@ func (n Node) String() string {
 	return sb.String()
 }
 
-func NewNode(kind Kind, title, description, content string, metadata Metadata) (*Node, error) {
+func NewNode(kind Kind, title, description, content, contentType string, metadata Metadata) (*Node, error) {
 	now := time.Now().UTC()
 	snippet := &Snippet{
-		CreatedAt: &now,
-		Content:   content,
+		CreatedAt:   &now,
+		Content:     content,
+		ContentType: contentType,
 	}
 	return &Node{
 		CreatedAt:  &now,
