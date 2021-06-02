@@ -124,13 +124,15 @@ func (s *snippetView) setKeybinding() {
 	})
 }
 
+// setDoneFn is the primary navigate function used to intercept Enter/ESC or Tab/BackTab
 func (s *snippetView) setDoneFn() {
 	s.SetDoneFunc(func(key tcell.Key) {
 		// Returns back to see if any block is selected
 		currentSelection := s.GetHighlights()
 
+		// Check to see if anything is selected
 		if len(currentSelection) > 0 {
-			// Indicates a block is selected. get the index of that block
+			// Indicates a block is selected. get the index of that block selected
 			index, _ := strconv.Atoi(currentSelection[0])
 			if key == tcell.KeyTab {
 				// if that block is the last selected one
@@ -142,10 +144,10 @@ func (s *snippetView) setDoneFn() {
 					s.selectedBlock = nil
 					return
 				}
-				// This is not the last selected one
+				// This is not the last selected one so let us handle it
 				index = (index + 1) % s.codeBlocks.count()
 			} else if key == tcell.KeyBacktab {
-				// this is the first selected block
+				// This is the first selected block
 				// BackTab should take it to the previous pane
 				// Toggle the highlight and send it to the root UI
 				if index == 0 {
@@ -157,15 +159,22 @@ func (s *snippetView) setDoneFn() {
 				// THis is not the first selected one
 				index = (index - 1 + s.codeBlocks.count()) % s.codeBlocks.count()
 			} else {
+				// We don't handle any keys other than Tab/BackTab here
 				return
 			}
-			// Hight the current selected one
+			// Highlight the current selected one
 			s.Highlight(strconv.Itoa(index)).ScrollToHighlight()
+			// the current highlighted block is the selected one
 			s.selectedBlock = s.codeBlocks.get(index)
 		} else if s.codeBlocks.count() > 0 {
-			// Nothing is selected so let us find the zero element and tab
-			s.Highlight("0").ScrollToHighlight()
-			s.selectedBlock = s.codeBlocks.get(0)
+			// Nothing is selected so let us find the element and tab
+			index := 0
+			if key == tcell.KeyBacktab {
+				// we have back tabbed into this so select the last one
+				index = s.codeBlocks.count() - 1
+			}
+			s.Highlight(strconv.Itoa(index)).ScrollToHighlight()
+			s.selectedBlock = s.codeBlocks.get(index)
 		} else {
 			s.rootUI.Navigate(key)
 			s.selectedBlock = nil
