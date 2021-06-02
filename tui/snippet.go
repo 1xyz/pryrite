@@ -40,15 +40,24 @@ func (s *snippetView) updateDetailsContent(n *graph.Node) {
 	// construct the markdown manually but inject blocks
 	mdBuf := strings.Builder{}
 	if n.HasBlocks() {
+		prevCodeBlock := false
 		for _, b := range n.Blocks {
 			var blockContent string
 			if b.IsCode() {
 				// Inject region blocks. each region block is of the format ["0"]...[""]
 				blockContent = fmt.Sprintf(`["%d"]%s[""]`, s.codeBlocks.count(), strings.TrimSpace(b.Content))
-				blockContent += "\n"
 				s.codeBlocks.add(b)
+				prevCodeBlock = true
 			} else {
-				blockContent = b.Content
+				if prevCodeBlock {
+					// only add a new line if the content starts with ```
+					s := strings.TrimSpace(b.Content)
+					strings.HasPrefix(s, "```")
+					blockContent = "\n" + b.Content
+				} else {
+					blockContent = b.Content
+				}
+				prevCodeBlock = false
 			}
 			mdBuf.WriteString(blockContent)
 		}
