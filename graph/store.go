@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"strconv"
+	"time"
 
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/tools"
@@ -30,6 +32,14 @@ type Store interface {
 
 	// GetNodeView asks the server for a terminal renderable view.
 	GetNodeView(id string) (*NodeView, error)
+}
+
+type ErrorResponse struct {
+	OccurredAt time.Time `json:"occurred_at"`
+	Status     int       `json:"status"`
+	Error      string    `json:"error"`
+	Message    string    `json:"message"`
+	Path       string    `json:"path"`
 }
 
 // remoteStore represents the remote event store backed by the service
@@ -66,7 +76,7 @@ func (r *remoteStore) GetNodes(limit int, kind Kind) ([]Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := checkHTTP2XX("getNodes(%s)", resp.StatusCode()); err != nil {
+	if err := checkHTTP2XX("getNodes(%s)", resp); err != nil {
 		return nil, err
 	}
 	result := getNodesResponse{N: []Node{}}
@@ -89,7 +99,7 @@ func (r *remoteStore) GetNode(id string) (*Node, error) {
 	if err != nil {
 		return nil, fmt.Errorf("http.get err: %v", err)
 	}
-	if err := checkHTTP2XX(fmt.Sprintf("getNode(%s)", id), resp.StatusCode()); err != nil {
+	if err := checkHTTP2XX(fmt.Sprintf("getNode(%s)", id), resp); err != nil {
 		return nil, err
 	}
 	result := Node{}
@@ -123,7 +133,7 @@ func (r *remoteStore) AddNode(n *Node) (*Node, error) {
 	if err != nil {
 		return nil, fmt.Errorf("http.post err: %v", err)
 	}
-	if err := checkHTTP2XX(fmt.Sprintf("addNode(%v)", n), resp.StatusCode()); err != nil {
+	if err := checkHTTP2XX(fmt.Sprintf("addNode(%v)", n), resp); err != nil {
 		return nil, err
 	}
 	return &result, nil
@@ -139,7 +149,7 @@ func (r *remoteStore) UpdateNode(n *Node) error {
 	if err != nil {
 		return fmt.Errorf("http.put err: %v", err)
 	}
-	if err := checkHTTP2XX(fmt.Sprintf("UpdateNode(%v)", n), resp.StatusCode()); err != nil {
+	if err := checkHTTP2XX(fmt.Sprintf("UpdateNode(%v)", n), resp); err != nil {
 		return err
 	}
 	return nil
@@ -164,7 +174,7 @@ func (r *remoteStore) SearchNodes(query string, limit int, kind Kind) ([]Node, e
 	if err != nil {
 		return nil, fmt.Errorf("http.get err: %v req: %s", err, req.URL)
 	}
-	if err := checkHTTP2XX(fmt.Sprintf("searchNodes(%s, %d, %v)", query, limit, kind), resp.StatusCode()); err != nil {
+	if err := checkHTTP2XX(fmt.Sprintf("searchNodes(%s, %d, %v)", query, limit, kind), resp); err != nil {
 		return nil, err
 	}
 
@@ -193,8 +203,28 @@ func (r *remoteStore) newHTTPClient(parseResponse bool) *resty.Client {
 	return client
 }
 
-func checkHTTP2XX(message string, statusCode int) error {
-	if statusCode < 200 || statusCode > 299 {
+func checkHTTP2XX(message string, resp *resty.Response) error {
+	statusCode := resp.StatusCode()
+	if statusCode == 401 {
+		return &HttpError{
+			Err:      errors.New("your credentials have expired: please run auth login"),
+			HTTPCode: statusCode,
+		}
+	} else if statusCode < 200 || statusCode > 299 {
+		if resp.RawResponse.ContentLength > 0 {
+			errResp := ErrorResponse{}
+			if err := json.NewDecoder(resp.RawBody()).Decode(&errResp); err == nil {
+				tools.Log.Error().Interface("error", errResp).Msg(message)
+				message += ": " + errResp.Message
+			} else {
+				body, err := ioutil.ReadAll(resp.RawResponse.Body)
+				if err == nil {
+					message += ": " + string(body)
+				} else {
+					tools.Log.Err(err).Msg("failed to read error response body")
+				}
+			}
+		}
 		return &HttpError{
 			Err:      errors.New(message),
 			HTTPCode: statusCode,
