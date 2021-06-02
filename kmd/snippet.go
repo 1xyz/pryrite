@@ -2,6 +2,7 @@ package kmd
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/aardlabs/terminal-poc/graph"
@@ -189,7 +190,14 @@ func NewCmdSnippetSave(gCtx *snippet.Context) *cobra.Command {
 
 			content := strings.Join(args, " ")
 			tools.Log.Info().Msgf("add content=%s", content)
-			n, err := snippet.AddSnippetNode(gCtx, content)
+			shell := os.Getenv("SHELL")
+			contentType := "text/"
+			if strings.HasSuffix(shell, "/bash") {
+				contentType += "bash"
+			} else {
+				contentType += "shell"
+			}
+			n, err := snippet.AddSnippetNode(gCtx, content, contentType)
 			if err != nil {
 				return err
 			}

@@ -107,9 +107,9 @@ func GetSnippetNodes(ctx *Context, limit int, kind graph.Kind) ([]graph.Node, er
 	return n, nil
 }
 
-func AddSnippetNode(ctx *Context, content string) (*graph.Node, error) {
+func AddSnippetNode(ctx *Context, content string, contentType string) (*graph.Node, error) {
 	store := graph.NewStore(ctx.ConfigEntry, ctx.Metadata)
-	n, err := graph.NewNode(graph.Command, "", "", content, *ctx.Metadata)
+	n, err := graph.NewNode(graph.Command, "", "", content, contentType, *ctx.Metadata)
 	if err != nil {
 		return nil, err
 	}
