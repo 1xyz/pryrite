@@ -2,6 +2,7 @@ package snippet
 
 import (
 	"fmt"
+	"github.com/charmbracelet/glamour"
 	"io"
 	"os"
 	"strings"
@@ -9,7 +10,6 @@ import (
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/tools"
-	"github.com/charmbracelet/glamour"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/rs/zerolog/log"
 )
@@ -74,42 +74,35 @@ func (nr *nodeRender) Render() {
 }
 
 func (nr *nodeRender) renderNodeView(nv *graph.NodeView, w io.Writer) {
+	nBlocks := 0
+	if nv.Node.HasBlocks() {
+		nBlocks = len(nv.Node.Blocks)
+	}
+
 	t := table.NewWriter()
 	t.SetStyle(table.StyleBold)
 	t.SetOutputMirror(w)
-	t.AppendRow(table.Row{"Id", fmtID(nr.serviceURL, nv.Node.ID)})
-	t.AppendRow(table.Row{"Kind", nv.Node.Kind})
-	t.AppendSeparator()
-	t.AppendRows([]table.Row{
-		{"Date", tools.FmtTime(nv.Node.OccurredAt)},
-		{"Agent", nv.Node.Metadata.Agent},
-	})
+	t.AppendRow(table.Row{"URL", fmtID(nr.serviceURL, nv.Node.ID)})
+	t.AppendRow(table.Row{"Total-Blocks", nBlocks})
+	t.AppendRow(table.Row{"Created-On", tools.FmtTime(nv.Node.CreatedAt)})
 	t.AppendSeparator()
 	t.Render()
 
-	renderOpts := []glamour.TermRendererOption{
-		glamour.WithStylePath("notty"),
+	tr, err := glamour.NewTermRenderer(glamour.WithStylePath("notty"))
+	if err != nil {
+		tools.LogStderr(err, "renderNodeView: NewTermRender:")
+		return
+	}
+	out, err := tr.Render(nv.Node.Markdown)
+	if err != nil {
+		tools.LogStderr(err, "renderNodeView: tr.Render(node.Markdown):")
+		return
+	}
+	if _, err := fmt.Fprintf(w, out); err != nil {
+		tools.LogStderr(err, "renderNodeView: fmt.Fprintf(w, out):")
+		return
 	}
 
-	var out string
-	r, err := glamour.NewTermRenderer(renderOpts...)
-	if err != nil {
-		tools.Log.Err(err).Msgf("newTermRender %v failed %v", renderOpts, err)
-		if _, err := fmt.Fprint(w, out); err != nil {
-			tools.Log.Err(err).Msgf("renderNodeView: id = %v fmt.Fprintf()", nv.Node.ID)
-		}
-		return
-	}
-
-	out, err = r.Render(nv.View)
-	if err != nil {
-		tools.Log.Err(err).Msgf("renderNodeView: id = %v fmt.Fprintf()", nv.Node.ID)
-		return
-	}
-	if _, err := fmt.Fprint(w, out); err != nil {
-		tools.Log.Err(err).Msgf("renderNodeView: id = %v fmt.Fprintf()", nv.Node.ID)
-		return
-	}
 	tools.Log.Info().Msgf("renderNodeView: id=%v complete", nv.Node.ID)
 }
 

@@ -1,7 +1,6 @@
 package kmd
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"io"
@@ -32,15 +31,15 @@ func NewCmdExecutor() *cobra.Command {
 				req.Content = []byte(content)
 				req.ContentType = contentType
 
-				req.Stdout = bufio.NewWriter(&prefixWriter{
+				req.Stdout = &prefixWriter{
 					writer: os.Stdout,
 					prefix: []byte(fmt.Sprint(count, "-out> ")),
-				})
+				}
 
-				req.Stderr = bufio.NewWriter(&prefixWriter{
+				req.Stderr = &prefixWriter{
 					writer: os.Stderr,
 					prefix: []byte(fmt.Sprint(count, "-err> ")),
-				})
+				}
 
 				var ctx context.Context
 				if timeout > 0 {
@@ -78,4 +77,8 @@ type prefixWriter struct {
 func (pw *prefixWriter) Write(data []byte) (int, error) {
 	pw.writer.Write(pw.prefix)
 	return pw.writer.Write(data)
+}
+
+func (pw *prefixWriter) Close() error {
+	return nil
 }

@@ -1,9 +1,11 @@
 package snippet
 
 import (
+	"crypto/md5"
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"hash"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -62,6 +64,22 @@ func UpdateSnippetNode(ctx *Context, n *graph.Node) error {
 	err := store.UpdateNode(n)
 	if err != nil {
 		ctxMsg := fmt.Sprintf("UpdateSnippetNode(%s) = %v", n.ID, err)
+		var ghe *graph.HttpError
+		if errors.As(err, &ghe) {
+			return handleGraphHTTPErr(ghe, ctxMsg)
+		}
+		tools.Log.Err(err).Msg(ctxMsg)
+		return err
+	}
+
+	return nil
+}
+
+func UpdateNodeBlock(ctx *Context, n *graph.Node, b *graph.Block) error {
+	store := graph.NewStore(ctx.ConfigEntry, ctx.Metadata)
+	err := store.UpdateNodeBlock(n, b)
+	if err != nil {
+		ctxMsg := fmt.Sprintf("UpdateNodeBlock(%s) = %v", n.ID, err)
 		var ghe *graph.HttpError
 		if errors.As(err, &ghe) {
 			return handleGraphHTTPErr(ghe, ctxMsg)
@@ -150,7 +168,7 @@ func EditSnippetNode(ctx *Context, id string, save bool) (*graph.Node, error) {
 	}
 
 	// Compute the file hash before
-	h0, err := computeFileHash(filename)
+	h0, err := computeFileHash("sha256", filename)
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +179,7 @@ func EditSnippetNode(ctx *Context, id string, save bool) (*graph.Node, error) {
 	}
 
 	// Compute the filehash after edit
-	h1, err := computeFileHash(filename)
+	h1, err := computeFileHash("sha256", filename)
 	if err != nil {
 		return nil, err
 	}
@@ -185,6 +203,64 @@ func EditSnippetNode(ctx *Context, id string, save bool) (*graph.Node, error) {
 		}
 	}
 	return n, nil
+}
+
+func EditNodeBlock(ctx *Context, n *graph.Node, b *graph.Block, save bool) (*graph.Block, error) {
+	// Write content to a temporary file
+	filename, err := tools.CreateTempFile("", "block_*.txt")
+	if err != nil {
+		return nil, err
+	}
+	if err := ioutil.WriteFile(filename, []byte(b.Content), 0600); err != nil {
+		tools.Log.Err(err).Msgf("EditNodeBlock: [%s:%s] WriteFile failed", n.ID, b.ID)
+		return nil, err
+	}
+
+	// Compute the file hash before
+	h0, err := computeFileHash("md5", filename)
+	if err != nil {
+		return nil, err
+	}
+
+	// open this file in editor
+	if err := openFileInEditor(filename); err != nil {
+		return nil, err
+	}
+
+	// Compute the filehash after edit
+	h1, err := computeFileHash("md5", filename)
+	if err != nil {
+		return nil, err
+	}
+
+	// check to see if the content should be sent
+	if areEqual(h0, h1) {
+		tools.LogStdout("no changes are detected. abandoning edit")
+		return b, nil
+	}
+
+	// save the old content and hash in case save fails!
+	oldContent := b.Content
+	oldMD5 := b.MD5
+
+	// update the block with the new content and hash
+	newContent, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+	b.Content = string(newContent)
+	b.MD5 = hexString(h1)
+
+	if save {
+		tools.Log.Info().Msgf("EditSnippetNode: Save %s to remote service.", n.ID)
+		if err := UpdateNodeBlock(ctx, n, b); err != nil {
+			// restore the old content and hash
+			b.Content = oldContent
+			b.MD5 = oldMD5
+			return nil, err
+		}
+	}
+	return b, err
 }
 
 func GetSnippetNodeViewWithChildren(ctx *Context, id string) (*graph.NodeView, error) {
@@ -283,14 +359,22 @@ func openFileInEditor(filename string) error {
 	return cmd.Run()
 }
 
-func computeFileHash(filename string) ([]byte, error) {
+func computeFileHash(algo, filename string) ([]byte, error) {
 	fr, err := tools.OpenFile(filename, os.O_RDONLY)
 	if err != nil {
 		return nil, err
 	}
 	defer tools.CloseFile(fr)
 
-	h := sha256.New()
+	var h hash.Hash = nil
+	if algo == "sha256" {
+		h = sha256.New()
+	} else if algo == "md5" {
+		h = md5.New()
+	} else {
+		return nil, fmt.Errorf("unsupport slgo %s", algo)
+	}
+
 	if _, err := io.Copy(h, fr); err != nil {
 		return nil, err
 	}
@@ -308,3 +392,5 @@ func areEqual(b0, b1 []byte) bool {
 	}
 	return true
 }
+
+func hexString(hash []byte) string { return fmt.Sprintf("%x", hash) }
