@@ -3,6 +3,7 @@ package executor
 import (
 	"bufio"
 	"context"
+	"errors"
 	"io"
 	"os"
 	"os/exec"
@@ -15,9 +16,10 @@ import (
 )
 
 type BashExecutor struct {
-	bash      *exec.Cmd
-	bashDone  chan error
-	isRunning bool
+	bash        *exec.Cmd
+	bashDone    chan error
+	isRunning   bool
+	isExecuting bool
 
 	// i/o for sending commands to the bash session
 	cmdWriter *os.File
@@ -56,6 +58,16 @@ func (b *BashExecutor) Name() string { return "bash-executor" }
 func (b *BashExecutor) ContentTypes() []ContentType { return []ContentType{Bash, Shell} }
 
 func (b *BashExecutor) Execute(ctx context.Context, req *ExecRequest) *ExecResponse {
+	if b.isExecuting {
+		return &ExecResponse{
+			ExitStatus: -1,
+			Err:        errors.New("an execution is already in progress"),
+		}
+	}
+
+	b.isExecuting = true
+	defer func() { b.isExecuting = false }()
+
 	b.ensureRunning()
 
 	// update proxies with the requested i/o
