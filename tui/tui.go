@@ -2,13 +2,14 @@ package tui
 
 import (
 	"fmt"
+	"io"
+
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/run"
 	"github.com/aardlabs/terminal-poc/snippet"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
-	"io"
 )
 
 func LaunchUI(gCtx *snippet.Context, name string) error {
@@ -189,6 +190,11 @@ func (t *Tui) ExecuteSelectedBlock(blockID string) error {
 		t.StatusErrorf("ExecuteSelectedBlock  id:[%s]: err = %v", t.curNodeID, err)
 		return err
 	}
+
+	// this is necessary to have the view update with the latest contents written
+	t.execOutView.SetChangedFunc(func() {
+		t.App.Draw()
+	})
 
 	if err := t.Refresh(); err != nil {
 		t.StatusErrorf("ExecuteSelectedBlock: Refresh: err = %v", err)

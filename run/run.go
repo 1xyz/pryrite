@@ -1,7 +1,6 @@
 package run
 
 import (
-	"bufio"
 	"bytes"
 	"container/list"
 	"context"
@@ -178,9 +177,10 @@ func (r *Run) ExecuteBlock(n *graph.Node, b *graph.Block, stdout, stderr io.Writ
 		}
 	}()
 
-	// Capture all the output first, before relaying to the slow TUI render writer0
-	outWriter := bufio.NewWriter(execResult.StdoutWriter)
-	errWriter := bufio.NewWriter(execResult.StderrWriter)
+	// Write to both the real TUI passed in (with buffering to avoid delays) and
+	// a capture writer in the result.
+	outWriter := tools.NewBufferedWriteCloser(io.MultiWriter(execResult.StdoutWriter, stdout))
+	errWriter := tools.NewBufferedWriteCloser(io.MultiWriter(execResult.StderrWriter, stderr))
 
 	req := &executor.ExecRequest{
 		Hdr:     &executor.RequestHdr{ID: reqID, ExecutionID: executionID, NodeID: nodeID},

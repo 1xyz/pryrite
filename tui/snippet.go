@@ -92,12 +92,18 @@ func (s *snippetView) setKeybinding() {
 		case tcell.KeyCtrlR:
 			tools.Log.Info().Msgf("snippetView: Ctrl+R request to run node")
 			if s.selectedBlockID != noBlock {
-				s.rootUI.ExecuteSelectedBlock(s.selectedBlockID)
+				go func() {
+					if err := s.rootUI.ExecuteSelectedBlock(s.selectedBlockID); err != nil {
+						s.rootUI.StatusErrorf("ExecuteSelectedBlock (%s) failed err = %v", s.selectedBlockID, err)
+					}
+				}()
 			}
 		case tcell.KeyCtrlE:
 			tools.Log.Info().Msgf("snippetView: Ctrl+E request to edit node")
 			if s.selectedBlockID != noBlock {
-				s.rootUI.EditSelectedBlock(s.selectedBlockID)
+				if err := s.rootUI.EditSelectedBlock(s.selectedBlockID); err != nil {
+					s.rootUI.StatusErrorf("EditSelectedBlock (%s) failed err = %v", s.selectedBlockID, err)
+				}
 			}
 		}
 
