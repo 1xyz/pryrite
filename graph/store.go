@@ -30,8 +30,11 @@ type Store interface {
 	// UpdateNode updates the content of an existing node
 	UpdateNode(node *Node) error
 
-	// GetNodeView asks the server for a terminal renderable view.
+	// GetNodeView asks the server for a terminal render-able view.
 	GetNodeView(id string) (*NodeView, error)
+
+	// UpdateNodeBlock updates the block of an existing node at the server
+	UpdateNodeBlock(node *Node, block *Block) error
 }
 
 type ErrorResponse struct {
@@ -184,6 +187,27 @@ func (r *remoteStore) SearchNodes(query string, limit int, kind Kind) ([]Node, e
 	}
 
 	return result.N, nil
+}
+
+func (r *remoteStore) UpdateNodeBlock(n *Node, b *Block) error {
+	if !b.IsCode() {
+		return fmt.Errorf("currently only code-blocks can be updated")
+	}
+
+	client := r.newHTTPClient(true)
+	resp, err := client.R().
+		SetPathParam("nodeId", n.ID).
+		SetPathParam("snippetId", b.ID).
+		SetHeader("Content-Type", "application/json").
+		SetBody(b).
+		Put("/api/v1/nodes/{nodeId}/snippet/{snippetId}")
+	if err != nil {
+		return fmt.Errorf("http.put err: %v", err)
+	}
+	if err := checkHTTP2XX(fmt.Sprintf("UpdateNodeBlock(%v)", n), resp); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (r *remoteStore) newHTTPClient(parseResponse bool) *resty.Client {

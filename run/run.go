@@ -123,6 +123,19 @@ func (r *Run) getNodeView(id string) (*graph.NodeView, error) {
 	return view, nil
 }
 
+// GetBlock returns the specified block from the local index
+func (r *Run) GetBlock(nodeID, blockID string) (*graph.Block, error) {
+	view, err := r.ViewIndex.Get(nodeID)
+	if err != nil {
+		return nil, err
+	}
+	block, found := view.Node.GetBlock(blockID)
+	if !found {
+		return nil, fmt.Errorf("block [%s] not found in node[%s]", blockID, nodeID)
+	}
+	return block, nil
+}
+
 // ExecuteBlock executes the specified block in the context of this node
 // Return value:
 // On an execution
@@ -218,6 +231,26 @@ func (r *Run) EditSnippet(nodeID string) (*graph.NodeView, error) {
 	view.Node = updatedView.Node
 	view.View = updatedView.View
 	return view, nil
+}
+
+func (r *Run) EditBlock(nodeID, blockID string, save bool) (*graph.NodeView, *graph.Block, error) {
+	view, err := r.ViewIndex.Get(nodeID)
+	if err != nil {
+		tools.Log.Err(err).Msgf("EditBlock: err = %v", err)
+		return nil, nil, err
+	}
+
+	block, found := view.Node.GetBlock(blockID)
+	if !found {
+		return nil, nil, fmt.Errorf("block [%s] not found in node [%s]", blockID, nodeID)
+	}
+
+	newBlock, err := snippet.EditNodeBlock(r.gCtx, view.Node, block, save)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return view, newBlock, nil
 }
 
 func (r Run) String() string {

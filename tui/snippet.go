@@ -13,8 +13,8 @@ import (
 
 type snippetView struct {
 	*detailView
-	codeBlocks    *blockIndex  // An index of code blocks
-	selectedBlock *graph.Block // Indicates the currently selected block
+	codeBlocks      *blockIDs // An index of code blocks IDs
+	selectedBlockID string    // Indicates the blockID currently selected block
 }
 
 // Refresh refreshes the view with the provided nodeview object
@@ -46,7 +46,7 @@ func (s *snippetView) updateDetailsContent(n *graph.Node) {
 			if b.IsCode() {
 				// Inject region blocks. each region block is of the format ["0"]...[""]
 				blockContent = fmt.Sprintf(`["%d"]%s[""]`, s.codeBlocks.count(), strings.TrimSpace(b.Content))
-				s.codeBlocks.add(b)
+				s.codeBlocks.add(b.ID)
 				prevCodeBlock = true
 			} else {
 				if prevCodeBlock {
@@ -63,8 +63,6 @@ func (s *snippetView) updateDetailsContent(n *graph.Node) {
 		}
 	}
 	md := mdBuf.String()
-	//os.WriteFile("/tmp/foo.md", []byte(md), 0600)
-
 	var out string
 	r, err := glamour.NewTermRenderer(glamour.WithStylePath("notty"))
 	if err != nil {
@@ -78,12 +76,6 @@ func (s *snippetView) updateDetailsContent(n *graph.Node) {
 		s.codeBlocks.clear()
 		return
 	}
-
-	////if n.LastExecutedAt != nil {
-	////	// include last execution info (FIXME: there is certainly a better way to include this)
-	////	out += fmt.Sprintf("\n\n[ Most recently run by %s %s. ]\n",
-	////		n.LastExecutedBy, humanize.Time(*n.LastExecutedAt))
-	////}
 
 	if _, err := s.Write([]byte(out)); err != nil {
 		s.rootUI.StatusErrorf("updateDetailsContent: render markdown: err = %v", err)
@@ -99,10 +91,14 @@ func (s *snippetView) setKeybinding() {
 		switch event.Key() {
 		case tcell.KeyCtrlR:
 			tools.Log.Info().Msgf("snippetView: Ctrl+R request to run node")
-			s.rootUI.ExecuteSelectedBlock(s.selectedBlock)
+			if s.selectedBlockID != noBlock {
+				s.rootUI.ExecuteSelectedBlock(s.selectedBlockID)
+			}
 		case tcell.KeyCtrlE:
 			tools.Log.Info().Msgf("snippetView: Ctrl+E request to edit node")
-			s.rootUI.EditCurrentNode()
+			if s.selectedBlockID != noBlock {
+				s.rootUI.EditSelectedBlock(s.selectedBlockID)
+			}
 		}
 
 		switch event.Rune() {
@@ -124,6 +120,8 @@ func (s *snippetView) setKeybinding() {
 	})
 }
 
+const noBlock = ""
+
 // setDoneFn is the primary navigate function used to intercept Enter/ESC or Tab/BackTab
 func (s *snippetView) setDoneFn() {
 	s.SetDoneFunc(func(key tcell.Key) {
@@ -141,7 +139,7 @@ func (s *snippetView) setDoneFn() {
 				if index == s.codeBlocks.count()-1 {
 					s.Highlight()
 					s.rootUI.Navigate(key)
-					s.selectedBlock = nil
+					s.selectedBlockID = noBlock
 					return
 				}
 				// This is not the last selected one so let us handle it
@@ -153,7 +151,7 @@ func (s *snippetView) setDoneFn() {
 				if index == 0 {
 					s.Highlight()
 					s.rootUI.Navigate(key)
-					s.selectedBlock = nil
+					s.selectedBlockID = noBlock
 					return
 				}
 				// THis is not the first selected one
@@ -165,7 +163,7 @@ func (s *snippetView) setDoneFn() {
 			// Highlight the current selected one
 			s.Highlight(strconv.Itoa(index)).ScrollToHighlight()
 			// the current highlighted block is the selected one
-			s.selectedBlock = s.codeBlocks.get(index)
+			s.selectedBlockID = s.codeBlocks.get(index)
 		} else if s.codeBlocks.count() > 0 {
 			// Nothing is selected so let us find the element and tab
 			index := 0
@@ -174,10 +172,10 @@ func (s *snippetView) setDoneFn() {
 				index = s.codeBlocks.count() - 1
 			}
 			s.Highlight(strconv.Itoa(index)).ScrollToHighlight()
-			s.selectedBlock = s.codeBlocks.get(index)
+			s.selectedBlockID = s.codeBlocks.get(index)
 		} else {
 			s.rootUI.Navigate(key)
-			s.selectedBlock = nil
+			s.selectedBlockID = noBlock
 			return
 		}
 	})
@@ -185,19 +183,19 @@ func (s *snippetView) setDoneFn() {
 
 func newSnippetView(rootUI *Tui) *snippetView {
 	s := &snippetView{
-		detailView:    newDetailView("selected snippet", true, rootUI),
-		codeBlocks:    newBlockIndex(),
-		selectedBlock: nil,
+		detailView:      newDetailView("selected snippet", true, rootUI),
+		codeBlocks:      newBlockIndex(),
+		selectedBlockID: noBlock,
 	}
 	s.setKeybinding()
 	s.setDoneFn()
 	return s
 }
 
-type blockIndex struct{ index []*graph.Block }
+type blockIDs struct{ index []string }
 
-func newBlockIndex() *blockIndex                 { return &blockIndex{[]*graph.Block{}} }
-func (b *blockIndex) add(blk *graph.Block)       { b.index = append(b.index, blk) }
-func (b *blockIndex) clear()                     { b.index = []*graph.Block{} }
-func (b *blockIndex) get(index int) *graph.Block { return b.index[index] }
-func (b *blockIndex) count() int                 { return len(b.index) }
+func newBlockIndex() *blockIDs           { return &blockIDs{[]string{}} }
+func (b *blockIDs) add(blockID string)   { b.index = append(b.index, blockID) }
+func (b *blockIDs) clear()               { b.index = []string{} }
+func (b *blockIDs) get(index int) string { return b.index[index] }
+func (b *blockIDs) count() int           { return len(b.index) }

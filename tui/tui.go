@@ -157,35 +157,60 @@ func (t *Tui) StatusErrorf(format string, v ...interface{}) {
 	}
 }
 
+func (t *Tui) GetBlock(blockID string) (*graph.Block, error) {
+	return t.run.GetBlock(t.curNodeID, blockID)
+}
+
 func (t *Tui) Execute(n *graph.Node, b *graph.Block, stdout, stderr io.Writer) (*graph.BlockExecutionResult, error) {
 	return t.run.ExecuteBlock(n, b, stdout, stderr)
 }
 
-func (t *Tui) ExecuteSelectedBlock(b *graph.Block) {
-	if b == nil {
-		t.StatusErrorf("ExecuteSelectedBlock: no block selected to execute")
-	}
-
-	tools.Log.Info().Msgf("Execute current node id:[%s]", t.curNodeID)
-	if t.curNodeID == "" {
-		t.StatusErrorf("ExecuteSelectedBlock: no node is selected")
-	}
-
+func (t *Tui) ExecuteSelectedBlock(blockID string) error {
 	// ToDo: for some reason the in-progress is not shown in the UX
 	t.SetExecutionInProgress()
+	if t.curNodeID == "" {
+		t.StatusErrorf("ExecuteSelectedBlock: no node is selected")
+		return fmt.Errorf("no node is selected")
+	}
+
+	tools.Log.Info().Msgf("ExecuteSelectedBlock [%s][%s]", t.curNodeID, blockID)
 	view, err := t.run.ViewIndex.Get(t.curNodeID)
 	if err != nil {
 		t.StatusErrorf("ExecuteSelectedBlock: err = %v", err)
+		return err
+	}
+
+	b, err := t.GetBlock(blockID)
+	if err != nil {
+		return err
 	}
 
 	if _, err := t.Execute(view.Node, b, t.execOutView, t.execOutView); err != nil {
 		t.StatusErrorf("ExecuteSelectedBlock  id:[%s]: err = %v", t.curNodeID, err)
-		return
+		return err
 	}
 
 	if err := t.Refresh(); err != nil {
 		t.StatusErrorf("ExecuteSelectedBlock: Refresh: err = %v", err)
+		return err
 	}
+	return nil
+}
+
+func (t *Tui) EditSelectedBlock(blockID string) error {
+	tools.Log.Info().Msgf("EditSelectedBlock node-id:[%s]", t.curNodeID)
+	if t.curNodeID == "" {
+		t.StatusErrorf("EditSelectedBlock: cannot edit empty node")
+		return nil
+	}
+
+	t.App.Suspend(func() {
+		if _, _, err := t.run.EditBlock(t.curNodeID, blockID, true /*save*/); err != nil {
+			t.StatusErrorf("EditSelectedBlock: [%s][%s] failed err = %v", t.curNodeID, blockID, err)
+		}
+	})
+
+	return t.Refresh()
 }
 
 func (t *Tui) EditCurrentNode() {

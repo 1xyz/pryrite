@@ -38,6 +38,18 @@ type Node struct {
 	LastExecutedBy string     `json:"last_executed_by"`
 }
 
+func (n *Node) GetBlock(blockID string) (*Block, bool) {
+	if n.Blocks == nil {
+		return nil, false
+	}
+	for _, b := range n.Blocks {
+		if b.ID == blockID {
+			return b, true
+		}
+	}
+	return nil, false
+}
+
 type Block struct {
 	ID          string     `json:"id,omitempty"`
 	CreatedAt   *time.Time `json:"created_at"`
