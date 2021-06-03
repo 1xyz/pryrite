@@ -70,7 +70,7 @@ func (r *remoteStore) GetNodes(limit int, kind Kind) ([]Node, error) {
 		SetQueryParams(map[string]string{
 			"limit":   strconv.Itoa(limit),
 			"kind":    kindStr,
-			"include": "snippets",
+			"include": "blocks",
 		})
 	resp, err := req.Get("/api/v1/nodes")
 	if err != nil {
@@ -92,7 +92,7 @@ func (r *remoteStore) GetNode(id string) (*Node, error) {
 		SetPathParam("nodeId", id).
 		SetHeader("Accept", "application/json").
 		SetQueryParams(map[string]string{
-			"include": "snippets",
+			"include": "blocks",
 			"view":    "text",
 		})
 	resp, err := req.Get("/api/v1/nodes/{nodeId}")
