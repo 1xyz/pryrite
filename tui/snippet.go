@@ -63,7 +63,7 @@ func (s *snippetView) setKeybinding() {
 		switch event.Key() {
 		case tcell.KeyCtrlR:
 			tools.Log.Info().Msgf("snippetView: Ctrl+R request to run node")
-			s.rootUI.ExecuteCurrentNode()
+			go s.rootUI.ExecuteCurrentNode()
 		case tcell.KeyCtrlE:
 			tools.Log.Info().Msgf("snippetView: Ctrl+E request to edit node")
 			s.rootUI.EditCurrentNode()

@@ -2,13 +2,14 @@ package tui
 
 import (
 	"fmt"
+	"io"
+
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/run"
 	"github.com/aardlabs/terminal-poc/snippet"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
-	"io"
 )
 
 func LaunchUI(gCtx *snippet.Context, name string) error {
@@ -168,12 +169,16 @@ func (t *Tui) ExecuteCurrentNode() {
 		return
 	}
 
-	// ToDo: for some reason the in-progress is not shown in the UX
 	t.SetExecutionInProgress()
 	view, err := t.run.ViewIndex.Get(t.curNodeID)
 	if err != nil {
 		t.StatusErrorf("ExecuteCurrentNode: err = %v", err)
 	}
+
+	// this is necessary to have the view update with the latest contents written
+	t.execOutView.SetChangedFunc(func() {
+		t.App.Draw()
+	})
 
 	if _, err := t.Execute(view.Node, t.execOutView, t.execOutView); err != nil {
 		t.StatusErrorf("ExecuteCurrentNode  id:[%s]: err = %v", t.curNodeID, err)
