@@ -198,19 +198,22 @@ func stopKill(proc *os.Process) {
 
 type readWriterProxy struct {
 	name   string
-	reader *bufio.Reader
-	writer *bufio.Writer
+	reader io.Reader
+	writer io.WriteCloser
 }
 
-func (proxy *readWriterProxy) SetReader(reader *bufio.Reader) {
+func (proxy *readWriterProxy) SetReader(reader io.Reader) {
 	proxy.reader = reader
 }
 
-func (proxy *readWriterProxy) SetWriter(writer *bufio.Writer) {
+func (proxy *readWriterProxy) SetWriter(writer io.WriteCloser) {
 	if writer == nil && proxy.writer != nil {
 		// block to make sure the upstream writer has all the bytes before we
-		// let the exectute complete
-		proxy.writer.Flush()
+		// let the execute complete
+		err := proxy.writer.Close()
+		if err != nil {
+			tools.Log.Err(err).Str("proxy", proxy.name).Msg("writer close failed")
+		}
 	}
 
 	proxy.writer = writer
