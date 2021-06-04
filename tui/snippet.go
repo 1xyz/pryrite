@@ -97,6 +97,13 @@ func (s *snippetView) setKeybinding() {
 						s.rootUI.StatusErrorf("ExecuteSelectedBlock (%s) failed err = %v", s.selectedBlockID, err)
 					}
 				}()
+			} else {
+				go func() {
+					if err := s.rootUI.ExecuteCurrentNode(); err != nil {
+						s.rootUI.StatusErrorf("ExecuteCurrentNode (%s) failed err = %v",
+							s.rootUI.curNodeID, err)
+					}
+				}()
 			}
 		case tcell.KeyCtrlE:
 			tools.Log.Info().Msgf("snippetView: Ctrl+E request to edit node")

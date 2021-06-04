@@ -37,11 +37,21 @@ func (e *executionOutputView) writeBytes(p []byte) error {
 	return nil
 }
 
+func (e *executionOutputView) NavHelp() string {
+	help := " ctrl+r: run selected node"
+	navigate := " tab: next pane, shift+tab: previous pane"
+	navHelp := fmt.Sprintf(" commands \t| %s\n navigate \t| %s\n", help, navigate)
+	return navHelp
+}
+
 func newExecutionOutputView(rootUI *Tui) *executionOutputView {
-	e := &executionOutputView{
+	view := &executionOutputView{
 		detailView: newDetailView("execution output", true, rootUI),
 	}
-	return e
+	// this is necessary to have the view update with the latest contents written
+	view.SetChangedFunc(func() { rootUI.App.Draw() })
+	view.SetInputCapture(rootUI.commonKeyBindings)
+	return view
 }
 
 type executionResultView struct {
@@ -85,8 +95,17 @@ func (e *executionResultView) InProgress() {
 	e.SetText(fmt.Sprintf("\n info  \t| %s", status))
 }
 
+func (e *executionResultView) NavHelp() string {
+	help := " ctrl+r: run selected node"
+	navigate := " tab: next pane, shift+tab: previous pane"
+	navHelp := fmt.Sprintf(" commands \t| %s\n navigate \t| %s\n", help, navigate)
+	return navHelp
+}
+
 func newExecutionResultView(rootUI *Tui) *executionResultView {
-	return &executionResultView{
+	view := &executionResultView{
 		detailView: newDetailView("execution status", true, rootUI),
 	}
+	view.SetInputCapture(rootUI.commonKeyBindings)
+	return view
 }
