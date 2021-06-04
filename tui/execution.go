@@ -50,6 +50,7 @@ func newExecutionOutputView(rootUI *Tui) *executionOutputView {
 	}
 	// this is necessary to have the view update with the latest contents written
 	view.SetChangedFunc(func() { rootUI.App.Draw() })
+	view.ScrollToEnd()
 	view.SetInputCapture(rootUI.commonKeyBindings)
 	return view
 }

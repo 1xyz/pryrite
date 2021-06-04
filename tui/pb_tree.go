@@ -25,7 +25,7 @@ type PlayBookTree struct {
 
 func NewPlaybookTree(root *Tui, playbook *graph.NodeView) (*PlayBookTree, error) {
 	treeNodes := make(map[string]*tview.TreeNode)
-	tn := tview.NewTreeNode(playbook.Node.Title).
+	tn := tview.NewTreeNode(fmtTitle(playbook.Node)).
 		SetColor(tcell.ColorYellow).
 		SetReference(playbook).
 		SetSelectable(true)
@@ -40,7 +40,7 @@ func NewPlaybookTree(root *Tui, playbook *graph.NodeView) (*PlayBookTree, error)
 	add := func(target *tview.TreeNode, view *graph.NodeView) error {
 		for _, child := range view.Children {
 			hasChildren := len(child.Children) > 0
-			tNode := tview.NewTreeNode(child.Node.Title).
+			tNode := tview.NewTreeNode(fmtTitle(child.Node)).
 				SetReference(child).
 				SetSelectable(true)
 			treeNodes[child.Node.ID] = tNode
@@ -87,6 +87,10 @@ func NewPlaybookTree(root *Tui, playbook *graph.NodeView) (*PlayBookTree, error)
 		TreeView:  tree,
 		playbook:  playbook,
 	}, nil
+}
+
+func fmtTitle(n *graph.Node) string {
+	return fmt.Sprintf("%s (%s)", n.Title, n.ID)
 }
 
 func (p *PlayBookTree) NavHelp() string {

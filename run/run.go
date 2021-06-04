@@ -177,7 +177,7 @@ func (r *Run) ExecuteBlock(n *graph.Node, b *graph.Block, stdout, stderr io.Writ
 		executionID, nodeID, blockID, contentType, reqID)
 
 	// Define a new execution result
-	execResult := graph.NewBlockExecutionResult(executionID, nodeID, blockID, reqID, executedBy)
+	execResult := graph.NewBlockExecutionResult(executionID, nodeID, blockID, reqID, executedBy, b.Content)
 	defer func() {
 		// This can take a while for rendering large captures…
 		if _, err := io.Copy(stdout, bytes.NewBuffer(execResult.Stdout)); err != nil {
@@ -196,6 +196,10 @@ func (r *Run) ExecuteBlock(n *graph.Node, b *graph.Block, stdout, stderr io.Writ
 	outWriter := tools.NewBufferedWriteCloser(io.MultiWriter(execResult.StdoutWriter, stdout))
 	errWriter := tools.NewBufferedWriteCloser(io.MultiWriter(execResult.StderrWriter, stderr))
 
+	startMarker := fmt.Sprintf("\n[yellow]>> executing node:%s[white]\n", nodeID)
+	outWriter.Write([]byte(startMarker))
+	cmdInfo := fmt.Sprintf("[yellow]>> %s[white]\n", b.Content)
+	outWriter.Write([]byte(cmdInfo))
 	req := &executor.ExecRequest{
 		Hdr:     &executor.RequestHdr{ID: reqID, ExecutionID: executionID, NodeID: nodeID},
 		Content: []byte(b.Content),

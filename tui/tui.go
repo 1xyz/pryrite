@@ -26,8 +26,9 @@ type Tui struct {
 	PbTree      *PlayBookTree
 	snippetView *snippetView
 	execOutView *executionOutputView
-	execResView *executionResultView
-	statusView  *detailView
+	//execResView   *executionResultView
+	blockExecView *blockExecutionsView
+	statusView    *detailView
 
 	pages *tview.Pages // different pages in this UI
 	grid  *tview.Grid  //  layout for the run page
@@ -53,7 +54,8 @@ func NewTui(gCtx *snippet.Context, name string) (*Tui, error) {
 	ui.info = newInfo(ui, gCtx)
 	ui.snippetView = newSnippetView(ui)
 	ui.execOutView = newExecutionOutputView(ui)
-	ui.execResView = newExecutionResultView(ui)
+	//ui.execResView = newExecutionResultView(ui)
+	ui.blockExecView = newBlockExecutionsView(ui)
 	ui.statusView = newDetailView("", false, ui)
 	pbTree, err := NewPlaybookTree(ui, run.Root)
 	if err != nil {
@@ -68,7 +70,7 @@ func NewTui(gCtx *snippet.Context, name string) (*Tui, error) {
 		AddItem(ui.info, 0, 0, 1, 2, 0, 0, false).
 		AddItem(ui.PbTree, 1, 0, 3, 1, 0, 0, true).
 		AddItem(ui.snippetView, 1, 1, 1, 1, 0, 0, false).
-		AddItem(ui.execResView, 2, 1, 1, 1, 0, 0, false).
+		AddItem(ui.blockExecView, 2, 1, 1, 1, 0, 0, false).
 		AddItem(ui.execOutView, 3, 1, 1, 1, 0, 0, false).
 		AddItem(ui.statusView, 4, 0, 1, 2, 0, 0, false)
 	ui.pages = tview.NewPages().AddPage("main", ui.grid, true, true)
@@ -90,7 +92,7 @@ func (t *Tui) Navigate(key tcell.Key) {
 func (t *Tui) setupNavigator() {
 	t.Nav = &navigator{
 		rootUI:  t.App,
-		Entries: []navigable{t.PbTree, t.snippetView, t.execResView, t.execOutView, t.statusView},
+		Entries: []navigable{t.PbTree, t.snippetView, t.blockExecView, t.execOutView, t.statusView},
 	}
 }
 
@@ -105,7 +107,8 @@ func (t *Tui) Refresh() error {
 		// clear out the views
 		t.snippetView.Refresh(nil)
 		t.execOutView.Refresh(nil)
-		t.execResView.Refresh(nil)
+		//t.execResView.Refresh(nil)
+		t.blockExecView.Refresh(nil)
 		return nil
 	}
 
@@ -116,7 +119,8 @@ func (t *Tui) Refresh() error {
 	t.snippetView.Refresh(view)
 
 	execResults, _ := t.run.ExecIndex.Get(t.curNodeID)
-	t.execResView.Refresh(execResults)
+	t.blockExecView.Refresh(execResults)
+	//t.execResView.Refresh(execResults)
 	t.execOutView.Refresh(execResults)
 	return nil
 }
@@ -128,7 +132,7 @@ func (t *Tui) SetCurrentNodeView(nodeView *graph.NodeView) {
 
 func (t *Tui) SetExecutionInProgress() {
 	t.execOutView.Refresh(nil)
-	t.execResView.InProgress()
+	//t.execResView.InProgress()
 }
 
 func (t *Tui) setFocusedItem() {

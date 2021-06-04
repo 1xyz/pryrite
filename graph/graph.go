@@ -162,6 +162,10 @@ type BlockExecutionResult struct {
 	ExecutedAt  *time.Time `json:"executed_at"`
 	ExecutedBy  string     `json:"executed_by"`
 
+	// The Content can change (in the referenced block)
+	// so persist the original  command alongside
+	Content string `json:"content"`
+
 	StdoutWriter io.WriteCloser
 	StderrWriter io.WriteCloser
 }
@@ -178,7 +182,7 @@ func (b *BlockExecutionResult) Close() error {
 	return nil
 }
 
-func NewBlockExecutionResult(executionID, nodeID, blockID, requestID, executedBy string) *BlockExecutionResult {
+func NewBlockExecutionResult(executionID, nodeID, blockID, requestID, executedBy, content string) *BlockExecutionResult {
 	now := time.Now().UTC()
 	res := &BlockExecutionResult{
 		ExecutionID: executionID,
@@ -188,6 +192,7 @@ func NewBlockExecutionResult(executionID, nodeID, blockID, requestID, executedBy
 		ExecutedAt:  &now,
 		ExecutedBy:  executedBy,
 		Err:         nil,
+		Content:     content,
 		ExitStatus:  0,
 	}
 	res.StdoutWriter = newByteWriter(func(bytes []byte) {
