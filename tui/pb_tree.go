@@ -67,7 +67,7 @@ func NewPlaybookTree(root *Tui, playbook *graph.NodeView) (*PlayBookTree, error)
 		children := node.GetChildren()
 		if len(children) == 0 {
 			if err := add(node, view); err != nil {
-				tools.Log.Err(err).Msgf("SetSelectedFunc: add: err = %v", err)
+				tools.Log.Err(err).Msgf("pb_tree.SetSelectedFunc: add: err = %v", err)
 			}
 		} else {
 			// Collapse if visible, expand if collapsed.
@@ -80,7 +80,7 @@ func NewPlaybookTree(root *Tui, playbook *graph.NodeView) (*PlayBookTree, error)
 	})
 
 	tree.SetDoneFunc(func(key tcell.Key) { root.Navigate(key) })
-
+	tree.SetInputCapture(root.commonKeyBindings)
 	return &PlayBookTree{
 		treeNodes: treeNodes,
 		rootUI:    root,
@@ -90,8 +90,8 @@ func NewPlaybookTree(root *Tui, playbook *graph.NodeView) (*PlayBookTree, error)
 }
 
 func (p *PlayBookTree) NavHelp() string {
-	help := " enter: select snippet"
-	navigate := " tab: selected snippet pane, shift+tab: previous pane"
+	help := " enter: select snippet/node, ctrl+r run snippet/node"
+	navigate := " tab: next pane, shift+tab: previous pane"
 	navHelp := fmt.Sprintf(" commands \t| %s\n navigate \t| %s\n", help, navigate)
 	return navHelp
 }

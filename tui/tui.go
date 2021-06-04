@@ -2,8 +2,6 @@ package tui
 
 import (
 	"fmt"
-	"io"
-
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/run"
 	"github.com/aardlabs/terminal-poc/snippet"
@@ -66,14 +64,18 @@ func NewTui(gCtx *snippet.Context, name string) (*Tui, error) {
 	ui.setupNavigator()
 	ui.grid = tview.NewGrid().
 		SetRows(5, 0, 6, 0, 4).
-		AddItem(ui.info, 0, 0, 1, 5, 0, 0, false).
+		SetColumns(-1, -4).
+		AddItem(ui.info, 0, 0, 1, 2, 0, 0, false).
 		AddItem(ui.PbTree, 1, 0, 3, 1, 0, 0, true).
-		AddItem(ui.snippetView, 1, 1, 1, 4, 0, 0, false).
-		AddItem(ui.execResView, 2, 1, 1, 4, 0, 0, false).
-		AddItem(ui.execOutView, 3, 1, 1, 4, 0, 0, false).
-		AddItem(ui.statusView, 4, 0, 1, 5, 0, 0, false)
+		AddItem(ui.snippetView, 1, 1, 1, 1, 0, 0, false).
+		AddItem(ui.execResView, 2, 1, 1, 1, 0, 0, false).
+		AddItem(ui.execOutView, 3, 1, 1, 1, 0, 0, false).
+		AddItem(ui.statusView, 4, 0, 1, 2, 0, 0, false)
 	ui.pages = tview.NewPages().AddPage("main", ui.grid, true, true)
 	ui.App.SetRoot(ui.pages, true)
+	if err := ui.UpdateCurrentNodeID(run.Root.Node.ID); err != nil {
+		ui.StatusErrorf("NewTui: UpdateCurrentNodeID: id=%s err = %v", run.Root.Node.ID, err)
+	}
 	ui.setFocusedItem()
 	return ui, nil
 }
@@ -162,16 +164,10 @@ func (t *Tui) GetBlock(blockID string) (*graph.Block, error) {
 	return t.run.GetBlock(t.curNodeID, blockID)
 }
 
-func (t *Tui) Execute(n *graph.Node, b *graph.Block, stdout, stderr io.Writer) (*graph.BlockExecutionResult, error) {
-	return t.run.ExecuteBlock(n, b, stdout, stderr)
-}
-
 func (t *Tui) ExecuteSelectedBlock(blockID string) error {
-	// ToDo: for some reason the in-progress is not shown in the UX
 	t.SetExecutionInProgress()
-	if t.curNodeID == "" {
-		t.StatusErrorf("ExecuteSelectedBlock: no node is selected")
-		return fmt.Errorf("no node is selected")
+	if err := t.CheckCurrentNode(); err != nil {
+		return err
 	}
 
 	tools.Log.Info().Msgf("ExecuteSelectedBlock [%s][%s]", t.curNodeID, blockID)
@@ -186,15 +182,10 @@ func (t *Tui) ExecuteSelectedBlock(blockID string) error {
 		return err
 	}
 
-	if _, err := t.Execute(view.Node, b, t.execOutView, t.execOutView); err != nil {
+	if _, err := t.run.ExecuteBlock(view.Node, b, t.execOutView, t.execOutView); err != nil {
 		t.StatusErrorf("ExecuteSelectedBlock  id:[%s]: err = %v", t.curNodeID, err)
 		return err
 	}
-
-	// this is necessary to have the view update with the latest contents written
-	t.execOutView.SetChangedFunc(func() {
-		t.App.Draw()
-	})
 
 	if err := t.Refresh(); err != nil {
 		t.StatusErrorf("ExecuteSelectedBlock: Refresh: err = %v", err)
@@ -203,29 +194,46 @@ func (t *Tui) ExecuteSelectedBlock(blockID string) error {
 	return nil
 }
 
-func (t *Tui) EditSelectedBlock(blockID string) error {
-	tools.Log.Info().Msgf("EditSelectedBlock node-id:[%s]", t.curNodeID)
-	if t.curNodeID == "" {
-		t.StatusErrorf("EditSelectedBlock: cannot edit empty node")
-		return nil
+func (t *Tui) ExecuteCurrentNode() error {
+	if err := t.CheckCurrentNode(); err != nil {
+		return err
 	}
 
+	tools.Log.Info().Msgf("ExecuteCurrentNode [%s]", t.curNodeID)
+	view, err := t.run.ViewIndex.Get(t.curNodeID)
+	if err != nil {
+		return err
+	}
+
+	if err := t.run.ExecuteNode(view.Node, t.execOutView, t.execOutView); err != nil {
+		return err
+	}
+
+	if err := t.Refresh(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (t *Tui) EditSelectedBlock(blockID string) error {
+	if err := t.CheckCurrentNode(); err != nil {
+		return err
+	}
+	tools.Log.Info().Msgf("EditSelectedBlock node-id:[%s]", t.curNodeID)
 	t.App.Suspend(func() {
 		if _, _, err := t.run.EditBlock(t.curNodeID, blockID, true /*save*/); err != nil {
 			t.StatusErrorf("EditSelectedBlock: [%s][%s] failed err = %v", t.curNodeID, blockID, err)
 		}
 	})
-
 	return t.Refresh()
 }
 
 func (t *Tui) EditCurrentNode() {
-	tools.Log.Info().Msgf("EditSnippetContent node-id:[%s]", t.curNodeID)
-	if t.curNodeID == "" {
-		t.StatusErrorf("EditSnippetContent: cannot edit empty node")
+	if err := t.CheckCurrentNode(); err != nil {
 		return
 	}
 
+	tools.Log.Info().Msgf("EditSnippetContent node-id:[%s]", t.curNodeID)
 	t.App.Suspend(func() {
 		_, err := t.run.EditSnippet(t.curNodeID)
 		if err != nil {
@@ -240,4 +248,28 @@ func (t *Tui) EditCurrentNode() {
 	if err := t.PbTree.RefreshNode(t.curNodeID); err != nil {
 		t.StatusErrorf("EditSnippetContent: RefreshNodeTitle: err = %v", err)
 	}
+}
+
+func (t *Tui) CheckCurrentNode() error {
+	if t.curNodeID == "" {
+		t.StatusErrorf("IsCurrentNodeSet: no node selected")
+		return fmt.Errorf("no node selected")
+	}
+	return nil
+}
+
+func (t *Tui) commonKeyBindings(event *tcell.EventKey) *tcell.EventKey {
+	switch event.Key() {
+	case tcell.KeyCtrlR:
+		tools.Log.Info().Msgf("PlayBookTree: Ctrl+R request to run node")
+		go func() {
+			if err := t.ExecuteCurrentNode(); err != nil {
+				t.StatusErrorf("ExecuteCurrentNode [%s] failed err = %v", t.curNodeID, err)
+			}
+		}()
+	case tcell.KeyCtrlE:
+		tools.Log.Info().Msgf("PlayBookTree: Ctrl+E request to edit node")
+	}
+
+	return event
 }

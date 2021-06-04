@@ -135,6 +135,20 @@ func (r *Run) GetBlock(nodeID, blockID string) (*graph.Block, error) {
 	return block, nil
 }
 
+// ExecuteNode executes all code blocks in the context of this node
+// If any block fails executions, ExecuteNode will return an error and not continue executing
+func (r *Run) ExecuteNode(n *graph.Node, stdout, stderr io.Writer) error {
+	for _, b := range n.Blocks {
+		if !b.IsCode() {
+			continue
+		}
+		if _, err := r.ExecuteBlock(n, b, stdout, stderr); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // ExecuteBlock executes the specified block in the context of this node
 // Return value:
 // On an execution
