@@ -3,8 +3,6 @@ package tui
 import (
 	"fmt"
 	"github.com/aardlabs/terminal-poc/run"
-	"github.com/gdamore/tcell/v2"
-	"github.com/rivo/tview"
 )
 
 // executionOutputView is a  rendered textview of a  NodeExecutionResult's stdout and stderr
@@ -51,62 +49,6 @@ func newExecutionOutputView(rootUI *Tui) *executionOutputView {
 	// this is necessary to have the view update with the latest contents written
 	view.SetChangedFunc(func() { rootUI.App.Draw() })
 	view.ScrollToEnd()
-	view.SetInputCapture(rootUI.commonKeyBindings)
-	return view
-}
-
-type executionResultView struct {
-	*detailView
-}
-
-func (e *executionResultView) Refresh(results run.BlockExecutionResults) {
-	e.Clear()
-	if results == nil || len(results) == 0 {
-		return
-	}
-
-	res := results[len(results)-1]
-	execInfo := fmt.Sprintf("node-id:%s snippet-id:%s request-id:%s exit-code:%d",
-		res.NodeID, res.BlockID, res.RequestID, res.ExitStatus)
-	status := "status:Ok"
-	e.SetTextColor(tcell.ColorGreen)
-	if res.ExitStatus != 0 || res.Err != nil {
-		e.SetTextColor(tcell.ColorRed)
-		status = "status:Failed"
-	}
-	if res.ExecutedAt != nil {
-		status += fmt.Sprintf(" executed-by:%s executed-at:%v",
-			res.ExecutedBy, res.ExecutedAt.Format("2006-01-02T15:04:05Z07:00"))
-	}
-	errInfo := "none"
-	if res.Err != nil {
-		errInfo = res.Err.Error()
-	}
-
-	e.SetText(fmt.Sprintf("\n job   \t| %s \n info  \t| %s\n error \t| %s\n",
-		status, execInfo, errInfo))
-	e.SetTextAlign(tview.AlignLeft)
-}
-
-func (e *executionResultView) InProgress() {
-	e.Clear()
-	status := "status:Busy"
-	e.SetTextColor(tcell.ColorYellow)
-	e.SetTextAlign(tview.AlignLeft)
-	e.SetText(fmt.Sprintf("\n info  \t| %s", status))
-}
-
-func (e *executionResultView) NavHelp() string {
-	help := " ctrl+r: run selected node"
-	navigate := " tab: next pane, shift+tab: previous pane"
-	navHelp := fmt.Sprintf(" commands \t| %s\n navigate \t| %s\n", help, navigate)
-	return navHelp
-}
-
-func newExecutionResultView(rootUI *Tui) *executionResultView {
-	view := &executionResultView{
-		detailView: newDetailView("execution status", true, rootUI),
-	}
-	view.SetInputCapture(rootUI.commonKeyBindings)
+	view.SetInputCapture(rootUI.CommonKeyBindings)
 	return view
 }

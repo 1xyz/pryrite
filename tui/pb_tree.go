@@ -80,7 +80,7 @@ func NewPlaybookTree(root *Tui, playbook *graph.NodeView) (*PlayBookTree, error)
 	})
 
 	tree.SetDoneFunc(func(key tcell.Key) { root.Navigate(key) })
-	tree.SetInputCapture(root.commonKeyBindings)
+	tree.SetInputCapture(root.CommonKeyBindings)
 	return &PlayBookTree{
 		treeNodes: treeNodes,
 		rootUI:    root,

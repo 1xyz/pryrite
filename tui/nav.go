@@ -27,7 +27,7 @@ func (n *navigator) Navigate(key tcell.Key) {
 }
 
 func (n *navigator) Next() {
-	index := n.getCurrentFocus()
+	index := n.GetCurrentFocusedIndex()
 	next := 0
 	if index == -1 || index == len(n.Entries)-1 {
 		next = 0
@@ -38,7 +38,7 @@ func (n *navigator) Next() {
 }
 
 func (n *navigator) Prev() {
-	index := n.getCurrentFocus()
+	index := n.GetCurrentFocusedIndex()
 	next := 0
 	if index == 0 {
 		next = len(n.Entries) - 1
@@ -50,7 +50,7 @@ func (n *navigator) Prev() {
 	n.rootUI.SetFocus(n.Entries[next])
 }
 
-func (n *navigator) getCurrentFocus() int {
+func (n *navigator) GetCurrentFocusedIndex() int {
 	for i, e := range n.Entries {
 		if e.HasFocus() {
 			return i
@@ -60,9 +60,13 @@ func (n *navigator) getCurrentFocus() int {
 }
 
 func (n *navigator) CurrentFocusedItem() (navigable, bool) {
-	index := n.getCurrentFocus()
+	index := n.GetCurrentFocusedIndex()
 	if index == -1 {
 		return nil, false
 	}
 	return n.Entries[index], true
+}
+
+func (n *navigator) SetCurrentFocusedIndex(index int) {
+	n.rootUI.SetFocus(n.Entries[index])
 }

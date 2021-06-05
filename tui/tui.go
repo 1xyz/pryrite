@@ -10,6 +10,10 @@ import (
 	"github.com/rivo/tview"
 )
 
+const (
+	mainPage = "main"
+)
+
 func LaunchUI(gCtx *snippet.Context, name string) error {
 	ui, err := NewTui(gCtx, name)
 	if err != nil {
@@ -22,11 +26,10 @@ type Tui struct {
 	// Primary UI Application component
 	App *tview.Application
 
-	info        *info
-	PbTree      *PlayBookTree
-	snippetView *snippetView
-	execOutView *executionOutputView
-	//execResView   *executionResultView
+	info          *info
+	PbTree        *PlayBookTree
+	snippetView   *snippetView
+	execOutView   *executionOutputView
 	blockExecView *blockExecutionsView
 	statusView    *detailView
 
@@ -73,7 +76,7 @@ func NewTui(gCtx *snippet.Context, name string) (*Tui, error) {
 		AddItem(ui.blockExecView, 2, 1, 1, 1, 0, 0, false).
 		AddItem(ui.execOutView, 3, 1, 1, 1, 0, 0, false).
 		AddItem(ui.statusView, 4, 0, 1, 2, 0, 0, false)
-	ui.pages = tview.NewPages().AddPage("main", ui.grid, true, true)
+	ui.pages = tview.NewPages().AddPage(mainPage, ui.grid, true, true)
 	ui.App.SetRoot(ui.pages, true)
 	if err := ui.UpdateCurrentNodeID(run.Root.Node.ID); err != nil {
 		ui.StatusErrorf("NewTui: UpdateCurrentNodeID: id=%s err = %v", run.Root.Node.ID, err)
@@ -262,7 +265,7 @@ func (t *Tui) CheckCurrentNode() error {
 	return nil
 }
 
-func (t *Tui) commonKeyBindings(event *tcell.EventKey) *tcell.EventKey {
+func (t *Tui) CommonKeyBindings(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Key() {
 	case tcell.KeyCtrlR:
 		tools.Log.Info().Msgf("PlayBookTree: Ctrl+R request to run node")
@@ -276,4 +279,33 @@ func (t *Tui) commonKeyBindings(event *tcell.EventKey) *tcell.EventKey {
 	}
 
 	return event
+}
+
+func (t *Tui) closeAndSwitchPanel(removePanel, switchPanel string) {
+	t.pages.RemovePage(removePanel).ShowPage(mainPage)
+}
+
+func (t *Tui) displayInspect(data, page string) {
+	text := tview.NewTextView()
+	text.SetTitle("Detail").SetTitleAlign(tview.AlignLeft)
+	text.SetBorder(true)
+	text.SetText(data)
+
+	// get the index of the current focused item
+	idx := t.Nav.GetCurrentFocusedIndex()
+	text.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEsc || event.Rune() == 'q' {
+			t.closeAndSwitchPanel("detail", page)
+			// reset the focus back again
+			t.Nav.SetCurrentFocusedIndex(idx)
+		}
+		return event
+	})
+
+	t.pages.AddAndSwitchToPage("detail", text, true)
+}
+
+func (t *Tui) InspectBlockExecution(blockID string) {
+	tools.Log.Info().Msgf("InspectBlockExecution blockID: %s", blockID)
+	t.displayInspect("hello world", "blocks")
 }

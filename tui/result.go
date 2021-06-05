@@ -25,9 +25,8 @@ func newBlockExecutionsView(root *Tui) *blockExecutionsView {
 	view.SetTitle("completed executions").
 		SetTitleAlign(tview.AlignLeft)
 	view.SetBorder(true)
-	view.SetDoneFunc(func(key tcell.Key) {
-		root.Navigate(key)
-	})
+	view.SetDoneFunc(root.Navigate)
+	view.setKeybinding()
 	return view
 }
 
@@ -38,7 +37,7 @@ func (b *blockExecutionsView) Refresh(results run.BlockExecutionResults) {
 	}
 
 	headers := []string{
-		"Node",
+		"Block",
 		"Code-Snippet",
 		"Exit-Code",
 		"Error",
@@ -65,7 +64,7 @@ func (b *blockExecutionsView) Refresh(results run.BlockExecutionResults) {
 			showColor = tcell.ColorRed
 		}
 
-		table.SetCell(j, 0, tview.NewTableCell(r.NodeID).
+		table.SetCell(j, 0, tview.NewTableCell(r.BlockID).
 			SetTextColor(showColor).
 			SetMaxWidth(1).
 			SetExpansion(1))
@@ -109,6 +108,18 @@ func (b *blockExecutionsView) Refresh(results run.BlockExecutionResults) {
 			SetExpansion(1))
 		j++
 	}
+}
+
+func (b *blockExecutionsView) setKeybinding() {
+	b.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		switch event.Key() {
+		case tcell.KeyEnter:
+			r, _ := b.GetSelection()
+			blockID := b.GetCell(r, 0).Text
+			b.rootUI.InspectBlockExecution(blockID)
+		}
+		return event
+	})
 }
 
 func (b *blockExecutionsView) NavHelp() string {
