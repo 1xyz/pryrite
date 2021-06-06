@@ -8,6 +8,7 @@ import (
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	"gopkg.in/yaml.v2"
 )
 
 const (
@@ -29,8 +30,8 @@ type Tui struct {
 	info          *info
 	PbTree        *PlayBookTree
 	snippetView   *snippetView
-	execOutView   *executionOutputView
-	blockExecView *blockExecutionsView
+	execOutView   *consoleView
+	blockExecView *executionsView
 	statusView    *detailView
 
 	pages *tview.Pages // different pages in this UI
@@ -58,7 +59,7 @@ func NewTui(gCtx *snippet.Context, name string) (*Tui, error) {
 	ui.snippetView = newSnippetView(ui)
 	ui.execOutView = newExecutionOutputView(ui)
 	//ui.execResView = newExecutionResultView(ui)
-	ui.blockExecView = newBlockExecutionsView(ui)
+	ui.blockExecView = newExecutionsView(ui)
 	ui.statusView = newDetailView("", false, ui)
 	pbTree, err := NewPlaybookTree(ui, run.Root)
 	if err != nil {
@@ -285,11 +286,15 @@ func (t *Tui) closeAndSwitchPanel(removePanel, switchPanel string) {
 	t.pages.RemovePage(removePanel).ShowPage(mainPage)
 }
 
-func (t *Tui) displayInspect(data, page string) {
+func (t *Tui) displayInspect(data, title, page string) {
 	text := tview.NewTextView()
-	text.SetTitle("Detail").SetTitleAlign(tview.AlignLeft)
+	text.SetTitle(title).
+		SetTitleAlign(tview.AlignLeft)
 	text.SetBorder(true)
+	text.SetRegions(true)
+	text.SetDynamicColors(true)
 	text.SetText(data)
+	text.Write([]byte("\n[yellow]Press ESC to go back.[white]"))
 
 	// get the index of the current focused item
 	idx := t.Nav.GetCurrentFocusedIndex()
@@ -305,7 +310,23 @@ func (t *Tui) displayInspect(data, page string) {
 	t.pages.AddAndSwitchToPage("detail", text, true)
 }
 
-func (t *Tui) InspectBlockExecution(blockID string) {
-	tools.Log.Info().Msgf("InspectBlockExecution blockID: %s", blockID)
-	t.displayInspect("hello world", "blocks")
+func (t *Tui) InspectBlockExecution(requestID string) {
+	res, err := t.run.GetBlockExecutionResult(t.curNodeID, requestID)
+	if err != nil {
+		t.StatusErrorf("InspectBlockExecution: req-id: %s err = %v", requestID, err)
+		return
+	}
+
+	d := struct {
+		*graph.BlockExecutionResult
+		Stdout string `yaml:"stdout"`
+		Stderr string `yaml:"stderr"`
+	}{res, string(res.Stdout), string(res.Stderr)}
+	b, err := yaml.Marshal(&d)
+	if err != nil {
+		t.StatusErrorf("InspectBlockExecution: req-id: %s err = %v", requestID, err)
+		return
+	}
+
+	t.displayInspect(string(b), "Execution detail", "blocks")
 }

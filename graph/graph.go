@@ -151,23 +151,23 @@ func (b *byteWriter) Close() error {
 
 // BlockExecutionResult encapsulates a node's execution result
 type BlockExecutionResult struct {
-	ExecutionID string     `json:"execution_id"`
-	NodeID      string     `json:"node_id"`
-	BlockID     string     `json:"block_id"`
-	RequestID   string     `json:"request_id"`
-	Err         error      `json:"err"`
-	ExitStatus  int        `json:"exit_status"`
-	Stdout      []byte     `json:"stdout"`
-	Stderr      []byte     `json:"stderr"`
-	ExecutedAt  *time.Time `json:"executed_at"`
-	ExecutedBy  string     `json:"executed_by"`
+	ExecutionID string     `yaml:"execution_id" json:"execution_id"`
+	NodeID      string     `yaml:"node_id" json:"node_id"`
+	BlockID     string     `yaml:"block_id" json:"block_id"`
+	RequestID   string     `yaml:"request_id" json:"request_id"`
+	Err         error      `yaml:"err" json:"err"`
+	ExitStatus  int        `yaml:"exit_status" json:"exit_status"`
+	Stdout      []byte     `yaml:"-" json:"stdout"`
+	Stderr      []byte     `yaml:"-" json:"stderr"`
+	ExecutedAt  *time.Time `yaml:"executed_at,omitempty" json:"executed_at,omitempty"`
+	ExecutedBy  string     `yaml:"executed_by" json:"executed_by"`
 
 	// The Content can change (in the referenced block)
 	// so persist the original  command alongside
-	Content string `json:"content"`
+	Content string `yaml:"content" json:"content"`
 
-	StdoutWriter io.WriteCloser
-	StderrWriter io.WriteCloser
+	StdoutWriter io.WriteCloser `yaml:"-" json:"-"`
+	StderrWriter io.WriteCloser `yaml:"-" json:"-"`
 }
 
 func (b *BlockExecutionResult) Close() error {

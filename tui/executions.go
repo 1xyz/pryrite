@@ -2,19 +2,21 @@ package tui
 
 import (
 	"fmt"
+	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/run"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	"gopkg.in/yaml.v2"
 	"strconv"
 )
 
-type blockExecutionsView struct {
+type executionsView struct {
 	*tview.Table
 	rootUI *Tui
 }
 
-func newBlockExecutionsView(root *Tui) *blockExecutionsView {
-	view := &blockExecutionsView{
+func newExecutionsView(root *Tui) *executionsView {
+	view := &executionsView{
 		Table: tview.NewTable().
 			SetSelectable(true, false).
 			Select(0, 0).
@@ -22,7 +24,7 @@ func newBlockExecutionsView(root *Tui) *blockExecutionsView {
 		rootUI: root,
 	}
 
-	view.SetTitle("completed executions").
+	view.SetTitle("Executions").
 		SetTitleAlign(tview.AlignLeft)
 	view.SetBorder(true)
 	view.SetDoneFunc(root.Navigate)
@@ -30,16 +32,17 @@ func newBlockExecutionsView(root *Tui) *blockExecutionsView {
 	return view
 }
 
-func (b *blockExecutionsView) Refresh(results run.BlockExecutionResults) {
+func (b *executionsView) Refresh(results run.BlockExecutionResults) {
 	table := b.Clear()
 	if results == nil {
 		return
 	}
 
 	headers := []string{
-		"Block",
-		"Code-Snippet",
-		"Exit-Code",
+		"Block Id",
+		"Request Id",
+		"Code Snippet",
+		"Exit Code",
 		"Error",
 		"Time",
 		"User",
@@ -69,12 +72,17 @@ func (b *blockExecutionsView) Refresh(results run.BlockExecutionResults) {
 			SetMaxWidth(1).
 			SetExpansion(1))
 
-		table.SetCell(j, 1, tview.NewTableCell(r.Content).
+		table.SetCell(j, 1, tview.NewTableCell(r.RequestID).
 			SetTextColor(showColor).
 			SetMaxWidth(1).
 			SetExpansion(1))
 
-		table.SetCell(j, 2, tview.NewTableCell(strconv.Itoa(r.ExitStatus)).
+		table.SetCell(j, 2, tview.NewTableCell(r.Content).
+			SetTextColor(showColor).
+			SetMaxWidth(1).
+			SetExpansion(1))
+
+		table.SetCell(j, 3, tview.NewTableCell(strconv.Itoa(r.ExitStatus)).
 			SetTextColor(showColor).
 			SetMaxWidth(1).
 			SetExpansion(1))
@@ -88,7 +96,7 @@ func (b *blockExecutionsView) Refresh(results run.BlockExecutionResults) {
 			errStr = string(r.Stderr)
 			expansion = 2
 		}
-		table.SetCell(j, 3, tview.NewTableCell(errStr).
+		table.SetCell(j, 4, tview.NewTableCell(errStr).
 			SetTextColor(showColor).
 			SetMaxWidth(1).
 			SetExpansion(expansion))
@@ -97,12 +105,12 @@ func (b *blockExecutionsView) Refresh(results run.BlockExecutionResults) {
 		if r.ExecutedAt != nil {
 			executedAt = r.ExecutedAt.Format("2006/01/02 15:04:05")
 		}
-		table.SetCell(j, 4, tview.NewTableCell(executedAt).
+		table.SetCell(j, 5, tview.NewTableCell(executedAt).
 			SetTextColor(showColor).
 			SetMaxWidth(1).
 			SetExpansion(1))
 
-		table.SetCell(j, 5, tview.NewTableCell(r.ExecutedBy).
+		table.SetCell(j, 6, tview.NewTableCell(r.ExecutedBy).
 			SetTextColor(showColor).
 			SetMaxWidth(1).
 			SetExpansion(1))
@@ -110,20 +118,31 @@ func (b *blockExecutionsView) Refresh(results run.BlockExecutionResults) {
 	}
 }
 
-func (b *blockExecutionsView) setKeybinding() {
+func (b *executionsView) setKeybinding() {
 	b.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
 		case tcell.KeyEnter:
 			r, _ := b.GetSelection()
-			blockID := b.GetCell(r, 0).Text
-			b.rootUI.InspectBlockExecution(blockID)
+			requestID := b.GetCell(r, 1).Text
+			b.rootUI.InspectBlockExecution(requestID)
 		}
 		return event
 	})
 }
 
-func (b *blockExecutionsView) NavHelp() string {
+func (b *executionsView) NavHelp() string {
 	navigate := " tab: next pane, shift+tab: previous pane"
 	navHelp := fmt.Sprintf("navigate \t| %s\n", navigate)
 	return navHelp
+}
+
+func (b *executionsView) renderYaml(result *graph.BlockExecutionResult) ([]byte, error) {
+	resultView := struct {
+		*graph.BlockExecutionResult
+		Stdout string `yaml:"stdout"`
+		Stderr string `yaml:"stderr"`
+	}{result,
+		string(result.Stdout),
+		string(result.Stderr)}
+	return yaml.Marshal(&resultView)
 }

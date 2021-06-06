@@ -47,3 +47,13 @@ func (n NodeExecResultIndex) Get(nodeID string) (BlockExecutionResults, bool) {
 	e, found := n[nodeID]
 	return e, found
 }
+
+// Find scans the slice of BlockExecutionResults by resultID
+func (b BlockExecutionResults) Find(requestID string) (*graph.BlockExecutionResult, bool) {
+	for _, entry := range b {
+		if entry.RequestID == requestID {
+			return entry, true
+		}
+	}
+	return nil, false
+}

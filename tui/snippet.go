@@ -22,6 +22,7 @@ func (s *snippetView) Refresh(view *graph.NodeView) {
 	s.Clear()
 	s.codeBlocks.clear()
 	s.updateDetailsContent(view.Node)
+	s.updateTitle(view.Node)
 }
 
 func (s *snippetView) NavHelp() string {
@@ -29,6 +30,15 @@ func (s *snippetView) NavHelp() string {
 	navigate := " tab: select snippet or pane, shift+tab: previous snippet/pane"
 	navHelp := fmt.Sprintf(" commands \t| %s\n navigate \t| %s\n", help, navigate)
 	return navHelp
+}
+
+func (s *snippetView) updateTitle(n *graph.Node) {
+	if n == nil {
+		s.SetTitle("")
+		return
+	}
+
+	s.SetTitle(fmt.Sprintf("Node: %s (%s)", n.Title, n.ID))
 }
 
 func (s *snippetView) updateDetailsContent(n *graph.Node) {
@@ -196,7 +206,7 @@ func (s *snippetView) setDoneFn() {
 
 func newSnippetView(rootUI *Tui) *snippetView {
 	s := &snippetView{
-		detailView:      newDetailView("selected snippet", true, rootUI),
+		detailView:      newDetailView("", true, rootUI),
 		codeBlocks:      newBlockIndex(),
 		selectedBlockID: noBlock,
 	}

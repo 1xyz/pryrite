@@ -34,7 +34,7 @@ func NewPlaybookTree(root *Tui, playbook *graph.NodeView) (*PlayBookTree, error)
 		SetRoot(tn).
 		SetCurrentNode(tn)
 	tree.SetBorder(true).
-		SetTitle("playbook").
+		SetTitle("Playbook").
 		SetTitleAlign(tview.AlignLeft)
 	// A helper function which adds the child nodes to the given target node.
 	add := func(target *tview.TreeNode, view *graph.NodeView) error {
