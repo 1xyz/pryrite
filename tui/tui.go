@@ -33,6 +33,7 @@ type Tui struct {
 	execOutView   *consoleView
 	blockExecView *executionsView
 	statusView    *detailView
+	navHelp       *navView
 
 	pages *tview.Pages // different pages in this UI
 	grid  *tview.Grid  //  layout for the run page
@@ -58,9 +59,9 @@ func NewTui(gCtx *snippet.Context, name string) (*Tui, error) {
 	ui.info = newInfo(ui, gCtx)
 	ui.snippetView = newSnippetView(ui)
 	ui.execOutView = newExecutionOutputView(ui)
-	//ui.execResView = newExecutionResultView(ui)
 	ui.blockExecView = newExecutionsView(ui)
 	ui.statusView = newDetailView("", false, ui)
+	ui.navHelp = newNavView(ui)
 	pbTree, err := NewPlaybookTree(ui, run.Root)
 	if err != nil {
 		return nil, fmt.Errorf("newPlaybookTree: err = %v", err)
@@ -69,14 +70,15 @@ func NewTui(gCtx *snippet.Context, name string) (*Tui, error) {
 
 	ui.setupNavigator()
 	ui.grid = tview.NewGrid().
-		SetRows(4, 0, 6, 0, 4).
+		SetRows(4, 0, 6, 0, 4, 4).
 		SetColumns(-1, -4).
 		AddItem(ui.info, 0, 0, 1, 2, 0, 0, false).
 		AddItem(ui.PbTree, 1, 0, 3, 1, 0, 0, true).
 		AddItem(ui.snippetView, 1, 1, 1, 1, 0, 0, false).
 		AddItem(ui.blockExecView, 2, 1, 1, 1, 0, 0, false).
-		AddItem(ui.execOutView, 3, 1, 1, 1, 0, 0, false).
-		AddItem(ui.statusView, 4, 0, 1, 2, 0, 0, false)
+		AddItem(ui.execOutView, 3, 1, 2, 1, 0, 0, false).
+		AddItem(ui.navHelp, 4, 0, 1, 1, 0, 0, false).
+		AddItem(ui.statusView, 5, 0, 1, 2, 0, 0, false)
 	ui.pages = tview.NewPages().AddPage(mainPage, ui.grid, true, true)
 	ui.App.SetRoot(ui.pages, true)
 	if err := ui.UpdateCurrentNodeID(run.Root.Node.ID); err != nil {
@@ -144,17 +146,7 @@ func (t *Tui) setFocusedItem() {
 	if !found {
 		return
 	}
-	t.setStatusHelp(n.NavHelp())
-}
-
-func (t *Tui) setStatusHelp(s string) {
-	t.statusView.Clear()
-	t.statusView.SetTextAlign(tview.AlignLeft)
-	t.statusView.SetTextColor(tcell.ColorDarkCyan)
-	_, err := t.statusView.Write([]byte(s))
-	if err != nil {
-		tools.Log.Err(err).Msgf("StatusHelp: err = %v", err)
-	}
+	t.navHelp.Refresh(n)
 }
 
 func (t *Tui) StatusErrorf(format string, v ...interface{}) {

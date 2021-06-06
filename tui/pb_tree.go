@@ -93,11 +93,13 @@ func fmtTitle(n *graph.Node) string {
 	return fmt.Sprintf("%s (%s)", n.Title, n.ID)
 }
 
-func (p *PlayBookTree) NavHelp() string {
-	help := " enter: select snippet/node, ctrl+r run snippet/node"
-	navigate := " tab: next pane, shift+tab: previous pane"
-	navHelp := fmt.Sprintf(" commands \t| %s\n navigate \t| %s\n", help, navigate)
-	return navHelp
+func (p *PlayBookTree) NavHelp() [][]string {
+	return [][]string{
+		{"Enter", "Select node"},
+		{"Ctrl + R", "Run selected node"},
+		{"Tab", "Navigate to the next pane"},
+		{"Shift + Tab", "Navigate to the previous pane"},
+	}
 }
 
 func (p *PlayBookTree) RefreshNode(nodeID string) error {

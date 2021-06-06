@@ -1,7 +1,6 @@
 package tui
 
 import (
-	"fmt"
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/run"
 	"github.com/gdamore/tcell/v2"
@@ -130,10 +129,14 @@ func (b *executionsView) setKeybinding() {
 	})
 }
 
-func (b *executionsView) NavHelp() string {
-	navigate := " tab: next pane, shift+tab: previous pane"
-	navHelp := fmt.Sprintf("navigate \t| %s\n", navigate)
-	return navHelp
+func (b *executionsView) NavHelp() [][]string {
+	return [][]string{
+		{"Enter", "Inspect Execution Detail"},
+		{"Ctrl + R", "Run selected node"},
+		{"⇵ Down/Up", "Navigate through executions"},
+		{"Tab", "Navigate to the next pane"},
+		{"Shift + Tab", "Navigate to the previous pane"},
+	}
 }
 
 func (b *executionsView) renderYaml(result *graph.BlockExecutionResult) ([]byte, error) {

@@ -1,7 +1,6 @@
 package tui
 
 import (
-	"fmt"
 	"github.com/aardlabs/terminal-poc/run"
 )
 
@@ -35,11 +34,12 @@ func (c *consoleView) writeBytes(p []byte) error {
 	return nil
 }
 
-func (c *consoleView) NavHelp() string {
-	help := " ctrl+r: run selected node"
-	navigate := " tab: next pane, shift+tab: previous pane"
-	navHelp := fmt.Sprintf(" commands \t| %s\n navigate \t| %s\n", help, navigate)
-	return navHelp
+func (c *consoleView) NavHelp() [][]string {
+	return [][]string{
+		{"Ctrl + R", "Run current selected node"},
+		{"Tab", "Navigate to the next pane"},
+		{"Shift + Tab", "Navigate to the previous pane"},
+	}
 }
 
 func newExecutionOutputView(rootUI *Tui) *consoleView {

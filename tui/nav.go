@@ -9,7 +9,9 @@ type navigable interface {
 	tview.Primitive
 
 	// NavHelp returns navigable help info
-	NavHelp() string
+	// The return type is a 2D string slice where column zero represents the
+	// key combination and column 1 represents the help context.
+	NavHelp() [][]string
 }
 
 type navigator struct {
@@ -69,4 +71,49 @@ func (n *navigator) CurrentFocusedItem() (navigable, bool) {
 
 func (n *navigator) SetCurrentFocusedIndex(index int) {
 	n.rootUI.SetFocus(n.Entries[index])
+}
+
+// ui component
+type navView struct {
+	*tview.Table
+	rootUI *Tui
+}
+
+func newNavView(rootUI *Tui) *navView {
+	n := &navView{
+		Table: tview.NewTable().
+			SetSelectable(false, false).
+			Select(0, 0).
+			SetFixed(1, 1),
+		rootUI: rootUI,
+	}
+
+	return n
+}
+
+func (n *navView) Refresh(nav navigable) {
+	n.Clear()
+	entries := nav.NavHelp()
+	if entries == nil || len(entries) == 0 {
+		return
+	}
+
+	for index, e := range entries {
+		n.SetCell(index, 0, &tview.TableCell{
+			Text:            e[0],
+			NotSelectable:   true,
+			Align:           tview.AlignRight,
+			Color:           tcell.ColorDarkCyan,
+			BackgroundColor: tcell.ColorDefault,
+			Attributes:      tcell.AttrBold,
+		})
+		n.SetCell(index, 1, &tview.TableCell{
+			Text:            e[1],
+			NotSelectable:   true,
+			Align:           tview.AlignLeft,
+			Color:           tcell.ColorLightCyan,
+			BackgroundColor: tcell.ColorDefault,
+			Attributes:      tcell.AttrNone,
+		})
+	}
 }
