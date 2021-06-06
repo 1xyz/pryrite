@@ -1,24 +1,25 @@
 package tui
 
 import (
-	"fmt"
-
 	"github.com/aardlabs/terminal-poc/snippet"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
 type info struct {
-	*tview.TextView
+	*tview.Table
 	rootUI *Tui
 	gCtx   *snippet.Context
 }
 
 func newInfo(rootUI *Tui, gCtx *snippet.Context) *info {
 	i := &info{
-		TextView: tview.NewTextView(),
-		rootUI:   rootUI,
-		gCtx:     gCtx,
+		Table: tview.NewTable().
+			SetSelectable(false, false).
+			Select(0, 0).
+			SetFixed(1, 1),
+		rootUI: rootUI,
+		gCtx:   gCtx,
 	}
 
 	i.display()
@@ -26,12 +27,28 @@ func newInfo(rootUI *Tui, gCtx *snippet.Context) *info {
 }
 
 func (i *info) display() {
-	agentInfo := fmt.Sprintf("ver:%s", i.gCtx.Metadata.Agent)
-	serviceEndpoint := fmt.Sprintf("endpoint:%s", i.gCtx.ConfigEntry.ServiceUrl)
-	userName := fmt.Sprintf("%s", "<foobar@aardvarklabs.com>")
+	headers := [][]string{
+		{"Version", i.gCtx.Metadata.Agent},
+		{"Server", i.gCtx.ConfigEntry.ServiceUrl},
+		{"User", i.gCtx.ConfigEntry.Email},
+	}
 
-	i.SetTextColor(tcell.ColorYellow)
-	i.SetText(fmt.Sprintf(" aardy \t| %s \n server\t| %s\n user  \t| %s\n",
-		agentInfo, serviceEndpoint, userName))
-	i.SetTextAlign(tview.AlignLeft)
+	for index, entries := range headers {
+		i.SetCell(index, 0, &tview.TableCell{
+			Text:            entries[0] + ":",
+			NotSelectable:   true,
+			Align:           tview.AlignRight,
+			Color:           tcell.ColorYellow,
+			BackgroundColor: tcell.ColorDefault,
+			Attributes:      tcell.AttrBold,
+		})
+		i.SetCell(index, 1, &tview.TableCell{
+			Text:            entries[1],
+			NotSelectable:   true,
+			Align:           tview.AlignLeft,
+			Color:           tcell.ColorWhite,
+			BackgroundColor: tcell.ColorDefault,
+			Attributes:      tcell.AttrNone,
+		})
+	}
 }

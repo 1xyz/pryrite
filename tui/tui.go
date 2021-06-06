@@ -69,7 +69,7 @@ func NewTui(gCtx *snippet.Context, name string) (*Tui, error) {
 
 	ui.setupNavigator()
 	ui.grid = tview.NewGrid().
-		SetRows(5, 0, 6, 0, 4).
+		SetRows(4, 0, 6, 0, 4).
 		SetColumns(-1, -4).
 		AddItem(ui.info, 0, 0, 1, 2, 0, 0, false).
 		AddItem(ui.PbTree, 1, 0, 3, 1, 0, 0, true).
