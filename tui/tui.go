@@ -8,6 +8,11 @@ import (
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	"gopkg.in/yaml.v2"
+)
+
+const (
+	mainPage = "main"
 )
 
 func LaunchUI(gCtx *snippet.Context, name string) error {
@@ -25,9 +30,11 @@ type Tui struct {
 	info        *info
 	PbTree      *PlayBookTree
 	snippetView *snippetView
-	execOutView *executionOutputView
-	execResView *executionResultView
-	statusView  *detailView
+	consoleView *consoleView
+	execView    *executionsView
+	//statusView   *detailView
+	navHelp      *navView
+	activityView *activityView
 
 	pages *tview.Pages // different pages in this UI
 	grid  *tview.Grid  //  layout for the run page
@@ -52,9 +59,11 @@ func NewTui(gCtx *snippet.Context, name string) (*Tui, error) {
 
 	ui.info = newInfo(ui, gCtx)
 	ui.snippetView = newSnippetView(ui)
-	ui.execOutView = newExecutionOutputView(ui)
-	ui.execResView = newExecutionResultView(ui)
-	ui.statusView = newDetailView("", false, ui)
+	ui.consoleView = newExecutionOutputView(ui)
+	ui.execView = newExecutionsView(ui)
+	ui.activityView = newActivityView(ui)
+	//ui.statusView = newDetailView("", false, ui)
+	ui.navHelp = newNavView(ui)
 	pbTree, err := NewPlaybookTree(ui, run.Root)
 	if err != nil {
 		return nil, fmt.Errorf("newPlaybookTree: err = %v", err)
@@ -63,15 +72,16 @@ func NewTui(gCtx *snippet.Context, name string) (*Tui, error) {
 
 	ui.setupNavigator()
 	ui.grid = tview.NewGrid().
-		SetRows(5, 0, 6, 0, 4).
+		SetRows(4, 0, 6, 0, 5, 8).
 		SetColumns(-1, -4).
 		AddItem(ui.info, 0, 0, 1, 2, 0, 0, false).
 		AddItem(ui.PbTree, 1, 0, 3, 1, 0, 0, true).
 		AddItem(ui.snippetView, 1, 1, 1, 1, 0, 0, false).
-		AddItem(ui.execResView, 2, 1, 1, 1, 0, 0, false).
-		AddItem(ui.execOutView, 3, 1, 1, 1, 0, 0, false).
-		AddItem(ui.statusView, 4, 0, 1, 2, 0, 0, false)
-	ui.pages = tview.NewPages().AddPage("main", ui.grid, true, true)
+		AddItem(ui.execView, 2, 1, 1, 1, 0, 0, false).
+		AddItem(ui.consoleView, 3, 1, 2, 1, 0, 0, false).
+		AddItem(ui.navHelp, 4, 0, 1, 1, 0, 0, false).
+		AddItem(ui.activityView, 5, 0, 1, 2, 0, 0, false)
+	ui.pages = tview.NewPages().AddPage(mainPage, ui.grid, true, true)
 	ui.App.SetRoot(ui.pages, true)
 	if err := ui.UpdateCurrentNodeID(run.Root.Node.ID); err != nil {
 		ui.StatusErrorf("NewTui: UpdateCurrentNodeID: id=%s err = %v", run.Root.Node.ID, err)
@@ -90,7 +100,7 @@ func (t *Tui) Navigate(key tcell.Key) {
 func (t *Tui) setupNavigator() {
 	t.Nav = &navigator{
 		rootUI:  t.App,
-		Entries: []navigable{t.PbTree, t.snippetView, t.execResView, t.execOutView, t.statusView},
+		Entries: []navigable{t.PbTree, t.snippetView, t.execView, t.consoleView, t.activityView},
 	}
 }
 
@@ -104,8 +114,9 @@ func (t *Tui) Refresh() error {
 	if t.curNodeID == "" {
 		// clear out the views
 		t.snippetView.Refresh(nil)
-		t.execOutView.Refresh(nil)
-		t.execResView.Refresh(nil)
+		t.consoleView.Refresh(nil)
+		//t.execResView.Refresh(nil)
+		t.execView.Refresh(nil)
 		return nil
 	}
 
@@ -116,8 +127,9 @@ func (t *Tui) Refresh() error {
 	t.snippetView.Refresh(view)
 
 	execResults, _ := t.run.ExecIndex.Get(t.curNodeID)
-	t.execResView.Refresh(execResults)
-	t.execOutView.Refresh(execResults)
+	t.execView.Refresh(execResults)
+	//t.execResView.Refresh(execResults)
+	t.consoleView.Refresh(execResults)
 	return nil
 }
 
@@ -127,8 +139,8 @@ func (t *Tui) SetCurrentNodeView(nodeView *graph.NodeView) {
 }
 
 func (t *Tui) SetExecutionInProgress() {
-	t.execOutView.Refresh(nil)
-	t.execResView.InProgress()
+	t.consoleView.Refresh(nil)
+	//t.execResView.InProgress()
 }
 
 func (t *Tui) setFocusedItem() {
@@ -136,28 +148,15 @@ func (t *Tui) setFocusedItem() {
 	if !found {
 		return
 	}
-	t.setStatusHelp(n.NavHelp())
-}
-
-func (t *Tui) setStatusHelp(s string) {
-	t.statusView.Clear()
-	t.statusView.SetTextAlign(tview.AlignLeft)
-	t.statusView.SetTextColor(tcell.ColorDarkCyan)
-	_, err := t.statusView.Write([]byte(s))
-	if err != nil {
-		tools.Log.Err(err).Msgf("StatusHelp: err = %v", err)
-	}
+	t.navHelp.Refresh(n)
 }
 
 func (t *Tui) StatusErrorf(format string, v ...interface{}) {
-	s := fmt.Sprintf(format, v...)
-	tools.Log.Info().Msg(s)
-	t.statusView.Clear()
-	t.statusView.SetTextAlign(tview.AlignLeft)
-	t.statusView.SetTextColor(tcell.ColorRed)
-	if _, err := t.statusView.Write([]byte(s)); err != nil {
-		tools.Log.Err(err).Msgf("WriteStatus: err = %v", err)
-	}
+	t.activityView.Log(Error, format, v)
+}
+
+func (t *Tui) StatusInfof(format string, v ...interface{}) {
+	t.activityView.Log(Info, format, v)
 }
 
 func (t *Tui) GetBlock(blockID string) (*graph.Block, error) {
@@ -182,7 +181,7 @@ func (t *Tui) ExecuteSelectedBlock(blockID string) error {
 		return err
 	}
 
-	if _, err := t.run.ExecuteBlock(view.Node, b, t.execOutView, t.execOutView); err != nil {
+	if _, err := t.run.ExecuteBlock(view.Node, b, t.consoleView, t.consoleView); err != nil {
 		t.StatusErrorf("ExecuteSelectedBlock  id:[%s]: err = %v", t.curNodeID, err)
 		return err
 	}
@@ -205,7 +204,7 @@ func (t *Tui) ExecuteCurrentNode() error {
 		return err
 	}
 
-	if err := t.run.ExecuteNode(view.Node, t.execOutView, t.execOutView); err != nil {
+	if err := t.run.ExecuteNode(view.Node, t.consoleView, t.consoleView); err != nil {
 		return err
 	}
 
@@ -258,7 +257,7 @@ func (t *Tui) CheckCurrentNode() error {
 	return nil
 }
 
-func (t *Tui) commonKeyBindings(event *tcell.EventKey) *tcell.EventKey {
+func (t *Tui) CommonKeyBindings(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Key() {
 	case tcell.KeyCtrlR:
 		tools.Log.Info().Msgf("PlayBookTree: Ctrl+R request to run node")
@@ -272,4 +271,63 @@ func (t *Tui) commonKeyBindings(event *tcell.EventKey) *tcell.EventKey {
 	}
 
 	return event
+}
+
+func (t *Tui) closeAndSwitchPanel(removePanel, switchPanel string) {
+	t.pages.RemovePage(removePanel).ShowPage(mainPage)
+}
+
+func (t *Tui) displayInspect(data, title, page string) {
+	text := tview.NewTextView()
+	text.SetTitle(title).
+		SetTitleAlign(tview.AlignLeft)
+	text.SetBorder(true)
+	text.SetRegions(true)
+	text.SetDynamicColors(true)
+	text.SetText(data)
+	text.Write([]byte("\n[yellow]Press ESC to go back.[white]"))
+
+	// get the index of the current focused item
+	idx := t.Nav.GetCurrentFocusedIndex()
+	text.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEsc || event.Rune() == 'q' {
+			t.closeAndSwitchPanel("detail", page)
+			// reset the focus back again
+			t.Nav.SetCurrentFocusedIndex(idx)
+		}
+		return event
+	})
+
+	t.pages.AddAndSwitchToPage("detail", text, true)
+}
+
+func (t *Tui) InspectBlockExecution(requestID string) {
+	res, err := t.run.GetBlockExecutionResult(t.curNodeID, requestID)
+	if err != nil {
+		t.StatusErrorf("InspectBlockExecution: req-id: %s err = %v", requestID, err)
+		return
+	}
+
+	d := struct {
+		*graph.BlockExecutionResult
+		Stdout string `yaml:"stdout"`
+		Stderr string `yaml:"stderr"`
+	}{res, string(res.Stdout), string(res.Stderr)}
+	b, err := yaml.Marshal(&d)
+	if err != nil {
+		t.StatusErrorf("InspectBlockExecution: req-id: %s err = %v", requestID, err)
+		return
+	}
+
+	t.displayInspect(string(b), "Execution detail", "blocks")
+}
+
+func (t *Tui) InspectActivity(a *activity) {
+	b, err := yaml.Marshal(a)
+	if err != nil {
+		t.StatusErrorf("InspectActivity: yaml.Marshall err = %v", err)
+		return
+	}
+
+	t.displayInspect(string(b), "Activity", "activity")
 }

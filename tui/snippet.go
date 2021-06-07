@@ -22,13 +22,25 @@ func (s *snippetView) Refresh(view *graph.NodeView) {
 	s.Clear()
 	s.codeBlocks.clear()
 	s.updateDetailsContent(view.Node)
+	s.updateTitle(view.Node)
 }
 
-func (s *snippetView) NavHelp() string {
-	help := " ctrl+r: run code snippet, ctrl+e: edit the selected snippet"
-	navigate := " tab: select snippet or pane, shift+tab: previous snippet/pane"
-	navHelp := fmt.Sprintf(" commands \t| %s\n navigate \t| %s\n", help, navigate)
-	return navHelp
+func (b *snippetView) NavHelp() [][]string {
+	return [][]string{
+		{"Ctrl + E", "Edit selected code block"},
+		{"Ctrl + R", "Run selected node or code-block"},
+		{"Tab", "Navigate to the next pane"},
+		{"Shift + Tab", "Navigate to the previous pane"},
+	}
+}
+
+func (s *snippetView) updateTitle(n *graph.Node) {
+	if n == nil {
+		s.SetTitle("")
+		return
+	}
+
+	s.SetTitle(fmt.Sprintf("Node: %s (%s)", n.Title, n.ID))
 }
 
 func (s *snippetView) updateDetailsContent(n *graph.Node) {
@@ -196,7 +208,7 @@ func (s *snippetView) setDoneFn() {
 
 func newSnippetView(rootUI *Tui) *snippetView {
 	s := &snippetView{
-		detailView:      newDetailView("selected snippet", true, rootUI),
+		detailView:      newDetailView("", true, rootUI),
 		codeBlocks:      newBlockIndex(),
 		selectedBlockID: noBlock,
 	}

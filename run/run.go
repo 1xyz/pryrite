@@ -135,6 +135,19 @@ func (r *Run) GetBlock(nodeID, blockID string) (*graph.Block, error) {
 	return block, nil
 }
 
+// GetBlockExecutionResult retrieves the execution result for the specified requestID within that node
+func (r *Run) GetBlockExecutionResult(nodeID, requestID string) (*graph.BlockExecutionResult, error) {
+	execResults, found := r.ExecIndex.Get(nodeID)
+	if !found {
+		return nil, fmt.Errorf("node %s not found", nodeID)
+	}
+	result, found := execResults.Find(requestID)
+	if !found {
+		return nil, fmt.Errorf("request=%s not found in node=%s", requestID, nodeID)
+	}
+	return result, nil
+}
+
 // ExecuteNode executes all code blocks in the context of this node
 // If any block fails executions, ExecuteNode will return an error and not continue executing
 func (r *Run) ExecuteNode(n *graph.Node, stdout, stderr io.Writer) error {
@@ -172,12 +185,12 @@ func (r *Run) ExecuteBlock(n *graph.Node, b *graph.Block, stdout, stderr io.Writ
 	executionID := r.ID
 	nodeID := n.ID
 	blockID := b.ID
-	reqID := uuid.NewString()
+	reqID := tools.RandAlphaNumericStr(8)
 	tools.Log.Info().Msgf("ExecuteBlock: execn-id; %s node:%s block:%s content-type:%v req-id:%s",
 		executionID, nodeID, blockID, contentType, reqID)
 
 	// Define a new execution result
-	execResult := graph.NewBlockExecutionResult(executionID, nodeID, blockID, reqID, executedBy)
+	execResult := graph.NewBlockExecutionResult(executionID, nodeID, blockID, reqID, executedBy, b.Content)
 	defer func() {
 		// This can take a while for rendering large captures…
 		if _, err := io.Copy(stdout, bytes.NewBuffer(execResult.Stdout)); err != nil {
@@ -196,6 +209,10 @@ func (r *Run) ExecuteBlock(n *graph.Node, b *graph.Block, stdout, stderr io.Writ
 	outWriter := tools.NewBufferedWriteCloser(io.MultiWriter(execResult.StdoutWriter, stdout))
 	errWriter := tools.NewBufferedWriteCloser(io.MultiWriter(execResult.StderrWriter, stderr))
 
+	startMarker := fmt.Sprintf("\n[yellow]>> executing node:%s[white]\n", nodeID)
+	outWriter.Write([]byte(startMarker))
+	cmdInfo := fmt.Sprintf("[yellow]>> %s[white]\n", b.Content)
+	outWriter.Write([]byte(cmdInfo))
 	req := &executor.ExecRequest{
 		Hdr:     &executor.RequestHdr{ID: reqID, ExecutionID: executionID, NodeID: nodeID},
 		Content: []byte(b.Content),

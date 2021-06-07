@@ -1,7 +1,6 @@
 package tui
 
 import (
-	"fmt"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -15,10 +14,11 @@ type detailView struct {
 	rootUI *Tui
 }
 
-func (e *detailView) NavHelp() string {
-	navigate := " tab: next pane, shift+tab: previous pane"
-	navHelp := fmt.Sprintf("navigate \t| %s\n", navigate)
-	return navHelp
+func (e *detailView) NavHelp() [][]string {
+	return [][]string{
+		{"Tab", "Navigate to the next pane"},
+		{"Shift + Tab", "Navigate to the previous pane"},
+	}
 }
 
 func newDetailView(title string, showBorder bool, rootUI *Tui) *detailView {
