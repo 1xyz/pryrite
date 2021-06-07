@@ -41,7 +41,11 @@ func (c *Config) Get(name string) (*Entry, bool) {
 }
 
 func (c *Config) GetDefaultEntry() (*Entry, bool) {
-	return c.Get(c.DefaultEntry)
+	cfg := os.Getenv("AARDY_CONFIG")
+	if cfg == "" {
+		cfg = c.DefaultEntry
+	}
+	return c.Get(cfg)
 }
 
 func (c *Config) Set(e *Entry) error {
