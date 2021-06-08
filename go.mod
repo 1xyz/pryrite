@@ -10,7 +10,6 @@ require (
 	github.com/creack/pty v1.1.11
 	github.com/cristalhq/jwt/v3 v3.0.14
 	github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815
-	github.com/dustin/go-humanize v1.0.0
 	github.com/gdamore/tcell/v2 v2.3.3
 	github.com/go-resty/resty/v2 v2.5.0
 	github.com/google/uuid v1.2.0

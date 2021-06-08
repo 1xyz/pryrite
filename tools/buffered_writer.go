@@ -72,20 +72,31 @@ func (bw *BufferedWriteCloser) readWriter() {
 
 	data := make([]byte, 65536)
 
-	// condition needs to be locked before waiting, which will be automatically
-	// unlocked while waiting and locked when woken up by a signal
-	bw.cond.L.Lock()
-
 	for {
+		// this must be locked before waiting, which will be automatically
+		// unlocked while waiting and locked when woken up by a signal
+		bw.cond.L.Lock()
 		bw.cond.Wait()
+
+		needLock := false
 		moreToRead := true
+
 		for moreToRead {
+			if needLock {
+				// only occurs when we're looping to drain the reader buf
+				bw.cond.L.Lock()
+			}
+
 			n, err := bw.buf.Read(data)
+			// unlock ASAP to make sure the writes to the buffer can continue
+			// since our writer below might be slow
+			bw.cond.L.Unlock()
+			needLock = true
 			if err != nil {
-				// do not return if this is EOF unless we were asked to flush and this is our "done" cycle
+				// do not return if this is EOF unless we were asked to flush
+				// and this is our "done" cycle
 				if err != io.EOF || bw.readWriterFlush {
 					bw.readWriterErr = err
-					bw.cond.L.Unlock()
 					return
 				}
 
@@ -96,7 +107,6 @@ func (bw *BufferedWriteCloser) readWriter() {
 				_, err = bw.Writer.Write(data[0:n])
 				if err != nil {
 					bw.readWriterErr = err
-					bw.cond.L.Unlock()
 					return
 				}
 

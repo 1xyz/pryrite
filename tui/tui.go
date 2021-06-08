@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/run"
 	"github.com/aardlabs/terminal-poc/snippet"
@@ -110,6 +111,7 @@ func (t *Tui) UpdateCurrentNodeID(nodeID string) error {
 	return t.Refresh()
 }
 
+// NOTE: this must never be run directly on a child goroutine (it will clash with Draw)
 func (t *Tui) Refresh() error {
 	if t.curNodeID == "" {
 		// clear out the views
@@ -131,6 +133,15 @@ func (t *Tui) Refresh() error {
 	//t.execResView.Refresh(execResults)
 	t.consoleView.Refresh(execResults)
 	return nil
+}
+
+// This is safe to run outside of the main goroutine
+func (t *Tui) QueueRefresh(location string) {
+	t.App.QueueUpdateDraw(func() {
+		if err := t.Refresh(); err != nil {
+			t.StatusErrorf("%s: Refresh: err = %v", location, err)
+		}
+	})
 }
 
 func (t *Tui) SetCurrentNodeView(nodeView *graph.NodeView) {
@@ -186,10 +197,8 @@ func (t *Tui) ExecuteSelectedBlock(blockID string) error {
 		return err
 	}
 
-	if err := t.Refresh(); err != nil {
-		t.StatusErrorf("ExecuteSelectedBlock: Refresh: err = %v", err)
-		return err
-	}
+	t.QueueRefresh("ExecuteSelectedBlock")
+
 	return nil
 }
 
@@ -208,9 +217,8 @@ func (t *Tui) ExecuteCurrentNode() error {
 		return err
 	}
 
-	if err := t.Refresh(); err != nil {
-		return err
-	}
+	t.QueueRefresh("ExecuteCurrentNode")
+
 	return nil
 }
 

@@ -5,13 +5,14 @@ import (
 	"container/list"
 	"context"
 	"fmt"
+	"io"
+	"strings"
+
 	executor "github.com/aardlabs/terminal-poc/executors"
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/snippet"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/google/uuid"
-	"io"
-	"strings"
 )
 
 // Run encapsulates a playbook's execution
@@ -29,16 +30,16 @@ type Run struct {
 	Root *graph.NodeView
 
 	// NodeViews indexed by NodeID
-	ViewIndex NodeViewIndex
+	ViewIndex *NodeViewIndex
 
 	// NodeExecutionResult indexed by NodeID
-	ExecIndex NodeExecResultIndex
+	ExecIndex *NodeExecResultIndex
 
 	// Store refers to the graph store
 	Store graph.Store
 
 	// Register is the execution library
-	Register executor.Register
+	Register *executor.Register
 }
 
 // NewRun constructs a new run for the provided playbook for the
@@ -63,8 +64,8 @@ func NewRun(gCtx *snippet.Context, playbookIDOrURL string) (*Run, error) {
 		ID:         uuid.New().String(),
 		PlaybookID: id,
 		Root:       nil,
-		ViewIndex:  make(NodeViewIndex),
-		ExecIndex:  make(NodeExecResultIndex),
+		ViewIndex:  NewNodeViewIndex(),
+		ExecIndex:  NewNodeExecResultIndex(),
 		Store:      store,
 		Register:   register,
 	}
