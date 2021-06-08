@@ -33,7 +33,7 @@ func AuthUser(entry *config.Entry, serviceUrl string) error {
 	tools.Log.Info().Msgf("AuthUser serviceURL=%s loginURL=%s", serviceUrl, loginUrl)
 
 	if entry.SkipSSLCheck {
-		tools.LogStdout("Warning: SSL check is disabled")
+		tools.Log.Warn().Msg("Warning: SSL check is disabled")
 	}
 	client := &http.Client{
 		Transport: &http.Transport{

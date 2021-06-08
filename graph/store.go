@@ -167,9 +167,10 @@ func (r *remoteStore) SearchNodes(query string, limit int, kind Kind) ([]Node, e
 	req := client.R().
 		SetQueryParams(map[string]string{
 			//"Kind":  "PageOpen", // query either PageOpen or PageClose events for now
-			"Q":     query,
-			"Limit": strconv.Itoa(limit),
-			"Kind":  kindStr,
+			"Q":       query,
+			"Limit":   strconv.Itoa(limit),
+			"Kind":    kindStr,
+			"Include": "blocks",
 		}).
 		SetHeader("Accept", "application/json")
 
@@ -213,7 +214,7 @@ func (r *remoteStore) UpdateNodeBlock(n *Node, b *Block) error {
 func (r *remoteStore) newHTTPClient(parseResponse bool) *resty.Client {
 	skipSSLCheck := r.configEntry.SkipSSLCheck
 	if skipSSLCheck {
-		tools.LogStdout("Warning! SSL check is disabled")
+		tools.Log.Warn().Msg("Warning: SSL check is disabled")
 	}
 
 	client := resty.New()

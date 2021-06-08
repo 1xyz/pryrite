@@ -2,13 +2,13 @@ package kmd
 
 import (
 	"fmt"
-	"os"
-	"strings"
-
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/snippet"
 	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/aardlabs/terminal-poc/tui/explorer"
 	"github.com/spf13/cobra"
+	"os"
+	"strings"
 )
 
 type SnippetListOpts struct {
@@ -57,9 +57,21 @@ func NewCmdSnippetSearch(gCtx *snippet.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if err := snippet.RenderSnippetNodes(gCtx.ConfigEntry, nodes, kind); err != nil {
+
+			nodePtrs := make([]*graph.Node, len(nodes))
+			for i := 0; i < len(nodes); i++ {
+				nodePtrs[i] = &nodes[i]
+			}
+			searchUI, err := explorer.NewUI(gCtx, query, nodePtrs)
+			if err != nil {
 				return err
 			}
+			if err := searchUI.Run(); err != nil {
+				return err
+			}
+			//if err := snippet.RenderSnippetNodes(gCtx.ConfigEntry, nodes, kind); err != nil {
+			//	return err
+			//}
 			return nil
 		},
 	}
