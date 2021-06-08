@@ -62,7 +62,9 @@ func NewCmdSnippetSearch(gCtx *snippet.Context) *cobra.Command {
 			for i := 0; i < len(nodes); i++ {
 				nodePtrs[i] = &nodes[i]
 			}
-			searchUI, err := explorer.NewUI(gCtx, query, nodePtrs)
+
+			borderTitle := "Search: " + tools.TrimLength(query, 15)
+			searchUI, err := explorer.NewUI(gCtx, "nodes", borderTitle, nodePtrs)
 			if err != nil {
 				return err
 			}

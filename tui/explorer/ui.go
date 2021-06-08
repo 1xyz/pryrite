@@ -4,6 +4,8 @@ import (
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/snippet"
 	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/aardlabs/terminal-poc/tui/common"
+	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
@@ -12,11 +14,12 @@ type UI struct {
 	grid *tview.Grid
 
 	explorer *NodeExplorer
-	query    string
 
 	nodeTreeView *nodeTreeView
 	navView      *navView
 	statusView   *statusView
+	contentView  *contentView
+	navigator    *common.Navigator
 }
 
 func (u *UI) Run() error {
@@ -50,7 +53,23 @@ func (u *UI) StatusErrorf(format string, v ...interface{}) {
 	u.statusView.Errorf(format, v)
 }
 
-func NewUI(gCtx *snippet.Context, query string, nodes []*graph.Node) (*UI, error) {
+func (u *UI) SetContentNode(n *graph.Node) {
+	u.contentView.SetNode(n)
+}
+
+func (u *UI) SetContentBlock(b *graph.Block) {
+	u.contentView.SetBlock(b)
+}
+
+func (u *UI) Navigate(key tcell.Key) {
+	u.navigator.Navigate(key)
+	n, ok := u.navigator.CurrentFocusedItem()
+	if ok {
+		u.SetNavHelp(n.NavHelp())
+	}
+}
+
+func NewUI(gCtx *snippet.Context, title, borderTitle string, nodes []*graph.Node) (*UI, error) {
 	explorer, err := NewNodeExplorer(gCtx, nodes)
 	if err != nil {
 		return nil, err
@@ -59,24 +78,28 @@ func NewUI(gCtx *snippet.Context, query string, nodes []*graph.Node) (*UI, error
 	app := tview.NewApplication()
 	ui := &UI{
 		app:      app,
-		query:    query,
 		explorer: explorer,
 	}
 
-	entriesView, err := newNodeTreeView(ui, nodes, "Search result")
+	entriesView, err := newNodeTreeView(ui, nodes, title, borderTitle)
 	if err != nil {
 		return nil, err
 	}
 	ui.nodeTreeView = entriesView
 	ui.navView = newNavView(ui)
 	ui.statusView = newStatusView(ui)
-
+	ui.contentView = newContentView(ui)
+	ui.navigator = &common.Navigator{
+		RootUI:  ui.app,
+		Entries: []common.Navigable{ui.nodeTreeView, ui.contentView},
+	}
 	ui.grid = tview.NewGrid().
-		SetRows(-10, 0, 2).
+		SetRows(-2, 0, 2).
 		SetColumns(-4, 0).
 		AddItem(ui.nodeTreeView, 0, 0, 1, 1, 0, 0, true).
-		AddItem(ui.navView, 0, 1, 3, 1, 0, 0, false).
-		AddItem(ui.statusView, 2, 0, 1, 2, 0, 0, false)
+		AddItem(ui.navView, 0, 1, 1, 1, 0, 0, false).
+		AddItem(ui.contentView, 1, 0, 1, 1, 0, 0, false).
+		AddItem(ui.statusView, 2, 0, 1, 1, 0, 0, false)
 
 	ui.app.SetRoot(ui.grid, true)
 	return ui, nil

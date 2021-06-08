@@ -20,6 +20,7 @@ type nodeTreeView struct {
 
 func (view *nodeTreeView) addCodeBlock(root *tview.TreeNode, b *graph.Block) {
 	title := strings.TrimSpace(b.Content)
+	title = tools.TrimLength(title, 30)
 	tn := tview.NewTreeNode(title).
 		SetReference(b).
 		SetSelectable(true)
@@ -29,6 +30,7 @@ func (view *nodeTreeView) addCodeBlock(root *tview.TreeNode, b *graph.Block) {
 
 func (view *nodeTreeView) addNode(root *tview.TreeNode, n *graph.Node) {
 	title := strings.TrimSpace(n.Title)
+	title = tools.TrimLength(title, 30)
 	tn := tview.NewTreeNode(title).
 		SetReference(n).
 		SetSelectable(true)
@@ -58,6 +60,7 @@ func (view *nodeTreeView) buildTree(nodes []*graph.Node) error {
 	view.setupSelection()
 	view.setupChangeNavigation()
 	view.setupInputCapture()
+	view.SetDoneFunc(view.rootUI.Navigate)
 	return nil
 }
 
@@ -71,29 +74,46 @@ func (view *nodeTreeView) setupChangeNavigation() {
 			return
 		}
 
-		isBlock := false
-		if _, ok := ref.(*graph.Block); ok {
-			isBlock = true
-		}
+		navhelp := view.getNavHelp(tn)
+		view.rootUI.SetNavHelp(navhelp)
 
-		if len(tn.GetChildren()) > 0 {
-			view.rootUI.SetNavHelp([][]string{
-				{"ctrl + R", "open this node in runner"},
-				{"i", "inspect this node"},
-				{"up/down", "navigate through this tree"},
-			})
-		} else if isBlock {
-			view.rootUI.SetNavHelp([][]string{
-				{"Enter", "execute this code snippet in the shell"},
-				{"Ctrl + Space", "print code snippet to stdout"},
-				{"up/down", "navigate through this tree"},
-			})
-		} else {
-			view.rootUI.SetNavHelp([][]string{
-				{"up/down", "navigate through this tree"},
-			})
+		b, isBlock := ref.(*graph.Block)
+		n, isNode := ref.(*graph.Node)
+
+		if isBlock {
+			view.rootUI.SetContentBlock(b)
+		} else if isNode {
+			view.rootUI.SetContentNode(n)
 		}
 	})
+}
+
+func (view *nodeTreeView) getNavHelp(tn *tview.TreeNode) [][]string {
+	ref := tn.GetReference()
+	if ref == nil {
+		view.rootUI.SetNavHelp([][]string{
+			{"up/down", "navigate through this tree"},
+		})
+		return [][]string{}
+	}
+
+	_, isBlock := ref.(*graph.Block)
+	if len(tn.GetChildren()) > 0 {
+		return [][]string{
+			{"ctrl + R", "run this node"},
+			{"up/down", "navigate through this tree"},
+		}
+	} else if isBlock {
+		return [][]string{
+			{"Enter", "Execute code snippet in bash"},
+			{"Ctrl + Space", "print code snippet to stdout"},
+			{"up/down", "navigate through this tree"},
+		}
+	} else {
+		return [][]string{
+			{"up/down", "navigate through this tree"},
+		}
+	}
 }
 
 func (view *nodeTreeView) setupSelection() {
@@ -168,7 +188,11 @@ func (view *nodeTreeView) execute(b *graph.Block) error {
 	return syscall.Exec(binary, []string{"bash", "-c", b.Content}, env)
 }
 
-func newNodeTreeView(rootUI *UI, nodes []*graph.Node, title string) (*nodeTreeView, error) {
+func (view *nodeTreeView) NavHelp() [][]string {
+	return view.getNavHelp(view.GetCurrentNode())
+}
+
+func newNodeTreeView(rootUI *UI, nodes []*graph.Node, title, mainTitle string) (*nodeTreeView, error) {
 	view := &nodeTreeView{
 		TreeView: tview.NewTreeView(),
 		rootUI:   rootUI,
@@ -176,6 +200,11 @@ func newNodeTreeView(rootUI *UI, nodes []*graph.Node, title string) (*nodeTreeVi
 	}
 	if err := view.buildTree(nodes); err != nil {
 		return nil, err
+	}
+	view.SetBorder(true)
+	view.SetBorderColor(tcell.ColorDarkCyan)
+	if len(mainTitle) > 0 {
+		view.SetTitle(mainTitle)
 	}
 	return view, nil
 }
