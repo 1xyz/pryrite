@@ -2,7 +2,6 @@ package snippet
 
 import (
 	"fmt"
-	"github.com/charmbracelet/glamour"
 	"io"
 	"os"
 	"strings"
@@ -33,6 +32,7 @@ func RenderSnippetNodeView(entry *config.Entry, nv *graph.NodeView) error {
 	nr := &nodeRender{
 		view:       nv,
 		serviceURL: getServiceURL(entry),
+		style:      entry.Style,
 	}
 	nr.Render()
 	return nil
@@ -59,6 +59,7 @@ func getServiceURL(entry *config.Entry) string {
 type nodeRender struct {
 	view       *graph.NodeView
 	serviceURL string
+	style      string
 }
 
 func (nr *nodeRender) Render() {
@@ -88,17 +89,17 @@ func (nr *nodeRender) renderNodeView(nv *graph.NodeView, w io.Writer) {
 	t.AppendSeparator()
 	t.Render()
 
-	tr, err := glamour.NewTermRenderer(glamour.WithStylePath("notty"))
+	mr, err := NewMarkdownRenderer(nr.style)
 	if err != nil {
 		tools.LogStderr(err, "renderNodeView: NewTermRender:")
 		return
 	}
-	out, err := tr.Render(nv.Node.Markdown)
+	out, err := mr.Render(nv.Node.Markdown)
 	if err != nil {
 		tools.LogStderr(err, "renderNodeView: tr.Render(node.Markdown):")
 		return
 	}
-	if _, err := fmt.Fprintf(w, out); err != nil {
+	if _, err := fmt.Fprint(w, out); err != nil {
 		tools.LogStderr(err, "renderNodeView: fmt.Fprintf(w, out):")
 		return
 	}

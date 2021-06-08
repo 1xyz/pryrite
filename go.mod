@@ -16,10 +16,12 @@ require (
 	github.com/jedib0t/go-pretty/v6 v6.1.0
 	github.com/mattn/go-runewidth v0.0.12 // indirect
 	github.com/muesli/reflow v0.2.1-0.20210115123740-9e1d0d53df68 // indirect
+	github.com/muesli/termenv v0.8.1
 	github.com/rivo/tview v0.0.0-20210521091241-1fd4a5b7aab3
 	github.com/rs/zerolog v1.21.0
 	github.com/spf13/cobra v1.1.3
 	github.com/stretchr/testify v1.7.0 // indirect
+	github.com/yuin/goldmark v1.3.3
 	golang.org/x/term v0.0.0-20210503060354-a79de5458b56
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/yaml.v2 v2.4.0

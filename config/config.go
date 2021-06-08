@@ -25,6 +25,7 @@ type Entry struct {
 	Email        string `yaml:"email"`
 	ClientID     string `yaml:"client_id"`
 	SkipSSLCheck bool   `yaml:"skip_ssl_check"`
+	Style        string `yaml:"style"`
 }
 
 type Config struct {
