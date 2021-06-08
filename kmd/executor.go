@@ -14,9 +14,10 @@ import (
 func NewCmdExecutor() *cobra.Command {
 	var timeout time.Duration
 	cmd := &cobra.Command{
-		Use:   "exec",
-		Short: "Execute",
-		Args:  MinimumArgs(2, "You need to specify something to execute"),
+		Hidden: true,
+		Use:    "exec",
+		Short:  "Execute",
+		Args:   MinimumArgs(2, "You need to specify something to execute"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			register, err := executor.NewRegister()
 			if err != nil {

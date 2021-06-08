@@ -5,13 +5,16 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 )
 
-type Register map[ContentType]Executor
+type Register struct {
+	sync.Map
+}
 
-func NewRegister() (Register, error) {
-	r := Register{}
+func NewRegister() (*Register, error) {
+	r := &Register{}
 
 	e, err := NewBashExecutor()
 	if err != nil {
@@ -23,12 +26,11 @@ func NewRegister() (Register, error) {
 	return r, nil
 }
 
-func (r Register) Register(executor Executor) error {
+func (r *Register) Register(executor Executor) error {
 	for _, c := range executor.ContentTypes() {
-		if entry, found := r[c]; found {
-			return fmt.Errorf("an entry %s for content-type exists %v", c, entry.Name())
+		if entry, loaded := r.LoadOrStore(c, executor); loaded {
+			return fmt.Errorf("an entry %s for content-type exists %v", c, entry.(Executor).Name())
 		}
-		r[c] = executor
 	}
 
 	// do our best to kill/reap children when interrupted
@@ -43,15 +45,15 @@ func (r Register) Register(executor Executor) error {
 	return nil
 }
 
-func (r Register) Get(contentType ContentType) (Executor, error) {
-	executor, found := r[contentType]
-	if !found {
+func (r *Register) Get(contentType ContentType) (Executor, error) {
+	executor, ok := r.Load(contentType)
+	if !ok {
 		return nil, fmt.Errorf("no executor found for contentType=%s", contentType)
 	}
-	return executor, nil
+	return executor.(Executor), nil
 }
 
-func (r Register) Execute(ctx context.Context, req *ExecRequest) *ExecResponse {
+func (r *Register) Execute(ctx context.Context, req *ExecRequest) *ExecResponse {
 	contentType := req.ContentType
 	executor, err := r.Get(contentType)
 	if err != nil {
@@ -64,8 +66,9 @@ func (r Register) Execute(ctx context.Context, req *ExecRequest) *ExecResponse {
 	return executor.Execute(ctx, req)
 }
 
-func (r Register) Cleanup() {
-	for _, executor := range r {
-		executor.Cleanup()
-	}
+func (r *Register) Cleanup() {
+	r.Range(func(_ interface{}, executor interface{}) bool {
+		executor.(Executor).Cleanup()
+		return true
+	})
 }

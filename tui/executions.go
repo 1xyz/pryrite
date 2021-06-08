@@ -1,12 +1,13 @@
 package tui
 
 import (
+	"strconv"
+
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/run"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"gopkg.in/yaml.v2"
-	"strconv"
 )
 
 type executionsView struct {
@@ -31,7 +32,7 @@ func newExecutionsView(root *Tui) *executionsView {
 	return view
 }
 
-func (b *executionsView) Refresh(results run.BlockExecutionResults) {
+func (b *executionsView) Refresh(results *run.BlockExecutionResults) {
 	table := b.Clear()
 	if results == nil {
 		return
@@ -59,8 +60,7 @@ func (b *executionsView) Refresh(results run.BlockExecutionResults) {
 	}
 
 	j := 1
-	for i := len(results) - 1; i >= 0; i-- {
-		r := results[i]
+	results.EachFromEnd(func(_ int, r *graph.BlockExecutionResult) bool {
 		showColor := tcell.ColorGreen
 		if r.Err != nil || r.ExitStatus > 0 {
 			showColor = tcell.ColorRed
@@ -114,7 +114,9 @@ func (b *executionsView) Refresh(results run.BlockExecutionResults) {
 			SetMaxWidth(1).
 			SetExpansion(1))
 		j++
-	}
+
+		return true
+	})
 }
 
 func (b *executionsView) setKeybinding() {

@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/run"
 )
 
@@ -9,19 +10,20 @@ type consoleView struct {
 	*detailView
 }
 
-func (c *consoleView) Refresh(results run.BlockExecutionResults) {
+func (c *consoleView) Refresh(results *run.BlockExecutionResults) {
 	c.Clear()
-	if results == nil || len(results) == 0 {
+	if results == nil || results.Len() == 0 {
 		return
 	}
-	for i, res := range results {
+	results.Each(func(i int, res *graph.BlockExecutionResult) bool {
 		if err := c.writeBytes(res.Stdout); err != nil {
 			c.rootUI.StatusErrorf("[%d] Refresh: writeBytes(stdout): err = %v\n", i, err)
 		}
 		if err := c.writeBytes(res.Stderr); err != nil {
 			c.rootUI.StatusErrorf("[%d] Refresh: writeBytes(stderr): err = %v\n", i, err)
 		}
-	}
+		return true
+	})
 }
 
 func (c *consoleView) writeBytes(p []byte) error {

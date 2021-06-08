@@ -11,10 +11,11 @@ type TableRender struct {
 }
 
 func (tr *TableRender) Render() {
+	defEntry, _ := tr.Config.GetDefaultEntry()
 	data := make([]table.Row, 0)
 	for _, entry := range tr.Config.Entries {
 		defaultStr := "[ ]"
-		if entry.Name == tr.Config.DefaultEntry {
+		if entry.Name == defEntry.Name {
 			defaultStr = "[*]"
 		}
 		row := table.Row{entry.Name, entry.ServiceUrl, entry.Email, defaultStr}
