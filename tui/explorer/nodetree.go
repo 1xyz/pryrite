@@ -28,7 +28,7 @@ func (view *nodeTreeView) addCodeBlock(root *tview.TreeNode, b *graph.Block) {
 	root.AddChild(tn)
 }
 
-func (view *nodeTreeView) addNode(root *tview.TreeNode, n *graph.Node) {
+func (view *nodeTreeView) addNode(root *tview.TreeNode, n *graph.Node) *tview.TreeNode {
 	title := strings.TrimSpace(n.Title)
 	title = tools.TrimLength(title, 30)
 	tn := tview.NewTreeNode(title).
@@ -46,6 +46,7 @@ func (view *nodeTreeView) addNode(root *tview.TreeNode, n *graph.Node) {
 		}
 	}
 	root.AddChild(tn)
+	return tn
 }
 
 func (view *nodeTreeView) buildTree(nodes []*graph.Node) error {

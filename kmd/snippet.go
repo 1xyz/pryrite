@@ -16,6 +16,7 @@ type SnippetListOpts struct {
 	ShowAllKind bool
 	User        string
 	IsMine      bool
+	interactive bool
 }
 
 func NewCmdSnippetSearch(gCtx *snippet.Context) *cobra.Command {
@@ -101,6 +102,9 @@ func NewCmdSnippetList(gCtx *snippet.Context) *cobra.Command {
             To list the most recently created snippets, run:
               $ {AppName} list
 
+            To list in an interactive UI, run:
+              $ {AppName} list -i
+
             To list the most recent "n=100" snippets, run:
               $ {AppName} list -n 100
 
@@ -123,8 +127,23 @@ func NewCmdSnippetList(gCtx *snippet.Context) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if err := snippet.RenderSnippetNodes(gCtx.ConfigEntry, nodes, kind); err != nil {
-				return err
+			if opts.interactive {
+				nodePtrs := make([]*graph.Node, len(nodes))
+				for i := 0; i < len(nodes); i++ {
+					nodePtrs[i] = &nodes[i]
+				}
+
+				listUI, err := explorer.NewUI(gCtx, "nodes", "Node listing", nodePtrs)
+				if err != nil {
+					return err
+				}
+				if err := listUI.Run(); err != nil {
+					return err
+				}
+			} else {
+				if err := snippet.RenderSnippetNodes(gCtx.ConfigEntry, nodes, kind); err != nil {
+					return err
+				}
 			}
 			return nil
 		},
@@ -133,10 +152,13 @@ func NewCmdSnippetList(gCtx *snippet.Context) *cobra.Command {
 		100, "Limit the number of results to display")
 	cmd.Flags().BoolVarP(&opts.ShowAllKind, "all-kinds", "a",
 		false, "include all kinds of snippets")
+	cmd.Flags().BoolVarP(&opts.interactive, "interactive", "i",
+		false, "show an interactive UI for listing")
 	return cmd
 }
 
 func NewCmdSnippetDesc(gCtx *snippet.Context) *cobra.Command {
+	interactive := false
 	cmd := &cobra.Command{
 		Use:   "describe <name>",
 		Short: "Describe the specified Snippet",
@@ -166,12 +188,27 @@ func NewCmdSnippetDesc(gCtx *snippet.Context) *cobra.Command {
 				return err
 			}
 
-			if err := snippet.RenderSnippetNodeView(gCtx.ConfigEntry, view); err != nil {
-				return err
+			if interactive {
+				nodePtrs := make([]*graph.Node, 1)
+				nodePtrs[0] = view.Node
+
+				ui, err := explorer.NewUI(gCtx, "nodes", "Node listing", nodePtrs)
+				if err != nil {
+					return err
+				}
+				if err := ui.Run(); err != nil {
+					return err
+				}
+			} else {
+				if err := snippet.RenderSnippetNodeView(gCtx.ConfigEntry, view); err != nil {
+					return err
+				}
 			}
 			return nil
 		},
 	}
+	cmd.Flags().BoolVarP(&interactive, "interactive", "i",
+		false, "show an interactive UI for the described node")
 	return cmd
 }
 
