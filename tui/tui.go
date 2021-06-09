@@ -165,8 +165,8 @@ func (t *Tui) setFocusedItem() {
 	t.navHelp.Refresh(n)
 }
 
-func (t *Tui) StatusErrorf(format string, v ...interface{}) { t.activityView.Log(Error, format, v) }
-func (t *Tui) StatusInfof(format string, v ...interface{})  { t.activityView.Log(Info, format, v) }
+func (t *Tui) StatusErrorf(format string, v ...interface{}) { t.activityView.Log(Error, format, v...) }
+func (t *Tui) StatusInfof(format string, v ...interface{})  { t.activityView.Log(Info, format, v...) }
 func (t *Tui) GetContext() *snippet.Context                 { return t.gCtx }
 
 func (t *Tui) GetBlock(blockID string) (*graph.Block, error) {

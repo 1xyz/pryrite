@@ -39,6 +39,7 @@ func (b *executionsView) Refresh(results *run.BlockExecutionResults) {
 	}
 
 	headers := []string{
+		"#",
 		"Block Id",
 		"Request Id",
 		"Code Snippet",
@@ -60,63 +61,69 @@ func (b *executionsView) Refresh(results *run.BlockExecutionResults) {
 	}
 
 	j := 1
-	results.EachFromEnd(func(_ int, r *graph.BlockExecutionResult) bool {
+	results.Each(func(_ int, r *graph.BlockExecutionResult) bool {
 		showColor := tcell.ColorGreen
 		if r.Err != nil || r.ExitStatus > 0 {
 			showColor = tcell.ColorRed
 		}
 
-		table.SetCell(j, 0, tview.NewTableCell(r.BlockID).
+		table.SetCell(j, 0, tview.NewTableCell(strconv.Itoa(j)).
 			SetTextColor(showColor).
 			SetMaxWidth(1).
 			SetExpansion(1))
 
-		table.SetCell(j, 1, tview.NewTableCell(r.RequestID).
+		table.SetCell(j, 1, tview.NewTableCell(r.BlockID).
 			SetTextColor(showColor).
-			SetMaxWidth(1).
-			SetExpansion(1))
+			SetMaxWidth(4).
+			SetExpansion(4))
 
-		table.SetCell(j, 2, tview.NewTableCell(r.Content).
+		table.SetCell(j, 2, tview.NewTableCell(r.RequestID).
 			SetTextColor(showColor).
-			SetMaxWidth(1).
-			SetExpansion(1))
+			SetMaxWidth(4).
+			SetExpansion(4))
 
-		table.SetCell(j, 3, tview.NewTableCell(strconv.Itoa(r.ExitStatus)).
+		table.SetCell(j, 3, tview.NewTableCell(r.Content).
 			SetTextColor(showColor).
-			SetMaxWidth(1).
-			SetExpansion(1))
+			SetMaxWidth(15).
+			SetExpansion(15))
+
+		table.SetCell(j, 4, tview.NewTableCell(strconv.Itoa(r.ExitStatus)).
+			SetTextColor(showColor).
+			SetMaxWidth(4).
+			SetExpansion(4))
 
 		errStr := "N/A"
-		expansion := 1
+		expansion := 5
 		if r.Err != nil {
 			errStr = r.Err.Error()
-			expansion = 2
+			expansion = 15
 		} else if r.Stderr != nil && len(r.Stderr) > 0 {
 			errStr = string(r.Stderr)
-			expansion = 2
+			expansion = 15
 		}
-		table.SetCell(j, 4, tview.NewTableCell(errStr).
+		table.SetCell(j, 5, tview.NewTableCell(errStr).
 			SetTextColor(showColor).
-			SetMaxWidth(1).
+			SetMaxWidth(5).
 			SetExpansion(expansion))
 
 		executedAt := "N/A"
 		if r.ExecutedAt != nil {
 			executedAt = r.ExecutedAt.Format("2006/01/02 15:04:05")
 		}
-		table.SetCell(j, 5, tview.NewTableCell(executedAt).
+		table.SetCell(j, 6, tview.NewTableCell(executedAt).
 			SetTextColor(showColor).
-			SetMaxWidth(1).
-			SetExpansion(1))
+			SetMaxWidth(4).
+			SetExpansion(4))
 
-		table.SetCell(j, 6, tview.NewTableCell(r.ExecutedBy).
+		table.SetCell(j, 7, tview.NewTableCell(r.ExecutedBy).
 			SetTextColor(showColor).
-			SetMaxWidth(1).
-			SetExpansion(1))
+			SetMaxWidth(4).
+			SetExpansion(4))
+		table.Select(j, 0)
 		j++
-
 		return true
 	})
+	b.ScrollToEnd()
 }
 
 func (b *executionsView) setKeybinding() {
@@ -124,7 +131,7 @@ func (b *executionsView) setKeybinding() {
 		switch event.Key() {
 		case tcell.KeyEnter:
 			r, _ := b.GetSelection()
-			requestID := b.GetCell(r, 1).Text
+			requestID := b.GetCell(r, 2).Text
 			b.rootUI.InspectBlockExecution(requestID)
 		}
 		return event
