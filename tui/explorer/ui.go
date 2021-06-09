@@ -24,14 +24,6 @@ type UI struct {
 	infoView     *infoView
 }
 
-func (u *UI) Run() error {
-	return u.app.Run()
-}
-
-func (u *UI) Stop() {
-	u.app.Stop()
-}
-
 func (u *UI) GetChildren(nodeID string) []*graph.Node {
 	children, err := u.explorer.GetChildren(nodeID)
 	if err != nil {
@@ -43,14 +35,16 @@ func (u *UI) GetChildren(nodeID string) []*graph.Node {
 	return children
 }
 
-func (u *UI) SetNavHelp(entries [][]string)  { u.navView.setHelp(entries) }
-func (u *UI) SetContentNode(n *graph.Node)   { u.contentView.SetNode(n) }
-func (u *UI) SetContentBlock(b *graph.Block) { u.contentView.SetBlock(b) }
-func (u *UI) SetInfoBlock(b *graph.Block)    { u.infoView.SetBlock(b) }
-func (u *UI) SetInfoNode(n *graph.Node)      { u.infoView.SetNode(n) }
-
+func (u *UI) Run() error                                   { return u.app.Run() }
+func (u *UI) Stop()                                        { u.app.Stop() }
+func (u *UI) SetNavHelp(entries [][]string)                { u.navView.setHelp(entries) }
+func (u *UI) SetContentNode(n *graph.Node)                 { u.contentView.SetNode(n) }
+func (u *UI) SetContentBlock(b *graph.Block)               { u.contentView.SetBlock(b) }
+func (u *UI) SetInfoBlock(b *graph.Block)                  { u.infoView.SetBlock(b) }
+func (u *UI) SetInfoNode(n *graph.Node)                    { u.infoView.SetNode(n) }
 func (u *UI) StatusInfof(format string, v ...interface{})  { u.statusView.Infof(format, v) }
 func (u *UI) StatusErrorf(format string, v ...interface{}) { u.statusView.Errorf(format, v) }
+func (u *UI) GetContext() *snippet.Context                 { return u.explorer.gCtx }
 
 func (u *UI) Navigate(key tcell.Key) {
 	u.navigator.Navigate(key)

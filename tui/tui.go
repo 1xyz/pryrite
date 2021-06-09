@@ -29,6 +29,7 @@ type Tui struct {
 	// Primary UI Application component
 	App *tview.Application
 
+	gCtx        *snippet.Context
 	info        *info
 	PbTree      *PlayBookTree
 	snippetView *snippetView
@@ -55,8 +56,9 @@ func NewTui(gCtx *snippet.Context, name string) (*Tui, error) {
 	}
 
 	ui := &Tui{
-		App: tview.NewApplication(),
-		run: run,
+		gCtx: gCtx,
+		App:  tview.NewApplication(),
+		run:  run,
 	}
 
 	ui.info = newInfo(ui, gCtx)
@@ -163,13 +165,9 @@ func (t *Tui) setFocusedItem() {
 	t.navHelp.Refresh(n)
 }
 
-func (t *Tui) StatusErrorf(format string, v ...interface{}) {
-	t.activityView.Log(Error, format, v)
-}
-
-func (t *Tui) StatusInfof(format string, v ...interface{}) {
-	t.activityView.Log(Info, format, v)
-}
+func (t *Tui) StatusErrorf(format string, v ...interface{}) { t.activityView.Log(Error, format, v) }
+func (t *Tui) StatusInfof(format string, v ...interface{})  { t.activityView.Log(Info, format, v) }
+func (t *Tui) GetContext() *snippet.Context                 { return t.gCtx }
 
 func (t *Tui) GetBlock(blockID string) (*graph.Block, error) {
 	return t.run.GetBlock(t.curNodeID, blockID)

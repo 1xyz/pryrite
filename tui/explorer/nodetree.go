@@ -37,14 +37,6 @@ func (view *nodeTreeView) addNode(root *tview.TreeNode, n *graph.Node) *tview.Tr
 	if n.HasChildren() {
 		tn.SetColor(tcell.ColorYellow)
 	}
-	if n.HasBlocks() {
-		for _, b := range n.Blocks {
-			if !b.IsCode() {
-				continue
-			}
-			view.addCodeBlock(tn, b)
-		}
-	}
 	root.AddChild(tn)
 	return tn
 }
@@ -133,6 +125,14 @@ func (view *nodeTreeView) setupSelection() {
 				if children != nil && len(children) > 0 {
 					for _, c := range children {
 						view.addNode(tn, c)
+					}
+				}
+				if n.HasBlocks() {
+					for _, b := range n.Blocks {
+						if !b.IsCode() {
+							continue
+						}
+						view.addCodeBlock(tn, b)
 					}
 				}
 			}

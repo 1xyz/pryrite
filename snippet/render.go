@@ -89,7 +89,7 @@ func (nr *nodeRender) renderNodeView(nv *graph.NodeView, w io.Writer) {
 	t.AppendSeparator()
 	t.Render()
 
-	mr, err := NewMarkdownRenderer(nr.style)
+	mr, err := tools.NewMarkdownRenderer(nr.style)
 	if err != nil {
 		tools.LogStderr(err, "renderNodeView: NewTermRender:")
 		return
