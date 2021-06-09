@@ -7,9 +7,7 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"os"
-	"os/exec"
 	"strings"
-	"syscall"
 )
 
 type nodeTreeView struct {
@@ -159,7 +157,7 @@ func (view *nodeTreeView) setupInputCapture() {
 			if b, ok := ref.(*graph.Block); ok {
 				view.rootUI.Stop()
 				fmt.Printf(">> %s\n", b.Content)
-				if err := view.execute(b); err != nil {
+				if err := tools.BashExec(b.Content); err != nil {
 					fmt.Printf("error = %v", err)
 					os.Exit(1)
 				} else {
@@ -174,24 +172,23 @@ func (view *nodeTreeView) setupInputCapture() {
 				fmt.Printf("%s", b.Content)
 				os.Exit(0)
 			}
+
+		case tcell.KeyCtrlR:
+			tools.Log.Info().Msgf("nodeTreeView: Ctrl+R request to run a node")
+			if n, ok := ref.(*graph.Node); ok {
+				view.rootUI.Stop()
+				cmd := fmt.Sprintf("%s run %s", os.Args[0], n.ID)
+				fmt.Printf(">> %s", cmd)
+				if err := tools.BashExec(cmd); err != nil {
+					fmt.Printf("error = %v\n", err)
+					os.Exit(1)
+				} else {
+					os.Exit(0)
+				}
+			}
 		}
 		return event
 	})
-}
-
-func (view *nodeTreeView) execute(b *graph.Block) error {
-	if !b.IsCode() {
-		return fmt.Errorf("block is not an executable block")
-	}
-
-	binaryStr := strings.TrimSpace("bash")
-	binary, err := exec.LookPath(binaryStr)
-	if err != nil {
-		return err
-	}
-
-	env := os.Environ()
-	return syscall.Exec(binary, []string{"bash", "-c", b.Content}, env)
 }
 
 func (view *nodeTreeView) NavHelp() [][]string {
