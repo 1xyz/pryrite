@@ -159,12 +159,14 @@ type BlockExecutionResult struct {
 	NodeID      string     `yaml:"node_id" json:"node_id"`
 	BlockID     string     `yaml:"block_id" json:"block_id"`
 	RequestID   string     `yaml:"request_id" json:"request_id"`
-	Err         error      `yaml:"err" json:"err"`
 	ExitStatus  int        `yaml:"exit_status" json:"exit_status"`
 	Stdout      []byte     `yaml:"-" json:"stdout"`
 	Stderr      []byte     `yaml:"-" json:"stderr"`
 	ExecutedAt  *time.Time `yaml:"executed_at,omitempty" json:"executed_at,omitempty"`
 	ExecutedBy  string     `yaml:"executed_by" json:"executed_by"`
+
+	// Err can be marshalled to json or yaml
+	Err *tools.MarshalledError `yaml:"err,omitempty" json:"err,omitempty"`
 
 	// The Content can change (in the referenced block)
 	// so persist the original  command alongside
@@ -172,6 +174,14 @@ type BlockExecutionResult struct {
 
 	StdoutWriter io.WriteCloser `yaml:"-" json:"-"`
 	StderrWriter io.WriteCloser `yaml:"-" json:"-"`
+}
+
+func (b *BlockExecutionResult) SetErr(err error) {
+	if err == nil {
+		b.Err = nil
+	} else {
+		b.Err = tools.NewMarshalledError(err)
+	}
 }
 
 func (b *BlockExecutionResult) Close() error {

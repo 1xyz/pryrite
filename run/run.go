@@ -237,7 +237,7 @@ func (r *Run) ExecuteBlock(n *graph.Node, b *graph.Block, stdout, stderr io.Writ
 
 	// Update the execution result and add it to the index
 	execResult.ExitStatus = res.ExitStatus
-	execResult.Err = res.Err
+	execResult.SetErr(res.Err)
 	r.ExecIndex.Append(execResult)
 	return execResult, nil
 }
