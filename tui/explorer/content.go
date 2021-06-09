@@ -2,7 +2,7 @@ package explorer
 
 import (
 	"github.com/aardlabs/terminal-poc/graph"
-	"github.com/charmbracelet/glamour"
+	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -14,25 +14,21 @@ type contentView struct {
 
 func (c *contentView) SetNode(n *graph.Node) {
 	c.Clear()
-	md := n.Markdown
-	var out string
-	r, err := glamour.NewTermRenderer(glamour.WithStylePath("notty"))
+
+	gCtx := c.rootUI.GetContext()
+	mr, err := tools.NewMarkdownRenderer(gCtx.ConfigEntry.Style)
 	if err != nil {
 		c.rootUI.StatusErrorf("NewTermRenderer err =  %v", err)
 		return
 	}
-
-	out, err = r.Render(md)
+	out, err := mr.Render(n.Markdown)
 	if err != nil {
 		c.rootUI.StatusErrorf("render markdown: err = %v", err)
 		return
 	}
 
-	if _, err := c.Write([]byte(out)); err != nil {
-		c.rootUI.StatusErrorf("Write: err = %v", err)
-		return
-	}
-
+	out = tview.TranslateANSI(out)
+	c.SetText(out)
 	c.ScrollToBeginning()
 }
 
@@ -55,7 +51,10 @@ func newContentView(rootUI *UI) *contentView {
 		rootUI:   rootUI,
 	}
 	c.SetBorder(true)
+	c.SetDynamicColors(true)
 	c.SetBorderColor(tcell.ColorDarkCyan)
+	c.SetTitle("Content Preview")
+	c.SetTitleAlign(tview.AlignLeft)
 	c.SetDoneFunc(c.rootUI.Navigate)
 	return c
 }
