@@ -81,6 +81,10 @@ func (n *Node) HasBlocks() bool {
 	return n.Blocks != nil && len(n.Blocks) > 0
 }
 
+func (n *Node) HasChildren() bool {
+	return len(n.Children) > 0
+}
+
 func (n Node) String() string {
 	sb := strings.Builder{}
 	sb.WriteString(fmt.Sprintf("ID=%s kind=%v Title=%s MD=%s Children=%s",

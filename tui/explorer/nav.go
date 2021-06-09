@@ -1,18 +1,16 @@
-package tui
+package explorer
 
 import (
-	"github.com/aardlabs/terminal-poc/tui/common"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
-// ui component
 type navView struct {
 	*tview.Table
-	rootUI *Tui
+	rootUI *UI
 }
 
-func newNavView(rootUI *Tui) *navView {
+func newNavView(rootUI *UI) *navView {
 	n := &navView{
 		Table: tview.NewTable().
 			SetSelectable(false, false).
@@ -20,16 +18,11 @@ func newNavView(rootUI *Tui) *navView {
 			SetFixed(1, 1),
 		rootUI: rootUI,
 	}
-
 	return n
 }
 
-func (n *navView) Refresh(nav common.Navigable) {
+func (n *navView) setHelp(entries [][]string) {
 	n.Clear()
-	entries := nav.NavHelp()
-	if entries == nil || len(entries) == 0 {
-		return
-	}
 
 	for index, e := range entries {
 		n.SetCell(index, 0, &tview.TableCell{

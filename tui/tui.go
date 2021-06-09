@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"github.com/aardlabs/terminal-poc/tui/common"
 
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/run"
@@ -41,7 +42,7 @@ type Tui struct {
 	grid  *tview.Grid  //  layout for the run page
 	run   *run.Run
 
-	Nav *navigator
+	Nav *common.Navigator
 
 	// curNodeID refers the current node id selected. "" if unselected
 	curNodeID string
@@ -99,9 +100,9 @@ func (t *Tui) Navigate(key tcell.Key) {
 }
 
 func (t *Tui) setupNavigator() {
-	t.Nav = &navigator{
-		rootUI:  t.App,
-		Entries: []navigable{t.PbTree, t.snippetView, t.execView, t.consoleView, t.activityView},
+	t.Nav = &common.Navigator{
+		RootUI:  t.App,
+		Entries: []common.Navigable{t.PbTree, t.snippetView, t.execView, t.consoleView, t.activityView},
 	}
 }
 
