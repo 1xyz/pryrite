@@ -52,9 +52,9 @@ func (a *activityView) display() {
 
 	headers := []string{
 		"#",
-		"Time",
-		"Message",
 		"Level",
+		"Message",
+		"Time",
 	}
 
 	for i, header := range headers {
@@ -88,16 +88,16 @@ func (a *activityView) Log(level Level, format string, v ...interface{}) {
 		SetExpansion(1))
 	a.SetCell(a.index, 1, tview.NewTableCell(string(entry.Level)).
 		SetTextColor(showColor).
-		SetMaxWidth(1).
-		SetExpansion(1))
-	a.SetCell(a.index, 2, tview.NewTableCell(entry.Msg).
-		SetTextColor(showColor).
 		SetMaxWidth(3).
 		SetExpansion(3))
+	a.SetCell(a.index, 2, tview.NewTableCell(entry.Msg).
+		SetTextColor(showColor).
+		SetMaxWidth(20).
+		SetExpansion(20))
 	a.SetCell(a.index, 3, tview.NewTableCell(entry.At.Format("2006/01/02 15:04:05")).
 		SetTextColor(showColor).
-		SetMaxWidth(1).
-		SetExpansion(1))
+		SetMaxWidth(5).
+		SetExpansion(5))
 	a.Select(a.index, 0)
 	a.activities = append(a.activities, entry)
 	a.index++
