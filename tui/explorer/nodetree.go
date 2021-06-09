@@ -83,8 +83,10 @@ func (view *nodeTreeView) setupChangeNavigation() {
 
 		if isBlock {
 			view.rootUI.SetContentBlock(b)
+			view.rootUI.SetInfoBlock(b)
 		} else if isNode {
 			view.rootUI.SetContentNode(n)
+			view.rootUI.SetInfoNode(n)
 		}
 	})
 }
@@ -143,6 +145,9 @@ func (view *nodeTreeView) setupSelection() {
 func (view *nodeTreeView) setupInputCapture() {
 	view.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		tn := view.GetCurrentNode()
+		if tn == nil {
+			return event
+		}
 		ref := tn.GetReference()
 		if ref == nil {
 			return event
