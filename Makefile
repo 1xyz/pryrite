@@ -46,17 +46,14 @@ watch: $(BIN_DIR)/.reflex-installed
 
 .PHONY: clean
 clean:
-	$(DELETE) -rf bin/ public/
+	$(DELETE) -rf bin/ public/ zips/
 	$(GO) clean -cache
 
 .PHONY: fmt
 fmt:
 	$(GOFMT) -l -w $(SRC)
 
-release/%: fmt verinfo $(BIN_DIR)/.selfupdate-installed
-	@echo "build GOOS: $(subst release/,,$@) & GOARCH: $(GOARCH)"
-	GOOS=$(subst release/,,$@) GOARCH=$(GOARCH) $(GO) build -o bin/$(subst release/,,$@)/$(BINARY) -v main.go
-	cp misc/**/*.sh $(BIN_DIR)/$(subst release/,,$@)
+release:
 	mkdir -p public
 ifeq ($(AWS_SECRET_ACCESS_KEY),)
   ifeq ($(CI),true)
@@ -70,11 +67,24 @@ else
 	  aws s3 sync $$u public/; \
 	done; true # ignore fails
 endif
-	GOOS=$(subst release/,,$@) GOARCH=$(GOARCH) go-selfupdate bin/$(subst release/,,$@)/$(BINARY) $(MAJMINPATVER)
+	$(MAKE) release/linux GOARCH=amd64 & \
+	$(MAKE) release/linux GOARCH=arm64 & \
+	$(MAKE) release/linux GOARCH=arm & \
+	$(MAKE) release/darwin & \
+	wait
 ifneq ($(AWS_SECRET_ACCESS_KEY),)
 # Upload the diffs and new version...
 	aws s3 sync public/ $(S3_BASEURL)/
 endif
+
+bindir = bin/$(subst release/,,$1)-$(GOARCH)
+release/%: fmt verinfo $(BIN_DIR)/.selfupdate-installed
+	@echo "build GOOS: $(subst release/,,$@) & GOARCH: $(GOARCH)"
+	GOOS=$(subst release/,,$@) GOARCH=$(GOARCH) $(GO) build -ldflags="-s -w" -o $(call bindir,$@)/$(BINARY) -v main.go
+	cp misc/**/*.sh $(call bindir,$@)
+	GOOS=$(subst release/,,$@) GOARCH=$(GOARCH) go-selfupdate $(call bindir,$@)/$(BINARY) $(MAJMINPATVER)
+	mkdir -p zips
+	zip -j zips/$(BINARY)-$(subst release/,,$@)-$(GOARCH).zip README.md $(call bindir,$@)/*
 
 .PHONY: test
 test: build

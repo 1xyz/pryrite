@@ -38,25 +38,12 @@ jobs:
             if_true: ${{ steps.get_version.outputs.VERSION }}
             if_false: ${{ steps.get_version.outputs.VERSION }}-${{ steps.get_commit_hash.outputs.COMMIT_HASH }}-dev
 
-        - name: Build x64 linux release
-          run: make release/linux
+        - name: Build all binaries and zips
+          run: make release
           env:
             AWS_DEFAULT_REGION: 'us-east-1'
             AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
             AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY}}
-
-        - name: Zip linux build
-          run: zip -j aardy-linux-amd64.zip README.md bin/linux/*
-
-        - name: Build x64 darwin release
-          run: make release/darwin
-          env:
-            AWS_DEFAULT_REGION: 'us-east-1'
-            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY}}
-
-        - name: Zip darwin build
-          run: zip -j aardy-darwin-amd64.zip README.md bin/darwin/*
 
         - name: Create Release
           id: create_release
@@ -70,28 +57,76 @@ jobs:
             draft: false
             prerelease: ${{ github.ref != 'refs/heads/main' }}
 
-        - name: Upload Linux Release Binary
-          id: upload-release-binary-linux
+        - name: Upload x64 Linux Release Binary
+          id: upload-release-binary-linux-amd64
           uses: actions/upload-release-asset@v1
           env:
             GITHUB_USER: ${{ secrets.GH_USER }}
             GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           with:
             upload_url: ${{ steps.create_release.outputs.upload_url }}
-            asset_path: ./bin/linux/aardy
+            asset_path: ./bin/linux-amd64/aardy
             asset_name: aardy-linux-amd64
             asset_content_type: application/octet-stream
 
-        - name: Upload Linux Release Asset
-          id: upload-release-asset-linux
+        - name: Upload x64 Linux Release Asset
+          id: upload-release-asset-linux-amd64
           uses: actions/upload-release-asset@v1
           env:
             GITHUB_USER: ${{ secrets.GH_USER }}
             GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           with:
             upload_url: ${{ steps.create_release.outputs.upload_url }}
-            asset_path: ./aardy-linux-amd64.zip
+            asset_path: ./zips/aardy-linux-amd64.zip
             asset_name: aardy-linux-amd64-${{ steps.get_tag_name.outputs.value }}.zip
+            asset_content_type: application/zip
+
+        - name: Upload ARM-64 Linux Release Binary
+          id: upload-release-binary-linux-arm64
+          uses: actions/upload-release-asset@v1
+          env:
+            GITHUB_USER: ${{ secrets.GH_USER }}
+            GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          with:
+            upload_url: ${{ steps.create_release.outputs.upload_url }}
+            asset_path: ./bin/linux-arm64/aardy
+            asset_name: aardy-linux-arm64
+            asset_content_type: application/octet-stream
+
+        - name: Upload ARM-64 Linux Release Asset
+          id: upload-release-asset-linux-arm64
+          uses: actions/upload-release-asset@v1
+          env:
+            GITHUB_USER: ${{ secrets.GH_USER }}
+            GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          with:
+            upload_url: ${{ steps.create_release.outputs.upload_url }}
+            asset_path: ./zips/aardy-linux-arm64.zip
+            asset_name: aardy-linux-arm64-${{ steps.get_tag_name.outputs.value }}.zip
+            asset_content_type: application/zip
+
+        - name: Upload ARM-32 Linux Release Binary
+          id: upload-release-binary-linux-arm
+          uses: actions/upload-release-asset@v1
+          env:
+            GITHUB_USER: ${{ secrets.GH_USER }}
+            GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          with:
+            upload_url: ${{ steps.create_release.outputs.upload_url }}
+            asset_path: ./bin/linux-arm/aardy
+            asset_name: aardy-linux-arm
+            asset_content_type: application/octet-stream
+
+        - name: Upload ARM-32 Linux Release Asset
+          id: upload-release-asset-linux-arm
+          uses: actions/upload-release-asset@v1
+          env:
+            GITHUB_USER: ${{ secrets.GH_USER }}
+            GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          with:
+            upload_url: ${{ steps.create_release.outputs.upload_url }}
+            asset_path: ./zips/aardy-linux-arm.zip
+            asset_name: aardy-linux-arm-${{ steps.get_tag_name.outputs.value }}.zip
             asset_content_type: application/zip
 
         - name: Upload darwin Release Asset
