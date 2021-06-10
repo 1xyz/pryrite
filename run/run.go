@@ -317,6 +317,14 @@ func (r *Run) executeBlock(req *graph.BlockExecutionRequest) *graph.BlockExecuti
 
 	res := exec.Execute(req.Ctx, execReq)
 
+	req.Node.LastExecutedAt = execResult.ExecutedAt
+	req.Node.LastExecutedBy = execResult.ExecutedBy
+	// ToDo: update this to reflect lastexecuted at BlockLevel
+	err = r.Store.UpdateNode(&graph.Node{ID: req.Node.ID, LastExecutedAt: req.Node.LastExecutedAt})
+	if err != nil {
+		tools.Log.Err(err).Msgf("ExecuteBlock: r.Store.UpdateNode: failed to record run with service")
+	}
+
 	execResult.ExitStatus = strconv.Itoa(res.ExitStatus)
 	execResult.SetErr(res.Err)
 	if res.ExitStatus != 0 || res.Err != nil {
