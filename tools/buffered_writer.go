@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"io"
 	"sync"
+
+	"go.uber.org/atomic"
 )
 
 type BufferedWriteCloser struct {
@@ -12,7 +14,7 @@ type BufferedWriteCloser struct {
 	buf  bytes.Buffer
 	cond sync.Cond
 
-	readWriterFlush bool
+	readWriterFlush atomic.Bool
 	readWriterErr   error
 	readWriterDone  chan bool
 }
@@ -51,7 +53,7 @@ func (bw *BufferedWriteCloser) Write(data []byte) (n int, err error) {
 func (bw *BufferedWriteCloser) Close() error {
 	// ask reader to read until no more bytes (io.EOF)
 	bw.cond.L.Lock()
-	bw.readWriterFlush = true
+	bw.readWriterFlush.Store(true)
 	bw.cond.Signal()
 	bw.cond.L.Unlock()
 
@@ -95,7 +97,7 @@ func (bw *BufferedWriteCloser) readWriter() {
 			if err != nil {
 				// do not return if this is EOF unless we were asked to flush
 				// and this is our "done" cycle
-				if err != io.EOF || bw.readWriterFlush {
+				if err != io.EOF || bw.readWriterFlush.Load() {
 					bw.readWriterErr = err
 					return
 				}
@@ -110,7 +112,7 @@ func (bw *BufferedWriteCloser) readWriter() {
 					return
 				}
 
-				moreToRead = bw.readWriterFlush || n == len(data)
+				moreToRead = bw.readWriterFlush.Load() || n == len(data)
 			}
 		}
 	}
