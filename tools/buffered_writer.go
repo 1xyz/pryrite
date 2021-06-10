@@ -5,6 +5,8 @@ import (
 	"go.uber.org/atomic"
 	"io"
 	"sync"
+
+	"go.uber.org/atomic"
 )
 
 type BufferedWriteCloser struct {

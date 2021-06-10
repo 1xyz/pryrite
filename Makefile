@@ -11,6 +11,17 @@ SRC := $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 VER := $(shell git rev-parse --short HEAD)
 WATCH := (.go$$)
 
+word-dot = $(word $2,$(subst ., ,$1))
+MAJMINPATVER := $(shell cat version.txt)
+MAJMINVER := $(call word-dot,$(MAJMINPATVER),1).$(call word-dot,$(MAJMINPATVER),2)
+PATVER := $(call word-dot,$(MAJMINPATVER),3)
+
+ifeq ($(CI),true)
+  S3_BASEURL := s3://aardlabs-apps/cli/$(BINARY)
+else
+  S3_BASEURL := s3://aardlabs-apps-nonprod/cli/$(BINARY)
+endif
+
 info:
 	@echo " target         ⾖ Description.                                    "
 	@echo " ----------------------------------------------------------------- "
@@ -35,17 +46,45 @@ watch: $(BIN_DIR)/.reflex-installed
 
 .PHONY: clean
 clean:
-	$(DELETE) -rf bin/
+	$(DELETE) -rf bin/ public/ zips/
 	$(GO) clean -cache
 
 .PHONY: fmt
 fmt:
 	$(GOFMT) -l -w $(SRC)
 
-release/%: fmt verinfo
+release:
+	mkdir -p public
+ifeq ($(AWS_SECRET_ACCESS_KEY),)
+  ifeq ($(CI),true)
+	$(error AWS credentials not provided: Unable to sync with S3 ***)
+  endif
+else
+# Download three previous versions to allow for binary diff...
+	@for i in `seq 0 2`; do \
+	  u=$(S3_BASEURL)/$(MAJMINVER).$$(( $(PATVER) - $$i ))/; \
+	  echo "Attempting to sync $$u:"; \
+	  aws s3 sync $$u public/; \
+	done; true # ignore fails
+endif
+	$(MAKE) release/linux GOARCH=amd64 & \
+	$(MAKE) release/linux GOARCH=arm64 & \
+	$(MAKE) release/linux GOARCH=arm & \
+	$(MAKE) release/darwin & \
+	wait
+ifneq ($(AWS_SECRET_ACCESS_KEY),)
+# Upload the diffs and new version...
+	aws s3 sync public/ $(S3_BASEURL)/
+endif
+
+bindir = bin/$(subst release/,,$1)-$(GOARCH)
+release/%: fmt verinfo $(BIN_DIR)/.selfupdate-installed
 	@echo "build GOOS: $(subst release/,,$@) & GOARCH: $(GOARCH)"
-	GOOS=$(subst release/,,$@) GOARCH=$(GOARCH) $(GO) build -o bin/$(subst release/,,$@)/$(BINARY) -v main.go
-	cp misc/**/*.sh $(BIN_DIR)/$(subst release/,,$@)
+	GOOS=$(subst release/,,$@) GOARCH=$(GOARCH) $(GO) build -ldflags="-s -w" -o $(call bindir,$@)/$(BINARY) -v main.go
+	cp misc/**/*.sh $(call bindir,$@)
+	GOOS=$(subst release/,,$@) GOARCH=$(GOARCH) go-selfupdate $(call bindir,$@)/$(BINARY) $(MAJMINPATVER)
+	mkdir -p zips
+	zip -j zips/$(BINARY)-$(subst release/,,$@)-$(GOARCH).zip README.md $(call bindir,$@)/*
 
 .PHONY: test
 test: build
@@ -66,9 +105,16 @@ build_time.txt: FORCE
 	echo "$$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$@"
 
 $(BIN_DIR)/.reflex-installed:
+	@mkdir -p $(BIN_DIR)
 	@cd /tmp && \
 	  go get -u github.com/cespare/reflex && \
 	  go install github.com/cespare/reflex@latest
+	@touch $@
+
+$(BIN_DIR)/.selfupdate-installed:
+	@mkdir -p $(BIN_DIR)
+	@cd /tmp && \
+	  go get -u github.com/sanbornm/go-selfupdate/...
 	@touch $@
 
 FORCE:

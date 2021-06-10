@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -214,41 +215,59 @@ type readWriterProxy struct {
 	name   string
 	reader io.Reader
 	writer io.WriteCloser
+	rlock  sync.Mutex
+	wlock  sync.Mutex
 }
 
 func (proxy *readWriterProxy) SetReader(reader io.Reader) {
+	proxy.rlock.Lock()
 	proxy.reader = reader
+	proxy.rlock.Unlock()
 }
 
 func (proxy *readWriterProxy) SetWriter(writer io.WriteCloser) {
-	if writer == nil && proxy.writer != nil {
+	proxy.wlock.Lock()
+	wtr := proxy.writer
+	proxy.wlock.Unlock()
+
+	if writer == nil && wtr != nil {
 		// block to make sure the upstream writer has all the bytes before we
 		// let the execute complete
-		err := proxy.writer.Close()
+		err := wtr.Close()
 		if err != nil {
 			tools.Log.Err(err).Str("proxy", proxy.name).Msg("writer close failed")
 		}
 	}
 
+	proxy.wlock.Lock()
 	proxy.writer = writer
+	proxy.wlock.Unlock()
 }
 
 func (proxy *readWriterProxy) Read(buf []byte) (int, error) {
-	if proxy.reader == nil {
+	proxy.rlock.Lock()
+	rdr := proxy.reader
+	proxy.rlock.Unlock()
+
+	if rdr == nil {
 		// this is "common" for a nil stdin
 		tools.Log.Debug().Str("proxy", proxy.name).Msg("asked to read without a reader assigned")
 		return 0, io.EOF
 	}
 
-	return proxy.reader.Read(buf)
+	return rdr.Read(buf)
 }
 
 func (proxy *readWriterProxy) Write(data []byte) (int, error) {
-	if proxy.writer == nil {
+	proxy.wlock.Lock()
+	wtr := proxy.writer
+	proxy.wlock.Unlock()
+
+	if wtr == nil {
 		tools.Log.Error().Str("proxy", proxy.name).Msg("asked to write without a writer assigned")
 		// lie to bash about the success of the write to avoid killing our repl
 		return len(data), nil
 	}
 
-	return proxy.writer.Write(data)
+	return wtr.Write(data)
 }

@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/google/uuid"
@@ -20,6 +21,7 @@ const (
 type Entry struct {
 	Name             string                   `yaml:"name"`
 	ServiceUrl       string                   `yaml:"service_url"`
+	LastUpdateCheck  time.Time                `yaml:"last_update_check"`
 	AuthScheme       string                   `yaml:"auth_scheme"`
 	User             string                   `yaml:"user"`
 	Email            string                   `yaml:"email"`
