@@ -98,11 +98,11 @@ func (b *BlockExecutionResults) EachFromEnd(cb func(int, *graph.BlockExecutionRe
 	}
 }
 
-// Find scans the slice of BlockExecutionResults by resultID
-func (b *BlockExecutionResults) Find(requestID string) (*graph.BlockExecutionResult, bool) {
+// Find scans the slice of BlockExecutionResults by ID
+func (b *BlockExecutionResults) Find(id string) (*graph.BlockExecutionResult, bool) {
 	var found *graph.BlockExecutionResult
 	b.Each(func(_ int, entry *graph.BlockExecutionResult) bool {
-		if entry.RequestID == requestID {
+		if entry.ID == id {
 			found = entry
 			return false
 		}

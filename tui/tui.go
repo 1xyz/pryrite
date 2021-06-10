@@ -90,7 +90,8 @@ func NewTui(gCtx *snippet.Context, name string) (*Tui, error) {
 		ui.StatusErrorf("NewTui: UpdateCurrentNodeID: id=%s err = %v", run.Root.Node.ID, err)
 	}
 	ui.setFocusedItem()
-	ui.setExecutionDone()
+	ui.setExecutionUpdate()
+	ui.setStatusUpdate()
 	go ui.run.Start()
 	return ui, nil
 }
@@ -183,7 +184,8 @@ func (t *Tui) GetBlock(blockID string) (*graph.Block, error) {
 }
 
 func (t *Tui) CancelBlockExecution(requestID string) error {
-	t.run.CancelBlock(requestID)
+	t.StatusInfof("CancelBlockExecution: requestID %s", requestID)
+	t.run.CancelBlock(t.curNodeID, requestID)
 	return nil
 }
 
@@ -312,10 +314,10 @@ func (t *Tui) displayInspect(data, title, page string) {
 	t.pages.AddAndSwitchToPage("detail", text, true)
 }
 
-func (t *Tui) InspectBlockExecution(requestID string) {
-	res, err := t.run.GetBlockExecutionResult(t.curNodeID, requestID)
+func (t *Tui) InspectBlockExecution(logID string) {
+	res, err := t.run.GetBlockExecutionResult(t.curNodeID, logID)
 	if err != nil {
-		t.StatusErrorf("InspectBlockExecution: req-id: %s err = %v", requestID, err)
+		t.StatusErrorf("InspectBlockExecution: req-id: %s err = %v", logID, err)
 		return
 	}
 
@@ -326,7 +328,7 @@ func (t *Tui) InspectBlockExecution(requestID string) {
 	}{res, string(res.Stdout), string(res.Stderr)}
 	b, err := yaml.Marshal(&d)
 	if err != nil {
-		t.StatusErrorf("InspectBlockExecution: req-id: %s err = %v", requestID, err)
+		t.StatusErrorf("InspectBlockExecution: req-id: %s err = %v", logID, err)
 		return
 	}
 
@@ -343,8 +345,20 @@ func (t *Tui) InspectActivity(a *activity) {
 	t.displayInspect(string(b), "Activity", "activity")
 }
 
-func (t *Tui) setExecutionDone() {
-	t.run.SetExecutionDoneFn(func(result *graph.BlockExecutionResult) {
-		t.QueueRefresh("setExecutionDone")
+func (t *Tui) setExecutionUpdate() {
+	t.run.SetExecutionUpdateFn(func(result *graph.BlockExecutionResult) {
+		t.QueueRefresh("setExecutionUpdate")
+	})
+}
+
+func (t *Tui) setStatusUpdate() {
+	t.run.SetStatusUpdateFn(func(status *run.Status) {
+		t.App.QueueUpdateDraw(func() {
+			if status.Level == run.StatusError {
+				t.StatusErrorf(status.Message)
+			} else {
+				t.StatusInfof(status.Message)
+			}
+		})
 	})
 }

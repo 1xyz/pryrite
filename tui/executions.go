@@ -24,7 +24,7 @@ func newExecutionsView(root *Tui) *executionsView {
 		rootUI: root,
 	}
 
-	view.SetTitle("Executions").
+	view.SetTitle("Execution Log").
 		SetTitleAlign(tview.AlignLeft)
 	view.SetBorder(true)
 	view.SetDoneFunc(root.Navigate)
@@ -40,10 +40,12 @@ func (b *executionsView) Refresh(results *run.BlockExecutionResults) {
 
 	headers := []string{
 		"#",
+		"Log Id",
 		"Block Id",
 		"Request Id",
 		"Code Snippet",
-		"Exit Code",
+		"State",
+		"Exit Status",
 		"Error",
 		"Time",
 		"User",
@@ -62,9 +64,18 @@ func (b *executionsView) Refresh(results *run.BlockExecutionResults) {
 
 	j := 1
 	results.Each(func(_ int, r *graph.BlockExecutionResult) bool {
-		showColor := tcell.ColorGreen
-		if r.Err != nil || r.ExitStatus > 0 {
+		showColor := tcell.ColorWhite
+		switch r.State {
+		case graph.BlockStateQueued:
+			showColor = tcell.ColorDarkCyan
+		case graph.BlockStateStarted:
+			showColor = tcell.ColorYellow
+		case graph.BlockStateCompleted:
+			showColor = tcell.ColorGreen
+		case graph.BlockStateFailed:
 			showColor = tcell.ColorRed
+		case graph.BlockStateCanceled:
+			showColor = tcell.ColorPurple
 		}
 
 		table.SetCell(j, 0, tview.NewTableCell(strconv.Itoa(j)).
@@ -72,22 +83,32 @@ func (b *executionsView) Refresh(results *run.BlockExecutionResults) {
 			SetMaxWidth(1).
 			SetExpansion(1))
 
-		table.SetCell(j, 1, tview.NewTableCell(r.BlockID).
+		table.SetCell(j, 1, tview.NewTableCell(r.ID).
 			SetTextColor(showColor).
 			SetMaxWidth(4).
 			SetExpansion(4))
 
-		table.SetCell(j, 2, tview.NewTableCell(r.RequestID).
+		table.SetCell(j, 2, tview.NewTableCell(r.BlockID).
 			SetTextColor(showColor).
 			SetMaxWidth(4).
 			SetExpansion(4))
 
-		table.SetCell(j, 3, tview.NewTableCell(r.Content).
+		table.SetCell(j, 3, tview.NewTableCell(r.RequestID).
 			SetTextColor(showColor).
-			SetMaxWidth(15).
-			SetExpansion(15))
+			SetMaxWidth(4).
+			SetExpansion(4))
 
-		table.SetCell(j, 4, tview.NewTableCell(strconv.Itoa(r.ExitStatus)).
+		table.SetCell(j, 4, tview.NewTableCell(r.Content).
+			SetTextColor(showColor).
+			SetMaxWidth(4).
+			SetExpansion(4))
+
+		table.SetCell(j, 5, tview.NewTableCell(string(r.State)).
+			SetTextColor(showColor).
+			SetMaxWidth(3).
+			SetExpansion(3))
+
+		table.SetCell(j, 6, tview.NewTableCell(r.ExitStatus).
 			SetTextColor(showColor).
 			SetMaxWidth(4).
 			SetExpansion(4))
@@ -101,7 +122,7 @@ func (b *executionsView) Refresh(results *run.BlockExecutionResults) {
 			errStr = string(r.Stderr)
 			expansion = 15
 		}
-		table.SetCell(j, 5, tview.NewTableCell(errStr).
+		table.SetCell(j, 7, tview.NewTableCell(errStr).
 			SetTextColor(showColor).
 			SetMaxWidth(5).
 			SetExpansion(expansion))
@@ -110,12 +131,12 @@ func (b *executionsView) Refresh(results *run.BlockExecutionResults) {
 		if r.ExecutedAt != nil {
 			executedAt = r.ExecutedAt.Format("2006/01/02 15:04:05")
 		}
-		table.SetCell(j, 6, tview.NewTableCell(executedAt).
+		table.SetCell(j, 8, tview.NewTableCell(executedAt).
 			SetTextColor(showColor).
 			SetMaxWidth(4).
 			SetExpansion(4))
 
-		table.SetCell(j, 7, tview.NewTableCell(r.ExecutedBy).
+		table.SetCell(j, 9, tview.NewTableCell(r.ExecutedBy).
 			SetTextColor(showColor).
 			SetMaxWidth(4).
 			SetExpansion(4))
@@ -131,8 +152,16 @@ func (b *executionsView) setKeybinding() {
 		switch event.Key() {
 		case tcell.KeyEnter:
 			r, _ := b.GetSelection()
-			requestID := b.GetCell(r, 2).Text
-			b.rootUI.InspectBlockExecution(requestID)
+			logID := b.GetCell(r, 1).Text
+			b.rootUI.InspectBlockExecution(logID)
+
+		case tcell.KeyCtrlK:
+			r, _ := b.GetSelection()
+			requestID := b.GetCell(r, 3).Text
+			if err := b.rootUI.CancelBlockExecution(requestID); err != nil {
+				b.rootUI.StatusErrorf("Cancel request failed (requesID: %s error: %v)",
+					requestID, err)
+			}
 		}
 
 		return event
@@ -142,6 +171,7 @@ func (b *executionsView) setKeybinding() {
 func (b *executionsView) NavHelp() [][]string {
 	return [][]string{
 		{"Enter", "Inspect Execution Detail"},
+		{"Ctrl + K", "Kill current task"},
 		{"Ctrl + R", "Run selected node"},
 		{"⇵ Down/Up", "Navigate through executions"},
 		{"Tab", "Navigate to the next pane"},
