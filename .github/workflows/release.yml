@@ -137,7 +137,7 @@ jobs:
             GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           with:
             upload_url: ${{ steps.create_release.outputs.upload_url }}
-            asset_path: ./aardy-darwin-amd64.zip
+            asset_path: ./zips/aardy-darwin-amd64.zip
             asset_name: aardy-darwin-amd64-${{ steps.get_tag_name.outputs.value }}.zip
             asset_content_type: application/zip
 
