@@ -128,6 +128,7 @@ func (b *executionsView) Refresh(results *run.BlockExecutionResults) {
 
 func (b *executionsView) setKeybinding() {
 	b.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		event = b.rootUI.GlobalKeyBindings(event)
 		switch event.Key() {
 		case tcell.KeyEnter:
 			r, _ := b.GetSelection()

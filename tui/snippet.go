@@ -2,13 +2,14 @@ package tui
 
 import (
 	"fmt"
-	"github.com/charmbracelet/glamour"
 	"strconv"
 	"strings"
 
+	"github.com/charmbracelet/glamour"
+	"github.com/gdamore/tcell/v2"
+
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/tools"
-	"github.com/gdamore/tcell/v2"
 )
 
 type snippetView struct {
@@ -99,8 +100,11 @@ func (s *snippetView) updateDetailsContent(n *graph.Node) {
 
 func (s *snippetView) setKeybinding() {
 	s.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		//g.setGlobalKeybinding(event)
+		event = s.rootUI.GlobalKeyBindings(event)
+
 		switch event.Key() {
+		case tcell.KeyUp, tcell.KeyDown:
+			s.navigateBlocks(event.Key())
 		case tcell.KeyCtrlR:
 			tools.Log.Info().Msgf("snippetView: Ctrl+R request to run node")
 			if s.selectedBlockID != noBlock {
@@ -149,61 +153,63 @@ const noBlock = ""
 
 // setDoneFn is the primary navigate function used to intercept Enter/ESC or Tab/BackTab
 func (s *snippetView) setDoneFn() {
-	s.SetDoneFunc(func(key tcell.Key) {
-		// Returns back to see if any block is selected
-		currentSelection := s.GetHighlights()
+	s.SetDoneFunc(s.navigateBlocks)
+}
 
-		// Check to see if anything is selected
-		if len(currentSelection) > 0 {
-			// Indicates a block is selected. get the index of that block selected
-			index, _ := strconv.Atoi(currentSelection[0])
-			if key == tcell.KeyTab {
-				// if that block is the last selected one
-				// Tab should take it to the next pane.
-				// Toggle the highlight and send it to the rootUI
-				if index == s.codeBlocks.count()-1 {
-					s.Highlight()
-					s.rootUI.Navigate(key)
-					s.selectedBlockID = noBlock
-					return
-				}
-				// This is not the last selected one so let us handle it
-				index = (index + 1) % s.codeBlocks.count()
-			} else if key == tcell.KeyBacktab {
-				// This is the first selected block
-				// BackTab should take it to the previous pane
-				// Toggle the highlight and send it to the root UI
-				if index == 0 {
-					s.Highlight()
-					s.rootUI.Navigate(key)
-					s.selectedBlockID = noBlock
-					return
-				}
-				// THis is not the first selected one
-				index = (index - 1 + s.codeBlocks.count()) % s.codeBlocks.count()
-			} else {
-				// We don't handle any keys other than Tab/BackTab here
+func (s *snippetView) navigateBlocks(key tcell.Key) {
+	// Returns back to see if any block is selected
+	currentSelection := s.GetHighlights()
+
+	// Check to see if anything is selected
+	if len(currentSelection) > 0 {
+		// Indicates a block is selected. get the index of that block selected
+		index, _ := strconv.Atoi(currentSelection[0])
+		if key == tcell.KeyTab || key == tcell.KeyDown {
+			// if that block is the last selected one
+			// Tab should take it to the next pane.
+			// Toggle the highlight and send it to the rootUI
+			if index == s.codeBlocks.count()-1 {
+				s.Highlight()
+				s.rootUI.Navigate(key)
+				s.selectedBlockID = noBlock
 				return
 			}
-			// Highlight the current selected one
-			s.Highlight(strconv.Itoa(index)).ScrollToHighlight()
-			// the current highlighted block is the selected one
-			s.selectedBlockID = s.codeBlocks.get(index)
-		} else if s.codeBlocks.count() > 0 {
-			// Nothing is selected so let us find the element and tab
-			index := 0
-			if key == tcell.KeyBacktab {
-				// we have back tabbed into this so select the last one
-				index = s.codeBlocks.count() - 1
+			// This is not the last selected one so let us handle it
+			index = (index + 1) % s.codeBlocks.count()
+		} else if key == tcell.KeyBacktab || key == tcell.KeyUp {
+			// This is the first selected block
+			// BackTab should take it to the previous pane
+			// Toggle the highlight and send it to the root UI
+			if index == 0 {
+				s.Highlight()
+				s.rootUI.Navigate(key)
+				s.selectedBlockID = noBlock
+				return
 			}
-			s.Highlight(strconv.Itoa(index)).ScrollToHighlight()
-			s.selectedBlockID = s.codeBlocks.get(index)
+			// THis is not the first selected one
+			index = (index - 1 + s.codeBlocks.count()) % s.codeBlocks.count()
 		} else {
-			s.rootUI.Navigate(key)
-			s.selectedBlockID = noBlock
+			// We don't handle any keys other than Tab/BackTab here
 			return
 		}
-	})
+		// Highlight the current selected one
+		s.Highlight(strconv.Itoa(index)).ScrollToHighlight()
+		// the current highlighted block is the selected one
+		s.selectedBlockID = s.codeBlocks.get(index)
+	} else if s.codeBlocks.count() > 0 {
+		// Nothing is selected so let us find the element and tab
+		index := 0
+		if key == tcell.KeyBacktab {
+			// we have back tabbed into this so select the last one
+			index = s.codeBlocks.count() - 1
+		}
+		s.Highlight(strconv.Itoa(index)).ScrollToHighlight()
+		s.selectedBlockID = s.codeBlocks.get(index)
+	} else {
+		s.rootUI.Navigate(key)
+		s.selectedBlockID = noBlock
+		return
+	}
 }
 
 func newSnippetView(rootUI *Tui) *snippetView {

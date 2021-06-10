@@ -28,6 +28,10 @@ func (n *Navigator) Navigate(key tcell.Key) {
 	}
 }
 
+func (n *Navigator) Home() {
+	n.RootUI.SetFocus((n.Entries[0]))
+}
+
 func (n *Navigator) Next() {
 	index := n.GetCurrentFocusedIndex()
 	next := 0

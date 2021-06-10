@@ -2,10 +2,11 @@ package tui
 
 import (
 	"fmt"
-	"github.com/gdamore/tcell/v2"
-	"github.com/rivo/tview"
 	"strconv"
 	"time"
+
+	"github.com/gdamore/tcell/v2"
+	"github.com/rivo/tview"
 )
 
 type Level string
@@ -105,6 +106,7 @@ func (a *activityView) Log(level Level, format string, v ...interface{}) {
 
 func (a *activityView) setKeybinding() {
 	a.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		event = a.rootUI.GlobalKeyBindings(event)
 		switch event.Key() {
 		case tcell.KeyEnter:
 			r, _ := a.GetSelection()

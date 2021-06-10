@@ -2,6 +2,9 @@ package tui
 
 import (
 	"fmt"
+	"os"
+	"time"
+
 	"github.com/aardlabs/terminal-poc/tui/common"
 
 	"github.com/aardlabs/terminal-poc/graph"
@@ -95,6 +98,17 @@ func NewTui(gCtx *snippet.Context, name string) (*Tui, error) {
 }
 
 func (t *Tui) Run() error { return t.App.Run() }
+
+func (t *Tui) Stop() {
+	go func() {
+		// in case we're in a weird stuck state, force an exit after 3 seconds
+		time.Sleep(3 * time.Second)
+		os.Exit(11)
+	}()
+
+	t.run.Register.Cleanup()
+	t.App.Stop()
+}
 
 func (t *Tui) Navigate(key tcell.Key) {
 	t.Nav.Navigate(key)
@@ -264,7 +278,22 @@ func (t *Tui) CheckCurrentNode() error {
 	return nil
 }
 
+func (t *Tui) GlobalKeyBindings(event *tcell.EventKey) *tcell.EventKey {
+	switch event.Key() {
+	case tcell.KeyEscape:
+		tools.Log.Info().Msgf("Global: ESC request to go home")
+		t.Nav.Home()
+	case tcell.KeyCtrlQ:
+		tools.Log.Info().Msgf("Global: Ctrl+Q request to quit")
+		t.Stop()
+	}
+
+	return event
+}
+
 func (t *Tui) CommonKeyBindings(event *tcell.EventKey) *tcell.EventKey {
+	event = t.GlobalKeyBindings(event)
+
 	switch event.Key() {
 	case tcell.KeyCtrlR:
 		tools.Log.Info().Msgf("PlayBookTree: Ctrl+R request to run node")
