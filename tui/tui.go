@@ -29,18 +29,17 @@ type Tui struct {
 	// Primary UI Application component
 	App *tview.Application
 
-	gCtx        *snippet.Context
-	info        *info
-	PbTree      *PlayBookTree
-	snippetView *snippetView
-	consoleView *consoleView
-	execView    *executionsView
-	//statusView   *detailView
+	gCtx         *snippet.Context
+	info         *info
+	PbTree       *PlayBookTree
+	snippetView  *snippetView
+	consoleView  *consoleView
+	execView     *executionsView
 	navHelp      *navView
 	activityView *activityView
 
 	pages *tview.Pages // different pages in this UI
-	grid  *tview.Grid  //  layout for the run page
+	grid  *tview.Grid  // Layout for the run page
 	run   *run.Run
 
 	Nav *common.Navigator
@@ -91,10 +90,20 @@ func NewTui(gCtx *snippet.Context, name string) (*Tui, error) {
 		ui.StatusErrorf("NewTui: UpdateCurrentNodeID: id=%s err = %v", run.Root.Node.ID, err)
 	}
 	ui.setFocusedItem()
+	ui.setExecutionDone()
+	go ui.run.Start()
 	return ui, nil
 }
 
-func (t *Tui) Run() error { return t.App.Run() }
+func (t *Tui) Run() error {
+	if err := t.App.Run(); err != nil {
+		tools.Log.Err(err).Msgf("Run App")
+		return err
+	}
+
+	tools.Log.Info().Msgf("MonitorRunExecutions: spinning off CompletedExecutions")
+	return nil
+}
 
 func (t *Tui) Navigate(key tcell.Key) {
 	t.Nav.Navigate(key)
@@ -173,31 +182,26 @@ func (t *Tui) GetBlock(blockID string) (*graph.Block, error) {
 	return t.run.GetBlock(t.curNodeID, blockID)
 }
 
+func (t *Tui) CancelBlockExecution(requestID string) error {
+	t.run.CancelBlock(requestID)
+	return nil
+}
+
 func (t *Tui) ExecuteSelectedBlock(blockID string) error {
 	t.SetExecutionInProgress()
 	if err := t.CheckCurrentNode(); err != nil {
 		return err
 	}
-
 	tools.Log.Info().Msgf("ExecuteSelectedBlock [%s][%s]", t.curNodeID, blockID)
 	view, err := t.run.ViewIndex.Get(t.curNodeID)
 	if err != nil {
-		t.StatusErrorf("ExecuteSelectedBlock: err = %v", err)
 		return err
 	}
-
 	b, err := t.GetBlock(blockID)
 	if err != nil {
 		return err
 	}
-
-	if _, err := t.run.ExecuteBlock(view.Node, b, t.consoleView, t.consoleView); err != nil {
-		t.StatusErrorf("ExecuteSelectedBlock  id:[%s]: err = %v", t.curNodeID, err)
-		return err
-	}
-
-	t.QueueRefresh("ExecuteSelectedBlock")
-
+	t.run.ExecuteBlock(view.Node, b, t.consoleView, t.consoleView)
 	return nil
 }
 
@@ -337,4 +341,10 @@ func (t *Tui) InspectActivity(a *activity) {
 	}
 
 	t.displayInspect(string(b), "Activity", "activity")
+}
+
+func (t *Tui) setExecutionDone() {
+	t.run.SetExecutionDoneFn(func(result *graph.BlockExecutionResult) {
+		t.QueueRefresh("setExecutionDone")
+	})
 }

@@ -134,6 +134,7 @@ func (b *executionsView) setKeybinding() {
 			requestID := b.GetCell(r, 2).Text
 			b.rootUI.InspectBlockExecution(requestID)
 		}
+
 		return event
 	})
 }

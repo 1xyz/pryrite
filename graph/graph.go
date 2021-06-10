@@ -1,6 +1,7 @@
 package graph
 
 import (
+	"context"
 	"fmt"
 	"github.com/aardlabs/terminal-poc/tools"
 	"io"
@@ -153,6 +154,39 @@ func (b *byteWriter) Close() error {
 	return nil
 }
 
+type BlockExecutionRequest struct {
+	// CancelFn - can be called by multiple go routines, and is idempotent
+	CancelFn    context.CancelFunc
+	Ctx         context.Context
+	ID          string
+	Node        *Node
+	Block       *Block
+	Stdout      io.Writer
+	Stderr      io.Writer
+	ExecutionID string
+	ExecutedBy  string
+}
+
+func (b *BlockExecutionRequest) String() string {
+	return fmt.Sprintf("BlockExecutionRequest ID:%s NodeID:%s BlockID:%s ExecutionID:%s ExecutedBy:%s",
+		b.ID, b.Node.ID, b.Block.ID, b.ExecutionID, b.ExecutedBy)
+}
+
+func NewBlockExecutionRequest(n *Node, b *Block, stdout, stderr io.Writer, executionID, executedBy string) *BlockExecutionRequest {
+	ctx, cancelFn := context.WithCancel(context.Background())
+	return &BlockExecutionRequest{
+		Ctx:         ctx,
+		CancelFn:    cancelFn,
+		ID:          tools.RandAlphaNumericStr(8),
+		Node:        n,
+		Block:       b,
+		Stdout:      stdout,
+		Stderr:      stderr,
+		ExecutionID: executionID,
+		ExecutedBy:  executedBy,
+	}
+}
+
 // BlockExecutionResult encapsulates a node's execution result
 type BlockExecutionResult struct {
 	ExecutionID string     `yaml:"execution_id" json:"execution_id"`
@@ -216,4 +250,12 @@ func NewBlockExecutionResult(executionID, nodeID, blockID, requestID, executedBy
 		res.Stderr = bytes
 	})
 	return res
+}
+
+type BlockCancelRequest struct {
+	RequestID string
+}
+
+func NewBlockCancelRequest(requestID string) *BlockCancelRequest {
+	return &BlockCancelRequest{RequestID: requestID}
 }

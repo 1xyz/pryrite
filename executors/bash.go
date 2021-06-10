@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"go.uber.org/atomic"
 	"io"
 	"os"
 	"os/exec"
@@ -18,7 +19,7 @@ import (
 type BashExecutor struct {
 	bash        *exec.Cmd
 	bashDone    chan error
-	isRunning   bool
+	isRunning   atomic.Bool
 	isExecuting bool
 
 	// i/o for sending commands to the bash session
@@ -109,12 +110,12 @@ func (b *BashExecutor) Execute(ctx context.Context, req *ExecRequest) *ExecRespo
 }
 
 func (b *BashExecutor) Cleanup() {
-	if b.isRunning {
+	if b.isRunning.Load() {
 		stopKill(b.bash.Process)
 		b.bash.Process.Wait() // the previous kill won't let the `Run()` call clean up children
 		b.cmdWriter.Close()
 		b.resultReader.Close()
-		b.isRunning = false
+		b.isRunning.Store(false)
 	}
 }
 
@@ -126,6 +127,7 @@ func (b *BashExecutor) Reset() error {
 //--------------------------------------------------------------------------------
 
 func (b *BashExecutor) init() error {
+	b.isRunning.Store(false)
 	b.bash = exec.Command("bash", "-c", repl)
 	b.bashDone = make(chan error, 1)
 
@@ -164,17 +166,17 @@ func (b *BashExecutor) init() error {
 }
 
 func (b *BashExecutor) ensureRunning() {
-	if b.isRunning {
+	if b.isRunning.Load() {
 		return
 	}
 
 	go func() {
 		b.bashDone <- b.bash.Run() // this calls `Wait()` for us
 		close(b.bashDone)
-		b.isRunning = false
+		b.isRunning.Store(false)
 	}()
 
-	b.isRunning = true
+	b.isRunning.Store(true)
 }
 
 func (b *BashExecutor) collectStatus(ready chan *collectorResult) {
