@@ -9,6 +9,7 @@ import (
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/kmd"
 	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/aardlabs/terminal-poc/update"
 )
 
 var (
@@ -21,6 +22,10 @@ var (
 )
 
 func main() {
+	version = strings.TrimSpace(version)
+	commitHash = strings.TrimSpace(commitHash)
+	buildTime = strings.TrimSpace(buildTime)
+
 	verbose := true
 	wr, err := tools.OpenLogger(verbose)
 	if err != nil {
@@ -39,6 +44,7 @@ func main() {
 	if err != nil {
 		tools.LogStderrExit(err, "config.Default")
 	}
+	update.Check(cfg, version, false)
 	// the error is handled by cobra (so let us not handle it)
 	kmd.Execute(cfg, &kmd.VersionInfo{
 		Version:    strings.TrimSpace(version),

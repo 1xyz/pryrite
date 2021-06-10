@@ -27,3 +27,4 @@ build_time.txt
 commit_hash.txt
 
 .DS_Store
+public/

@@ -8,6 +8,7 @@ import (
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/snippet"
 	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/aardlabs/terminal-poc/update"
 	"github.com/spf13/cobra"
 )
 
@@ -35,6 +36,23 @@ func NewCmdRoot(cfg *config.Config, versionInfo *VersionInfo) *cobra.Command {
 			return nil
 		},
 	}
+	updateCheck := false
+	var updateCmd = &cobra.Command{
+		Use:   "update",
+		Short: examplef("Install the latest version of {AppName}"),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if updateCheck {
+				if !update.Check(cfg, versionInfo.Version, true) {
+					tools.LogStdout("The latest vesion is installed")
+				}
+				return nil
+			} else {
+				return update.GetLatest(cfg, versionInfo.Version)
+			}
+		},
+	}
+	updateCmd.Flags().BoolVarP(&updateCheck, "check", "",
+		updateCheck, "check for updates")
 	gCtx := NewGraphContext(cfg, versionInfo.Version)
 	rootCmd.AddCommand(NewCmdSnippetList(gCtx))
 	rootCmd.AddCommand(NewCmdSnippetSearch(gCtx))
@@ -47,6 +65,8 @@ func NewCmdRoot(cfg *config.Config, versionInfo *VersionInfo) *cobra.Command {
 	rootCmd.AddCommand(NewCmdCompletion())
 	rootCmd.AddCommand(NewCmdExecutor())
 	rootCmd.AddCommand(versionCmd)
+	rootCmd.AddCommand(updateCmd)
+
 	return rootCmd
 }
 

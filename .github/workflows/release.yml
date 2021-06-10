@@ -40,12 +40,18 @@ jobs:
 
         - name: Build x64 linux release
           run: make release/linux
+          env:
+            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY}}
 
         - name: Zip linux build
           run: zip -j aardy-linux-amd64.zip README.md bin/linux/*
 
         - name: Build x64 darwin release
           run: make release/darwin
+          env:
+            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY}}
 
         - name: Zip darwin build
           run: zip -j aardy-darwin-amd64.zip README.md bin/darwin/*
