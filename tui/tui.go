@@ -115,8 +115,7 @@ func (t *Tui) Stop() {
 		time.Sleep(3 * time.Second)
 		os.Exit(11)
 	}()
-
-	t.run.Register.Cleanup()
+	t.run.Shutdown()
 	t.App.Stop()
 }
 

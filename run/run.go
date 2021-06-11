@@ -3,6 +3,7 @@ package run
 import (
 	"container/list"
 	"fmt"
+	"go.uber.org/atomic"
 	"io"
 	"strconv"
 	"strings"
@@ -44,6 +45,9 @@ type Run struct {
 	// Register is the execution library
 	Register *executor.Register
 
+	// isRunning indicates if the Run can accept requests to execute
+	isRunning *atomic.Bool
+
 	blockReqCh      chan *graph.BlockExecutionRequest
 	blockCancelCh   chan *graph.BlockCancelRequest
 	logRecvCh       chan *graph.BlockExecutionResult
@@ -79,6 +83,7 @@ func NewRun(gCtx *snippet.Context, playbookIDOrURL string) (*Run, error) {
 		ExecIndex:  NewNodeExecResultIndex(),
 		Store:      store,
 		Register:   register,
+		isRunning:  atomic.NewBool(false),
 
 		blockReqCh:    make(chan *graph.BlockExecutionRequest),
 		blockCancelCh: make(chan *graph.BlockCancelRequest),
@@ -178,9 +183,16 @@ func (r *Run) ExecuteNode(n *graph.Node, stdout, stderr io.Writer) error {
 	return nil
 }
 
+// Start a loop to receive messages
 func (r *Run) Start() {
 	requests := map[string]*graph.BlockExecutionRequest{}
 	executionDoneCh := make(chan *graph.BlockExecutionResult)
+
+	if !r.isRunning.CAS(false, true) {
+		tools.Log.Info().Msgf("System is already running")
+		return
+	}
+
 	for {
 		select {
 		case req := <-r.blockReqCh:
@@ -189,7 +201,10 @@ func (r *Run) Start() {
 			go func(blockReq *graph.BlockExecutionRequest) {
 				r.sendLog(req, graph.BlockStateStarted)
 				result := r.executeBlock(blockReq)
-				executionDoneCh <- result
+
+				if r.isRunning.Load() {
+					executionDoneCh <- result
+				}
 			}(req)
 
 		case entry := <-executionDoneCh:
@@ -197,7 +212,9 @@ func (r *Run) Start() {
 			r.statusInfof("ExecutionDone: request:%s found:%v completed processing", entry.RequestID, ok)
 			delete(requests, entry.RequestID)
 			go func() {
-				r.logRecvCh <- entry
+				if r.isRunning.Load() {
+					r.logRecvCh <- entry
+				}
 			}()
 
 		case logEntry := <-r.logRecvCh:
@@ -228,12 +245,40 @@ func (r *Run) Start() {
 			}()
 
 		case <-r.stopCh:
-			r.statusInfof("Stop: request received")
-			// Cancel existing contexts
+			tools.Log.Info().Msgf("Stop: Request to shutdown received")
+			r.isRunning.Store(false)
+			close(r.statusCh)
+			close(r.logRecvCh)
+			close(r.blockCancelCh)
+			close(r.blockReqCh)
 			close(executionDoneCh)
+
+			done := make(chan bool)
+			go func() {
+				for _, r := range requests {
+					r.CancelFn()
+				}
+				done <- true
+			}()
+
+			<-done
+			close(done)
+			tools.Log.Info().Msgf("Stop: Request to shutdown complete")
 			return
 		}
 	}
+}
+
+// Shutdown stops this system. You cannot use Start to start running
+func (r *Run) Shutdown() {
+	tools.Log.Info().Msgf("Shutdown: Request to shutdown received")
+	if !r.isRunning.Load() {
+		tools.Log.Info().Msgf("System is already stopped")
+		return
+	}
+	r.Register.Cleanup()
+	r.stopCh <- true
+	close(r.stopCh)
 }
 
 func (r *Run) SetStatusUpdateFn(fn StatusUpdateFn)       { r.statusUpdateFn = fn }
@@ -244,7 +289,9 @@ func (r *Run) statusInfof(format string, v ...interface{}) { r.sendStatus(Status
 func (r *Run) sendStatus(level StatusLevel, format string, v ...interface{}) {
 	go func() {
 		msg := fmt.Sprintf(format, v...)
-		r.statusCh <- &Status{Level: level, Message: msg}
+		if r.isRunning.Load() {
+			r.statusCh <- &Status{Level: level, Message: msg}
+		}
 	}()
 }
 
@@ -257,11 +304,20 @@ func (r *Run) sendLog(req *graph.BlockExecutionRequest, state graph.BlockState) 
 }
 
 func (r *Run) CancelBlock(nodeID, requestID string) {
+	if !r.isRunning.Load() {
+		tools.Log.Warn().Msgf("CancelBlock: Run system is not started")
+		return
+	}
 	r.blockCancelCh <- graph.NewBlockCancelRequest(nodeID, requestID)
 }
 
 // ExecuteBlock executes the specified block in the context of this node
 func (r *Run) ExecuteBlock(n *graph.Node, b *graph.Block, stdout, stderr io.Writer) {
+	if !r.isRunning.Load() {
+		tools.Log.Warn().Msgf("CancelBlock: Run system is not started")
+		return
+	}
+
 	timeout := r.gCtx.ConfigEntry.ExecutionTimeout.Duration()
 	if timeout == 0 {
 		timeout = time.Hour
