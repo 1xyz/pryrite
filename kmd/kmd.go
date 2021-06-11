@@ -43,7 +43,7 @@ func NewCmdRoot(cfg *config.Config, versionInfo *VersionInfo) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if updateCheck {
 				if !update.Check(cfg, versionInfo.Version, true) {
-					tools.LogStdout("The latest vesion is installed")
+					tools.LogStdout("The latest version is installed")
 				}
 				return nil
 			} else {
