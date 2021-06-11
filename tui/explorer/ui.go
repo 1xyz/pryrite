@@ -42,8 +42,8 @@ func (u *UI) SetContentNode(n *graph.Node)                 { u.contentView.SetNo
 func (u *UI) SetContentBlock(b *graph.Block)               { u.contentView.SetBlock(b) }
 func (u *UI) SetInfoBlock(b *graph.Block)                  { u.infoView.SetBlock(b) }
 func (u *UI) SetInfoNode(n *graph.Node)                    { u.infoView.SetNode(n) }
-func (u *UI) StatusInfof(format string, v ...interface{})  { u.statusView.Infof(format, v) }
-func (u *UI) StatusErrorf(format string, v ...interface{}) { u.statusView.Errorf(format, v) }
+func (u *UI) StatusInfof(format string, v ...interface{})  { u.statusView.Infof(format, v...) }
+func (u *UI) StatusErrorf(format string, v ...interface{}) { u.statusView.Errorf(format, v...) }
 func (u *UI) GetContext() *snippet.Context                 { return u.explorer.gCtx }
 
 func (u *UI) Navigate(key tcell.Key) {

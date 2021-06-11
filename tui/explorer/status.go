@@ -20,17 +20,17 @@ func newStatusView(rootUI *UI) *statusView {
 }
 
 func (s *statusView) Infof(format string, v ...interface{}) {
-	tools.Log.Info().Msgf(format, v)
+	tools.Log.Info().Msgf(format, v...)
 	s.msgf(tcell.ColorYellow, format, v...)
 }
 
 func (s *statusView) Errorf(format string, v ...interface{}) {
-	tools.Log.Error().Msgf(format, v)
+	tools.Log.Error().Msgf(format, v...)
 	s.msgf(tcell.ColorRed, format, v...)
 }
 
 func (s *statusView) msgf(color tcell.Color, format string, v ...interface{}) {
-	msg := fmt.Sprintf(format, v)
+	msg := fmt.Sprintf(format, v...)
 	s.Clear()
 	s.SetTextColor(color)
 	s.SetText(msg)
