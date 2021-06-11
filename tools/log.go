@@ -3,8 +3,10 @@ package tools
 import (
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -102,6 +104,9 @@ func OpenLogger(verbose bool) (io.Closer, error) {
 	}
 	// initialize logger
 	Log = zlog.Output(w).Level(level)
+	// set standard logger up to use zlog (for 3rd parties that use it, like selfupdate)
+	log.SetFlags(0) // remove timestamps, etc., since zlog handles that for us
+	log.SetOutput(&dumbLogWriter{})
 	return w, nil
 }
 
@@ -135,4 +140,14 @@ func LogStderr(err error, format string, v ...interface{}) {
 func LogStderrExit(err error, format string, v ...interface{}) {
 	LogStderr(err, format, v...)
 	os.Exit(1)
+}
+
+//--------------------------------------------------------------------------------
+
+type dumbLogWriter struct{}
+
+func (dlw *dumbLogWriter) Write(data []byte) (int, error) {
+	msg := strings.TrimRight(string(data), "\r\n")
+	Log.Info().Msg(msg)
+	return len(data), nil
 }
