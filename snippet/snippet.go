@@ -289,6 +289,16 @@ func GetSnippetNodeViewWithChildren(ctx *Context, id string) (*graph.NodeView, e
 	return nv, nil
 }
 
+func GetNodeViewURL(ctx *Context, node *graph.Node) *url.URL {
+	u, err := url.Parse(ctx.ConfigEntry.ServiceUrl)
+	if err != nil {
+		return nil
+	}
+
+	u.Path = "nodes/" + node.ID
+	return u
+}
+
 func GetSnippetNodeView(store graph.Store, id string) (*graph.NodeView, error) {
 	startAt := time.Now()
 	n, err := store.GetNodeView(id)

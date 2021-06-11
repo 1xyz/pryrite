@@ -2,13 +2,15 @@ package kmd
 
 import (
 	"fmt"
+	"os"
+	"strings"
+
+	"github.com/spf13/cobra"
+
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/snippet"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/aardlabs/terminal-poc/tui/explorer"
-	"github.com/spf13/cobra"
-	"os"
-	"strings"
 )
 
 type SnippetListOpts struct {
@@ -254,7 +256,7 @@ func NewCmdSnippetSave(gCtx *snippet.Context) *cobra.Command {
 			}
 
 			tools.Log.Info().Msgf("AddSnippetNode n.ID = %s", n.ID)
-			fmt.Printf("Added a new node with id = %s\n", n.ID)
+			fmt.Printf("Added a new node with id = %s\n", snippet.GetNodeViewURL(gCtx, n))
 			return nil
 		},
 	}
