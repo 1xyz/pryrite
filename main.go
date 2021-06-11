@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/aardlabs/terminal-poc/app"
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/kmd"
 	"github.com/aardlabs/terminal-poc/tools"
@@ -22,9 +23,10 @@ var (
 )
 
 func main() {
-	version = strings.TrimSpace(version)
-	commitHash = strings.TrimSpace(commitHash)
-	buildTime = strings.TrimSpace(buildTime)
+	app.Name = "aardy"
+	app.Version = strings.TrimSpace(version)
+	app.CommitHash = strings.TrimSpace(commitHash)
+	app.BuildTime = strings.TrimSpace(buildTime)
 
 	verbose := true
 	wr, err := tools.OpenLogger(verbose)
@@ -46,11 +48,7 @@ func main() {
 	}
 	update.Check(cfg, version, false)
 	// the error is handled by cobra (so let us not handle it)
-	kmd.Execute(cfg, &kmd.VersionInfo{
-		Version:    strings.TrimSpace(version),
-		CommitHash: strings.TrimSpace(commitHash),
-		BuildTime:  strings.TrimSpace(buildTime),
-	})
+	kmd.Execute(cfg)
 }
 
 //

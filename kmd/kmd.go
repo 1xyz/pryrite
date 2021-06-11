@@ -5,25 +5,19 @@ import (
 	"strings"
 
 	"github.com/MakeNowJust/heredoc"
+	"github.com/spf13/cobra"
+
+	"github.com/aardlabs/terminal-poc/app"
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/snippet"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/aardlabs/terminal-poc/update"
-	"github.com/spf13/cobra"
 )
 
-const AppName = "aardy"
-
-type VersionInfo struct {
-	Version    string
-	CommitHash string
-	BuildTime  string
-}
-
-func NewCmdRoot(cfg *config.Config, versionInfo *VersionInfo) *cobra.Command {
+func NewCmdRoot(cfg *config.Config) *cobra.Command {
 	var rootCmd = &cobra.Command{
-		Version:      versionInfo.Version,
-		Use:          AppName,
+		Version:      app.Version,
+		Use:          app.Name,
 		Short:        "Work seamlessly with the aard service from the command line",
 		SilenceUsage: true,
 	}
@@ -32,7 +26,7 @@ func NewCmdRoot(cfg *config.Config, versionInfo *VersionInfo) *cobra.Command {
 		Short: "Display the program version",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			tools.LogStdout(fmt.Sprintf("%s version %s (%s at %s)",
-				rootCmd.Name(), rootCmd.Version, versionInfo.CommitHash, versionInfo.BuildTime))
+				rootCmd.Name(), rootCmd.Version, app.CommitHash, app.BuildTime))
 			return nil
 		},
 	}
@@ -42,18 +36,18 @@ func NewCmdRoot(cfg *config.Config, versionInfo *VersionInfo) *cobra.Command {
 		Short: examplef("Install the latest version of {AppName}"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if updateCheck {
-				if !update.Check(cfg, versionInfo.Version, true) {
+				if !update.Check(cfg, app.Version, true) {
 					tools.LogStdout("The latest version is installed")
 				}
 				return nil
 			} else {
-				return update.GetLatest(cfg, versionInfo.Version)
+				return update.GetLatest(cfg, app.Version)
 			}
 		},
 	}
 	updateCmd.Flags().BoolVarP(&updateCheck, "check", "",
 		updateCheck, "check for updates")
-	gCtx := NewGraphContext(cfg, versionInfo.Version)
+	gCtx := NewGraphContext(cfg)
 	rootCmd.AddCommand(NewCmdSnippetList(gCtx))
 	rootCmd.AddCommand(NewCmdSnippetSearch(gCtx))
 	rootCmd.AddCommand(NewCmdSnippetDesc(gCtx))
@@ -70,17 +64,17 @@ func NewCmdRoot(cfg *config.Config, versionInfo *VersionInfo) *cobra.Command {
 	return rootCmd
 }
 
-func Execute(cfg *config.Config, versionInfo *VersionInfo) error {
-	rootCmd := NewCmdRoot(cfg, versionInfo)
+func Execute(cfg *config.Config) error {
+	rootCmd := NewCmdRoot(cfg)
 	return rootCmd.Execute()
 }
 
-func NewGraphContext(cfg *config.Config, version string) *snippet.Context {
-	return snippet.NewContext(cfg, fmt.Sprintf("TermConsole:%s", version))
+func NewGraphContext(cfg *config.Config) *snippet.Context {
+	return snippet.NewContext(cfg, fmt.Sprintf("TermConsole:%s", app.Version))
 }
 
 func examplef(format string, args ...string) string {
-	args = append(args, "{AppName}", AppName)
+	args = append(args, "{AppName}", app.Name)
 	r := strings.NewReplacer(args...)
 	return heredoc.Doc(r.Replace(format))
 }

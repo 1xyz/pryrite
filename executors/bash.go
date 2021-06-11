@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"errors"
-	"go.uber.org/atomic"
 	"io"
 	"os"
 	"os/exec"
@@ -13,6 +12,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"go.uber.org/atomic"
 
 	"github.com/aardlabs/terminal-poc/tools"
 )
