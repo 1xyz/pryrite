@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"errors"
-	"go.uber.org/atomic"
 	"io"
 	"os"
 	"os/exec"
@@ -13,6 +12,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"go.uber.org/atomic"
 
 	"github.com/aardlabs/terminal-poc/tools"
 )
@@ -50,9 +51,7 @@ const repl = `while IFS= read -u 11 -r -d $'\0' cmd; do eval "$cmd"; echo $? >&1
 // done`
 
 func NewBashExecutor() (Executor, error) {
-	b := &BashExecutor{
-		bashDone: make(chan error, 1),
-	}
+	b := &BashExecutor{}
 	err := b.init()
 	return b, err
 }
@@ -132,7 +131,7 @@ func (b *BashExecutor) Reset() error {
 func (b *BashExecutor) init() error {
 	b.isRunning.Store(false)
 	b.bash = exec.Command("bash", "-c", repl)
-	//b.bashDone = make(chan error, 1)
+	b.bashDone = make(chan error, 1)
 
 	// make sure bash is in its own process group so we can terminate itself _and_ any children
 	b.bash.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}

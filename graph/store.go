@@ -9,9 +9,11 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/go-resty/resty/v2"
+
+	"github.com/aardlabs/terminal-poc/app"
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/tools"
-	"github.com/go-resty/resty/v2"
 )
 
 type Store interface {
@@ -68,13 +70,11 @@ func (r *remoteStore) GetNodes(limit int, kind Kind) ([]Node, error) {
 	if kind == Unknown {
 		kindStr = ""
 	}
-	req := client.R().
-		SetHeader("Accept", "application/json").
-		SetQueryParams(map[string]string{
-			"limit":   strconv.Itoa(limit),
-			"kind":    kindStr,
-			"include": "blocks",
-		})
+	req := client.R().SetQueryParams(map[string]string{
+		"limit":   strconv.Itoa(limit),
+		"kind":    kindStr,
+		"include": "blocks",
+	})
 	resp, err := req.Get("/api/v1/nodes")
 	if err != nil {
 		return nil, err
@@ -93,7 +93,6 @@ func (r *remoteStore) GetNode(id string) (*Node, error) {
 	client := r.newHTTPClient(false)
 	req := client.R().
 		SetPathParam("nodeId", id).
-		SetHeader("Accept", "application/json").
 		SetQueryParams(map[string]string{
 			"include": "blocks",
 			"view":    "text",
@@ -129,7 +128,6 @@ func (r *remoteStore) AddNode(n *Node) (*Node, error) {
 
 	result := Node{}
 	resp, err := client.R().
-		SetHeader("Content-Type", "application/json").
 		SetBody(n).
 		SetResult(&result).
 		Post("/api/v1/nodes")
@@ -146,7 +144,6 @@ func (r *remoteStore) UpdateNode(n *Node) error {
 	client := r.newHTTPClient(true)
 	resp, err := client.R().
 		SetPathParam("nodeId", n.ID).
-		SetHeader("Content-Type", "application/json").
 		SetBody(n).
 		Put("/api/v1/nodes/{nodeId}")
 	if err != nil {
@@ -171,8 +168,7 @@ func (r *remoteStore) SearchNodes(query string, limit int, kind Kind) ([]Node, e
 			"Limit":   strconv.Itoa(limit),
 			"Kind":    kindStr,
 			"Include": "blocks",
-		}).
-		SetHeader("Accept", "application/json")
+		})
 
 	resp, err := req.Get("/api/v1/search/nodes")
 	if err != nil {
@@ -199,7 +195,6 @@ func (r *remoteStore) UpdateNodeBlock(n *Node, b *Block) error {
 	resp, err := client.R().
 		SetPathParam("nodeId", n.ID).
 		SetPathParam("snippetId", b.ID).
-		SetHeader("Content-Type", "application/json").
 		SetBody(b).
 		Put("/api/v1/nodes/{nodeId}/snippet/{snippetId}")
 	if err != nil {
@@ -216,16 +211,17 @@ func (r *remoteStore) newHTTPClient(parseResponse bool) *resty.Client {
 	if skipSSLCheck {
 		tools.Log.Warn().Msg("Warning: SSL check is disabled")
 	}
-
-	client := resty.New()
-	client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: skipSSLCheck})
-	client.SetDoNotParseResponse(!parseResponse)
-	client.SetHostURL(r.configEntry.ServiceUrl)
-	client.SetTimeout(clientTimeout)
-	client.SetHeader("Authorization",
-		fmt.Sprintf("%s %s", r.configEntry.AuthScheme, r.configEntry.User))
-	client.SetHeader("Accept", "application/json")
-	return client
+	return resty.New().
+		SetTLSClientConfig(&tls.Config{InsecureSkipVerify: skipSSLCheck}).
+		SetDoNotParseResponse(!parseResponse).
+		SetHostURL(r.configEntry.ServiceUrl).
+		SetTimeout(clientTimeout).
+		SetHeaders(map[string]string{
+			"Authorization": fmt.Sprintf("%s %s", r.configEntry.AuthScheme, r.configEntry.User),
+			"Accept":        "application/json",
+			"Content-Type":  "application/json",
+			"User-Agent":    fmt.Sprintf("%s/%s (%s)", app.Name, app.Version, app.CommitHash),
+		})
 }
 
 func checkHTTP2XX(message string, resp *resty.Response) error {
