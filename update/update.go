@@ -5,13 +5,18 @@ import (
 	"path"
 	"time"
 
+	"github.com/aardlabs/terminal-poc/app"
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/sanbornm/go-selfupdate/selfupdate"
 )
 
-func Check(cfg *config.Config, currentVersion string, force bool) bool {
-	entry, _ := cfg.GetDefaultEntry()
+func Check(cfg *config.Config, force bool) bool {
+	entry, ok := cfg.GetDefaultEntry()
+	if !ok {
+		tools.Log.Error().Msg("unable to get default configuration entry")
+		return false
+	}
 
 	if !force {
 		diff := time.Since(entry.LastUpdateCheck)
@@ -21,7 +26,7 @@ func Check(cfg *config.Config, currentVersion string, force bool) bool {
 		}
 	}
 
-	updater := getUpdater(entry, currentVersion)
+	updater := getUpdater(entry, app.Version)
 
 	newVersion, err := updater.UpdateAvailable()
 	if err != nil {
@@ -36,16 +41,16 @@ func Check(cfg *config.Config, currentVersion string, force bool) bool {
 		tools.LogStderr(nil,
 			"\n*** Notice: A new version is available (%s to %s). "+
 				"Use update to get the latest version. ***\n\n",
-			currentVersion, newVersion)
+			app.Version, newVersion)
 		return true
 	}
 
 	return false
 }
 
-func GetLatest(cfg *config.Config, currentVersion string) error {
+func GetLatest(cfg *config.Config) error {
 	entry, _ := cfg.GetDefaultEntry()
-	updater := getUpdater(entry, currentVersion)
+	updater := getUpdater(entry, app.Version)
 
 	return updater.BackgroundRun()
 }

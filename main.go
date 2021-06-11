@@ -46,7 +46,7 @@ func main() {
 	if err != nil {
 		tools.LogStderrExit(err, "config.Default")
 	}
-	update.Check(cfg, version, false)
+	update.Check(cfg, false)
 	// the error is handled by cobra (so let us not handle it)
 	kmd.Execute(cfg)
 }

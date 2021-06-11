@@ -36,12 +36,12 @@ func NewCmdRoot(cfg *config.Config) *cobra.Command {
 		Short: examplef("Install the latest version of {AppName}"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if updateCheck {
-				if !update.Check(cfg, app.Version, true) {
+				if !update.Check(cfg, true) {
 					tools.LogStdout("The latest version is installed")
 				}
 				return nil
 			} else {
-				return update.GetLatest(cfg, app.Version)
+				return update.GetLatest(cfg)
 			}
 		},
 	}
