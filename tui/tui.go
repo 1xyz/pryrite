@@ -224,19 +224,13 @@ func (t *Tui) ExecuteCurrentNode() error {
 	if err := t.CheckCurrentNode(); err != nil {
 		return err
 	}
-
-	tools.Log.Info().Msgf("ExecuteCurrentNode [%s]", t.curNodeID)
 	view, err := t.run.ViewIndex.Get(t.curNodeID)
 	if err != nil {
 		return err
 	}
-
 	if err := t.run.ExecuteNode(view.Node, t.consoleView, t.consoleView); err != nil {
 		return err
 	}
-
-	t.QueueRefresh("ExecuteCurrentNode")
-
 	return nil
 }
 
@@ -301,12 +295,9 @@ func (t *Tui) CommonKeyBindings(event *tcell.EventKey) *tcell.EventKey {
 
 	switch event.Key() {
 	case tcell.KeyCtrlR:
-		tools.Log.Info().Msgf("PlayBookTree: Ctrl+R request to run node")
-		go func() {
-			if err := t.ExecuteCurrentNode(); err != nil {
-				t.StatusErrorf("ExecuteCurrentNode [%s] failed err = %v", t.curNodeID, err)
-			}
-		}()
+		if err := t.ExecuteCurrentNode(); err != nil {
+			t.StatusErrorf("ExecuteCurrentNode [%s] failed err = %v", t.curNodeID, err)
+		}
 	case tcell.KeyCtrlE:
 		tools.Log.Info().Msgf("PlayBookTree: Ctrl+E request to edit node")
 	}

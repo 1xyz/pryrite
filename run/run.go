@@ -3,6 +3,7 @@ package run
 import (
 	"container/list"
 	"fmt"
+	"github.com/aardlabs/terminal-poc/tools/queue"
 	"go.uber.org/atomic"
 	"io"
 	"strconv"
@@ -48,9 +49,13 @@ type Run struct {
 	// isRunning indicates if the Run can accept requests to execute
 	isRunning *atomic.Bool
 
+	// requestQ is where incoming blockExecutionRequest(s) are queued
+	requestQ queue.Queue
+
 	blockReqCh      chan *graph.BlockExecutionRequest
 	blockCancelCh   chan *graph.BlockCancelRequest
 	logRecvCh       chan *graph.BlockExecutionResult
+	executionDoneCh chan *graph.BlockExecutionResult
 	stopCh          chan bool
 	statusCh        chan *Status
 	executionDoneFn ExecutionUpdateFn
@@ -84,12 +89,14 @@ func NewRun(gCtx *snippet.Context, playbookIDOrURL string) (*Run, error) {
 		Store:      store,
 		Register:   register,
 		isRunning:  atomic.NewBool(false),
+		requestQ:   queue.NewConcurrentQueue(),
 
-		blockReqCh:    make(chan *graph.BlockExecutionRequest),
-		blockCancelCh: make(chan *graph.BlockCancelRequest),
-		logRecvCh:     make(chan *graph.BlockExecutionResult),
-		stopCh:        make(chan bool),
-		statusCh:      make(chan *Status),
+		blockReqCh:      make(chan *graph.BlockExecutionRequest),
+		blockCancelCh:   make(chan *graph.BlockCancelRequest),
+		logRecvCh:       make(chan *graph.BlockExecutionResult),
+		executionDoneCh: make(chan *graph.BlockExecutionResult),
+		stopCh:          make(chan bool),
+		statusCh:        make(chan *Status),
 	}
 
 	if err := run.buildGraph(); err != nil {
@@ -174,40 +181,59 @@ func (r *Run) GetBlockExecutionResult(nodeID, logID string) (*graph.BlockExecuti
 // ExecuteNode executes all code blocks in the context of this node
 // If any block fails executions, ExecuteNode will return an error and not continue executing
 func (r *Run) ExecuteNode(n *graph.Node, stdout, stderr io.Writer) error {
-	//for _, b := range n.Blocks {
-	//	if !b.IsCode() {
-	//		continue
-	//	}
-	//	r.ExecuteBlock(context.Background(), n, b, stdout, stderr)
-	//}
+	for _, b := range n.Blocks {
+		if !b.IsCode() {
+			continue
+		}
+		r.ExecuteBlock(n, b, stdout, stderr)
+	}
 	return nil
+}
+
+func (r *Run) reqDispatchLoop() {
+	for {
+		item := r.requestQ.WaitForItem()
+		req, ok := item.(*graph.BlockExecutionRequest)
+		if !ok {
+			tools.Log.Fatal().Msgf("reqDispatch: cast-error. item %T is not (*graph.BlockExecutionRequest)", item)
+		}
+
+		if !r.isRunning.Load() {
+			tools.Log.Info().Msgf("reqDispatch: system is shutdown")
+			return
+		}
+
+		r.sendLog(req, graph.BlockStateStarted)
+		result := r.executeBlock(req)
+		if r.isRunning.Load() {
+			r.executionDoneCh <- result
+		}
+	}
 }
 
 // Start a loop to receive messages
 func (r *Run) Start() {
 	requests := map[string]*graph.BlockExecutionRequest{}
-	executionDoneCh := make(chan *graph.BlockExecutionResult)
-
 	if !r.isRunning.CAS(false, true) {
 		tools.Log.Info().Msgf("System is already running")
 		return
 	}
+
+	go r.reqDispatchLoop()
 
 	for {
 		select {
 		case req := <-r.blockReqCh:
 			requests[req.ID] = req
 			r.statusInfof("NewRequest: Recd. new request:%v", req.ID)
+			// ensure that the enqueue is done here to FIFO ordering
+			// not in a separate go-routine
+			r.requestQ.Enqueue(req)
 			go func(blockReq *graph.BlockExecutionRequest) {
-				r.sendLog(req, graph.BlockStateStarted)
-				result := r.executeBlock(blockReq)
-
-				if r.isRunning.Load() {
-					executionDoneCh <- result
-				}
+				r.sendLog(blockReq, graph.BlockStateQueued)
 			}(req)
 
-		case entry := <-executionDoneCh:
+		case entry := <-r.executionDoneCh:
 			_, ok := requests[entry.RequestID]
 			r.statusInfof("ExecutionDone: request:%s found:%v completed processing", entry.RequestID, ok)
 			delete(requests, entry.RequestID)
@@ -251,7 +277,7 @@ func (r *Run) Start() {
 			close(r.logRecvCh)
 			close(r.blockCancelCh)
 			close(r.blockReqCh)
-			close(executionDoneCh)
+			close(r.executionDoneCh)
 
 			done := make(chan bool)
 			go func() {
@@ -323,7 +349,10 @@ func (r *Run) ExecuteBlock(n *graph.Node, b *graph.Block, stdout, stderr io.Writ
 		timeout = time.Hour
 	}
 
-	r.blockReqCh <- graph.NewBlockExecutionRequest(n, b, stdout, stderr, r.ID, r.gCtx.ConfigEntry.Email, timeout)
+	req := graph.NewBlockExecutionRequest(n, b, stdout, stderr, r.ID, r.gCtx.ConfigEntry.Email, timeout)
+	tools.Log.Info().Msgf("ExecuteBlock: node:%s block:%s req:%s content:%s",
+		n.ID, b.ID, req.ID, tools.TrimLength(b.Content, 6))
+	r.blockReqCh <- req
 }
 
 func (r *Run) executeBlock(req *graph.BlockExecutionRequest) *graph.BlockExecutionResult {
@@ -360,7 +389,7 @@ func (r *Run) executeBlock(req *graph.BlockExecutionRequest) *graph.BlockExecuti
 	outWriter := tools.NewBufferedWriteCloser(io.MultiWriter(execResult.StdoutWriter, req.Stdout))
 	errWriter := tools.NewBufferedWriteCloser(io.MultiWriter(execResult.StderrWriter, req.Stderr))
 
-	startMarker := fmt.Sprintf("\n[yellow]>> executing node:%s[white]\n", req.Node.ID)
+	startMarker := fmt.Sprintf("\n[yellow]>> executing node:%s req-id:%s [white]\n", req.Node.ID, req.ID)
 	outWriter.Write([]byte(startMarker))
 	cmdInfo := fmt.Sprintf("[yellow]>> %s[white]\n", req.Block.Content)
 	outWriter.Write([]byte(cmdInfo))
