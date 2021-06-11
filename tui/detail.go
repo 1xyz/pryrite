@@ -21,6 +21,18 @@ func (e *detailView) NavHelp() [][]string {
 	}
 }
 
+func (e *detailView) Focus(delegate func(p tview.Primitive)) {
+	e.SetTitleColor(e.rootUI.focusColor)
+	e.SetBorderColor(e.rootUI.focusColor)
+	e.TextView.Focus(delegate)
+}
+
+func (e *detailView) Blur() {
+	e.SetTitleColor(tcell.ColorDefault)
+	e.SetBorderColor(tcell.ColorDefault)
+	e.TextView.Blur()
+}
+
 func newDetailView(title string, showBorder bool, rootUI *Tui) *detailView {
 	textView := tview.NewTextView().
 		SetDynamicColors(true).

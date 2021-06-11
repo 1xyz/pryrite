@@ -125,3 +125,15 @@ func (a *activityView) NavHelp() [][]string {
 		{"Shift + Tab", "Navigate to the previous pane"},
 	}
 }
+
+func (a *activityView) Focus(delegate func(p tview.Primitive)) {
+	a.SetTitleColor(a.rootUI.focusColor)
+	a.SetBorderColor(a.rootUI.focusColor)
+	a.Table.Focus(delegate)
+}
+
+func (a *activityView) Blur() {
+	a.SetTitleColor(tcell.ColorDefault)
+	a.SetBorderColor(tcell.ColorDefault)
+	a.Table.Blur()
+}

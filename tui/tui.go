@@ -32,6 +32,8 @@ type Tui struct {
 	// Primary UI Application component
 	App *tview.Application
 
+	focusColor tcell.Color
+
 	gCtx         *snippet.Context
 	info         *info
 	PbTree       *PlayBookTree
@@ -58,9 +60,10 @@ func NewTui(gCtx *snippet.Context, name string) (*Tui, error) {
 	}
 
 	ui := &Tui{
-		gCtx: gCtx,
-		App:  tview.NewApplication(),
-		run:  run,
+		gCtx:       gCtx,
+		App:        tview.NewApplication(),
+		focusColor: tcell.ColorYellow,
+		run:        run,
 	}
 
 	ui.info = newInfo(ui, gCtx)

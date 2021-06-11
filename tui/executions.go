@@ -190,3 +190,15 @@ func (b *executionsView) renderYaml(result *graph.BlockExecutionResult) ([]byte,
 		string(result.Stderr)}
 	return yaml.Marshal(&resultView)
 }
+
+func (b *executionsView) Focus(delegate func(p tview.Primitive)) {
+	b.SetTitleColor(b.rootUI.focusColor)
+	b.SetBorderColor(b.rootUI.focusColor)
+	b.Table.Focus(delegate)
+}
+
+func (b *executionsView) Blur() {
+	b.SetTitleColor(tcell.ColorDefault)
+	b.SetBorderColor(tcell.ColorDefault)
+	b.Table.Blur()
+}

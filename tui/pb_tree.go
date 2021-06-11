@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/tools"
 	tcell "github.com/gdamore/tcell/v2"
@@ -116,4 +117,16 @@ func (p *PlayBookTree) RefreshNode(nodeID string) error {
 	tNode.SetReference(view).
 		SetText(view.Node.Title)
 	return nil
+}
+
+func (p *PlayBookTree) Focus(delegate func(p tview.Primitive)) {
+	p.SetTitleColor(p.rootUI.focusColor)
+	p.SetBorderColor(p.rootUI.focusColor)
+	p.TreeView.Focus(delegate)
+}
+
+func (p *PlayBookTree) Blur() {
+	p.TreeView.SetTitleColor(tcell.ColorDefault)
+	p.TreeView.SetBorderColor(tcell.ColorDefault)
+	p.TreeView.Blur()
 }
