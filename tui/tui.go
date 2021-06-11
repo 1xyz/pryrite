@@ -32,18 +32,17 @@ type Tui struct {
 	// Primary UI Application component
 	App *tview.Application
 
-	gCtx        *snippet.Context
-	info        *info
-	PbTree      *PlayBookTree
-	snippetView *snippetView
-	consoleView *consoleView
-	execView    *executionsView
-	//statusView   *detailView
+	gCtx         *snippet.Context
+	info         *info
+	PbTree       *PlayBookTree
+	snippetView  *snippetView
+	consoleView  *consoleView
+	execView     *executionsView
 	navHelp      *navView
 	activityView *activityView
 
 	pages *tview.Pages // different pages in this UI
-	grid  *tview.Grid  //  layout for the run page
+	grid  *tview.Grid  // Layout for the run page
 	run   *run.Run
 
 	Nav *common.Navigator
@@ -94,10 +93,21 @@ func NewTui(gCtx *snippet.Context, name string) (*Tui, error) {
 		ui.StatusErrorf("NewTui: UpdateCurrentNodeID: id=%s err = %v", run.Root.Node.ID, err)
 	}
 	ui.setFocusedItem()
+	ui.setExecutionUpdate()
+	ui.setStatusUpdate()
+	go ui.run.Start()
 	return ui, nil
 }
 
-func (t *Tui) Run() error { return t.App.Run() }
+func (t *Tui) Run() error {
+	if err := t.App.Run(); err != nil {
+		tools.Log.Err(err).Msgf("Run App")
+		return err
+	}
+
+	tools.Log.Info().Msgf("MonitorRunExecutions: spinning off CompletedExecutions")
+	return nil
+}
 
 func (t *Tui) Stop() {
 	go func() {
@@ -187,31 +197,27 @@ func (t *Tui) GetBlock(blockID string) (*graph.Block, error) {
 	return t.run.GetBlock(t.curNodeID, blockID)
 }
 
+func (t *Tui) CancelBlockExecution(requestID string) error {
+	t.StatusInfof("CancelBlockExecution: requestID %s", requestID)
+	t.run.CancelBlock(t.curNodeID, requestID)
+	return nil
+}
+
 func (t *Tui) ExecuteSelectedBlock(blockID string) error {
 	t.SetExecutionInProgress()
 	if err := t.CheckCurrentNode(); err != nil {
 		return err
 	}
-
 	tools.Log.Info().Msgf("ExecuteSelectedBlock [%s][%s]", t.curNodeID, blockID)
 	view, err := t.run.ViewIndex.Get(t.curNodeID)
 	if err != nil {
-		t.StatusErrorf("ExecuteSelectedBlock: err = %v", err)
 		return err
 	}
-
 	b, err := t.GetBlock(blockID)
 	if err != nil {
 		return err
 	}
-
-	if _, err := t.run.ExecuteBlock(view.Node, b, t.consoleView, t.consoleView); err != nil {
-		t.StatusErrorf("ExecuteSelectedBlock  id:[%s]: err = %v", t.curNodeID, err)
-		return err
-	}
-
-	t.QueueRefresh("ExecuteSelectedBlock")
-
+	t.run.ExecuteBlock(view.Node, b, t.consoleView, t.consoleView)
 	return nil
 }
 
@@ -337,10 +343,10 @@ func (t *Tui) displayInspect(data, title, page string) {
 	t.pages.AddAndSwitchToPage("detail", text, true)
 }
 
-func (t *Tui) InspectBlockExecution(requestID string) {
-	res, err := t.run.GetBlockExecutionResult(t.curNodeID, requestID)
+func (t *Tui) InspectBlockExecution(logID string) {
+	res, err := t.run.GetBlockExecutionResult(t.curNodeID, logID)
 	if err != nil {
-		t.StatusErrorf("InspectBlockExecution: req-id: %s err = %v", requestID, err)
+		t.StatusErrorf("InspectBlockExecution: req-id: %s err = %v", logID, err)
 		return
 	}
 
@@ -351,7 +357,7 @@ func (t *Tui) InspectBlockExecution(requestID string) {
 	}{res, string(res.Stdout), string(res.Stderr)}
 	b, err := yaml.Marshal(&d)
 	if err != nil {
-		t.StatusErrorf("InspectBlockExecution: req-id: %s err = %v", requestID, err)
+		t.StatusErrorf("InspectBlockExecution: req-id: %s err = %v", logID, err)
 		return
 	}
 
@@ -366,4 +372,22 @@ func (t *Tui) InspectActivity(a *activity) {
 	}
 
 	t.displayInspect(string(b), "Activity", "activity")
+}
+
+func (t *Tui) setExecutionUpdate() {
+	t.run.SetExecutionUpdateFn(func(result *graph.BlockExecutionResult) {
+		t.QueueRefresh("setExecutionUpdate")
+	})
+}
+
+func (t *Tui) setStatusUpdate() {
+	t.run.SetStatusUpdateFn(func(status *run.Status) {
+		t.App.QueueUpdateDraw(func() {
+			if status.Level == run.StatusError {
+				t.StatusErrorf(status.Message)
+			} else {
+				t.StatusInfof(status.Message)
+			}
+		})
+	})
 }

@@ -1,6 +1,7 @@
 package graph
 
 import (
+	"context"
 	"fmt"
 	"github.com/aardlabs/terminal-poc/tools"
 	"io"
@@ -153,17 +154,68 @@ func (b *byteWriter) Close() error {
 	return nil
 }
 
+type BlockExecutionRequest struct {
+	// CancelFn - can be called by multiple go routines, and is idempotent
+	CancelFn    context.CancelFunc
+	Ctx         context.Context
+	ID          string
+	Node        *Node
+	Block       *Block
+	Stdout      io.Writer
+	Stderr      io.Writer
+	ExecutionID string
+	ExecutedBy  string
+}
+
+func (b *BlockExecutionRequest) String() string {
+	return fmt.Sprintf("BlockExecutionRequest ID:%s NodeID:%s BlockID:%s ExecutionID:%s ExecutedBy:%s",
+		b.ID, b.Node.ID, b.Block.ID, b.ExecutionID, b.ExecutedBy)
+}
+
+func NewBlockExecutionRequest(n *Node, b *Block, stdout, stderr io.Writer,
+	executionID, executedBy string, executionTimeout time.Duration) *BlockExecutionRequest {
+	tools.Log.Info().Msgf("NewBlockExecutionRequest executionTimeout = %v", executionTimeout)
+	ctx, cancelFn := context.WithTimeout(context.Background(), executionTimeout)
+
+	req := &BlockExecutionRequest{
+		Ctx:         ctx,
+		CancelFn:    cancelFn,
+		ID:          tools.RandAlphaNumericStr(8),
+		Node:        n,
+		Block:       b,
+		Stdout:      stdout,
+		Stderr:      stderr,
+		ExecutionID: executionID,
+		ExecutedBy:  executedBy,
+	}
+
+	return req
+}
+
+type BlockState string
+
+const (
+	BlockStateUnknown   BlockState = "Unknown"
+	BlockStateQueued    BlockState = "Queued"
+	BlockStateStarted   BlockState = "Started"
+	BlockStateCanceled  BlockState = "Cancel-Requested"
+	BlockStateCompleted BlockState = "Completed"
+	BlockStateFailed    BlockState = "Failed"
+)
+
 // BlockExecutionResult encapsulates a node's execution result
 type BlockExecutionResult struct {
+	ID          string     `yaml:"id" json:"id"`
 	ExecutionID string     `yaml:"execution_id" json:"execution_id"`
 	NodeID      string     `yaml:"node_id" json:"node_id"`
 	BlockID     string     `yaml:"block_id" json:"block_id"`
 	RequestID   string     `yaml:"request_id" json:"request_id"`
-	ExitStatus  int        `yaml:"exit_status" json:"exit_status"`
+	ExitStatus  string     `yaml:"exit_status" json:"exit_status"`
 	Stdout      []byte     `yaml:"-" json:"stdout"`
 	Stderr      []byte     `yaml:"-" json:"stderr"`
 	ExecutedAt  *time.Time `yaml:"executed_at,omitempty" json:"executed_at,omitempty"`
 	ExecutedBy  string     `yaml:"executed_by" json:"executed_by"`
+	State       BlockState `yaml:"state" json:"state"`
 
 	// Err can be marshalled to json or yaml
 	Err *tools.MarshalledError `yaml:"err,omitempty" json:"err,omitempty"`
@@ -199,6 +251,7 @@ func (b *BlockExecutionResult) Close() error {
 func NewBlockExecutionResult(executionID, nodeID, blockID, requestID, executedBy, content string) *BlockExecutionResult {
 	now := time.Now().UTC()
 	res := &BlockExecutionResult{
+		ID:          tools.RandAlphaNumericStr(8),
 		ExecutionID: executionID,
 		NodeID:      nodeID,
 		BlockID:     blockID,
@@ -207,7 +260,8 @@ func NewBlockExecutionResult(executionID, nodeID, blockID, requestID, executedBy
 		ExecutedBy:  executedBy,
 		Err:         nil,
 		Content:     content,
-		ExitStatus:  0,
+		ExitStatus:  "",
+		State:       BlockStateUnknown,
 	}
 	res.StdoutWriter = newByteWriter(func(bytes []byte) {
 		res.Stdout = bytes
@@ -216,4 +270,34 @@ func NewBlockExecutionResult(executionID, nodeID, blockID, requestID, executedBy
 		res.Stderr = bytes
 	})
 	return res
+}
+
+func NewBlockExecutionResultFromRequest(req *BlockExecutionRequest) *BlockExecutionResult {
+	now := time.Now().UTC()
+	res := &BlockExecutionResult{
+		ID:          tools.RandAlphaNumericStr(8),
+		ExecutionID: req.ExecutionID,
+		NodeID:      req.Node.ID,
+		BlockID:     req.Block.ID,
+		RequestID:   req.ID,
+		ExecutedAt:  &now,
+		ExecutedBy:  req.ExecutedBy,
+		Err:         nil,
+		Content:     req.Block.Content,
+		ExitStatus:  "",
+		State:       BlockStateUnknown,
+	}
+	return res
+}
+
+type BlockCancelRequest struct {
+	NodeID    string
+	RequestID string
+}
+
+func NewBlockCancelRequest(nodeID, requestID string) *BlockCancelRequest {
+	return &BlockCancelRequest{
+		NodeID:    nodeID,
+		RequestID: requestID,
+	}
 }
