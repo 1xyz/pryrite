@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-resty/resty/v2"
@@ -232,18 +233,22 @@ func checkHTTP2XX(message string, resp *resty.Response) error {
 			HTTPCode: statusCode,
 		}
 	} else if statusCode < 200 || statusCode > 299 {
-		if resp.RawResponse.ContentLength > 0 {
-			errResp := ErrorResponse{}
-			if err := json.NewDecoder(resp.RawBody()).Decode(&errResp); err == nil {
-				tools.Log.Error().Interface("error", errResp).Msg(message)
-				message += ": " + errResp.Message
-			} else {
-				body, err := ioutil.ReadAll(resp.RawResponse.Body)
-				if err == nil {
-					message += ": " + string(body)
+		body, err := ioutil.ReadAll(resp.RawResponse.Body)
+		if err != nil {
+			tools.Log.Err(err).Msg("failed to read error response body")
+		}
+		if len(body) > 0 {
+			ctype := resp.Header().Get("Content-Type")
+			if strings.HasPrefix(ctype, "application/json") {
+				errResp := ErrorResponse{}
+				if err := json.Unmarshal(body, &errResp); err == nil {
+					tools.Log.Error().Interface("error", errResp).Msg(message)
+					message += ": " + errResp.Message
 				} else {
-					tools.Log.Err(err).Msg("failed to read error response body")
+					tools.Log.Err(err).Str("body", string(body)).Msg("failed to parse error response body")
 				}
+			} else {
+				tools.Log.Error().Str("body", string(body)).Msg("unknown type of error response body")
 			}
 		}
 		return &HttpError{
