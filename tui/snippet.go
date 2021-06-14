@@ -100,7 +100,7 @@ func (s *snippetView) updateDetailsContent(n *graph.Node) {
 
 func (s *snippetView) setKeybinding() {
 	s.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		event = s.rootUI.GlobalKeyBindings(event)
+		event = s.rootUI.Nav.GlobalKeyBindings(event)
 
 		switch event.Key() {
 		case tcell.KeyUp, tcell.KeyDown:

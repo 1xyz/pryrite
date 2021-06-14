@@ -106,7 +106,7 @@ func (a *activityView) Log(level Level, format string, v ...interface{}) {
 
 func (a *activityView) setKeybinding() {
 	a.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		event = a.rootUI.GlobalKeyBindings(event)
+		event = a.rootUI.Nav.GlobalKeyBindings(event)
 		switch event.Key() {
 		case tcell.KeyEnter:
 			r, _ := a.GetSelection()
@@ -124,16 +124,4 @@ func (a *activityView) NavHelp() [][]string {
 		{"Tab", "Navigate to the next pane"},
 		{"Shift + Tab", "Navigate to the previous pane"},
 	}
-}
-
-func (a *activityView) Focus(delegate func(p tview.Primitive)) {
-	a.SetTitleColor(a.rootUI.focusColor)
-	a.SetBorderColor(a.rootUI.focusColor)
-	a.Table.Focus(delegate)
-}
-
-func (a *activityView) Blur() {
-	a.SetTitleColor(tcell.ColorDefault)
-	a.SetBorderColor(tcell.ColorDefault)
-	a.Table.Blur()
 }

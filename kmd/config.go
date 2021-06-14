@@ -70,7 +70,7 @@ func NewCmdConfigActivate(cfg *config.Config) *cobra.Command {
 
 		Use:     "activate <name>",
 		Short:   "Activates an existing named configuration.",
-		Aliases: []string{"ls"},
+		Aliases: []string{"use"},
 		Example: examplef(`
 			To activate an existing named configuration, run::
 
@@ -140,8 +140,9 @@ func NewCmdConfigDelete(cfg *config.Config) *cobra.Command {
 
 func NewCmdConfig(cfg *config.Config) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "config",
-		Short: examplef("Manage the set of {AppName} named configurations"),
+		Use:     "config",
+		Aliases: []string{"cfg"},
+		Short:   examplef("Manage the set of {AppName} named configurations"),
 	}
 	cmd.AddCommand(NewCmdConfigAdd(cfg))
 	cmd.AddCommand(NewCmdConfigList(cfg))

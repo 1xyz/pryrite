@@ -56,5 +56,6 @@ func newContentView(rootUI *UI) *contentView {
 	c.SetTitle("Content Preview")
 	c.SetTitleAlign(tview.AlignLeft)
 	c.SetDoneFunc(c.rootUI.Navigate)
+	c.SetInputCapture(c.rootUI.navigator.GlobalKeyBindings)
 	return c
 }

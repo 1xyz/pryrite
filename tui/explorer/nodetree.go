@@ -2,12 +2,13 @@ package explorer
 
 import (
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
-	"os"
-	"strings"
 )
 
 type nodeTreeView struct {
@@ -142,6 +143,7 @@ func (view *nodeTreeView) setupSelection() {
 
 func (view *nodeTreeView) setupInputCapture() {
 	view.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		event = view.rootUI.navigator.GlobalKeyBindings(event)
 		tn := view.GetCurrentNode()
 		if tn == nil {
 			return event

@@ -32,8 +32,6 @@ type Tui struct {
 	// Primary UI Application component
 	App *tview.Application
 
-	focusColor tcell.Color
-
 	gCtx         *snippet.Context
 	info         *info
 	PbTree       *PlayBookTree
@@ -60,10 +58,9 @@ func NewTui(gCtx *snippet.Context, name string) (*Tui, error) {
 	}
 
 	ui := &Tui{
-		gCtx:       gCtx,
-		App:        tview.NewApplication(),
-		focusColor: tcell.ColorYellow,
-		run:        run,
+		gCtx: gCtx,
+		App:  tview.NewApplication(),
+		run:  run,
 	}
 
 	ui.info = newInfo(ui, gCtx)
@@ -128,10 +125,11 @@ func (t *Tui) Navigate(key tcell.Key) {
 }
 
 func (t *Tui) setupNavigator() {
-	t.Nav = &common.Navigator{
-		RootUI:  t.App,
-		Entries: []common.Navigable{t.PbTree, t.snippetView, t.execView, t.consoleView, t.activityView},
-	}
+	t.Nav = common.NewNavigator(
+		t.App,
+		[]common.Navigable{t.PbTree, t.snippetView, t.execView, t.consoleView, t.activityView},
+		t.Stop,
+	)
 }
 
 func (t *Tui) UpdateCurrentNodeID(nodeID string) error {
@@ -280,21 +278,8 @@ func (t *Tui) CheckCurrentNode() error {
 	return nil
 }
 
-func (t *Tui) GlobalKeyBindings(event *tcell.EventKey) *tcell.EventKey {
-	switch event.Key() {
-	case tcell.KeyEscape:
-		tools.Log.Info().Msgf("Global: ESC request to go home")
-		t.Nav.Home()
-	case tcell.KeyCtrlQ:
-		tools.Log.Info().Msgf("Global: Ctrl+Q request to quit")
-		t.Stop()
-	}
-
-	return event
-}
-
 func (t *Tui) CommonKeyBindings(event *tcell.EventKey) *tcell.EventKey {
-	event = t.GlobalKeyBindings(event)
+	event = t.Nav.GlobalKeyBindings(event)
 
 	switch event.Key() {
 	case tcell.KeyCtrlR:

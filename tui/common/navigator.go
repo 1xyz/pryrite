@@ -1,12 +1,17 @@
 package common
 
 import (
+	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
 type Navigable interface {
 	tview.Primitive
+
+	// Required for automatic focus handling
+	SetTitleColor(color tcell.Color) *tview.Box
+	SetBorderColor(color tcell.Color) *tview.Box
 
 	// NavHelp returns Navigable help info
 	// The return type is a 2D string slice where column zero represents the
@@ -15,8 +20,23 @@ type Navigable interface {
 }
 
 type Navigator struct {
-	RootUI  *tview.Application
-	Entries []Navigable
+	RootUI     *tview.Application
+	Entries    []Navigable
+	BlurColor  tcell.Color
+	FocusColor tcell.Color
+	Quit       func()
+}
+
+func NewNavigator(app *tview.Application, entries []Navigable, quit func()) *Navigator {
+	n := &Navigator{
+		RootUI:     app,
+		Entries:    entries,
+		BlurColor:  tcell.ColorDarkCyan,
+		FocusColor: tcell.ColorYellow,
+		Quit:       quit,
+	}
+	n.SetCurrentFocusedIndex(0)
+	return n
 }
 
 func (n *Navigator) Navigate(key tcell.Key) {
@@ -29,7 +49,7 @@ func (n *Navigator) Navigate(key tcell.Key) {
 }
 
 func (n *Navigator) Home() {
-	n.RootUI.SetFocus((n.Entries[0]))
+	n.SetCurrentFocusedIndex(0)
 }
 
 func (n *Navigator) Next() {
@@ -40,7 +60,7 @@ func (n *Navigator) Next() {
 	} else {
 		next = index + 1
 	}
-	n.RootUI.SetFocus(n.Entries[next])
+	n.SetCurrentFocusedIndex(next)
 }
 
 func (n *Navigator) Prev() {
@@ -53,7 +73,7 @@ func (n *Navigator) Prev() {
 	} else {
 		next = index - 1
 	}
-	n.RootUI.SetFocus(n.Entries[next])
+	n.SetCurrentFocusedIndex(next)
 }
 
 func (n *Navigator) GetCurrentFocusedIndex() int {
@@ -74,5 +94,24 @@ func (n *Navigator) CurrentFocusedItem() (Navigable, bool) {
 }
 
 func (n *Navigator) SetCurrentFocusedIndex(index int) {
-	n.RootUI.SetFocus(n.Entries[index])
+	if focused, found := n.CurrentFocusedItem(); found {
+		focused.SetTitleColor(n.BlurColor)
+		focused.SetBorderColor(n.BlurColor)
+	}
+	newEntry := n.Entries[index]
+	n.RootUI.SetFocus(newEntry)
+	newEntry.SetTitleColor(n.FocusColor)
+	newEntry.SetBorderColor(n.FocusColor)
+}
+
+func (n *Navigator) GlobalKeyBindings(event *tcell.EventKey) *tcell.EventKey {
+	switch event.Key() {
+	case tcell.KeyEscape:
+		tools.Log.Info().Msg("Global: ESC request to go home")
+		n.Home()
+	case tcell.KeyCtrlQ:
+		tools.Log.Info().Msg("Global: Ctrl+Q request to quit")
+		n.Quit()
+	}
+	return event
 }

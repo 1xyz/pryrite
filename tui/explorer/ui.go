@@ -2,6 +2,7 @@ package explorer
 
 import (
 	"fmt"
+
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/snippet"
 	"github.com/aardlabs/terminal-poc/tools"
@@ -13,6 +14,8 @@ import (
 type UI struct {
 	app  *tview.Application
 	grid *tview.Grid
+
+	focusColor tcell.Color
 
 	explorer *NodeExplorer
 
@@ -66,8 +69,9 @@ func NewUI(gCtx *snippet.Context, title, borderTitle string, nodes []*graph.Node
 
 	app := tview.NewApplication()
 	ui := &UI{
-		app:      app,
-		explorer: explorer,
+		app:        app,
+		explorer:   explorer,
+		focusColor: tcell.ColorYellow,
 	}
 
 	entriesView, err := newNodeTreeView(ui, nodes, title, borderTitle)
@@ -79,10 +83,11 @@ func NewUI(gCtx *snippet.Context, title, borderTitle string, nodes []*graph.Node
 	ui.statusView = newStatusView(ui)
 	ui.contentView = newContentView(ui)
 	ui.infoView = newInfoView(ui)
-	ui.navigator = &common.Navigator{
-		RootUI:  ui.app,
-		Entries: []common.Navigable{ui.nodeTreeView, ui.contentView},
-	}
+	ui.navigator = common.NewNavigator(
+		ui.app,
+		[]common.Navigable{ui.nodeTreeView, ui.contentView},
+		ui.Stop,
+	)
 	ui.grid = tview.NewGrid().
 		SetRows(-2, 0, 1).
 		SetColumns(-1, -4, 0).
