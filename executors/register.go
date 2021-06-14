@@ -40,6 +40,7 @@ func (r *Register) Register(executor Executor) error {
 		<-shutdown
 		signal.Stop(shutdown)
 		r.Cleanup()
+		os.Exit(2)
 	}()
 
 	return nil

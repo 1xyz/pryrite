@@ -13,15 +13,13 @@ import (
 	"syscall"
 	"time"
 
-	"go.uber.org/atomic"
-
 	"github.com/aardlabs/terminal-poc/tools"
 )
 
 type BashExecutor struct {
 	bash        *exec.Cmd
 	bashDone    chan error
-	isRunning   atomic.Bool
+	isRunning   bool
 	isExecuting bool
 
 	// i/o for sending commands to the bash session
@@ -51,9 +49,9 @@ const repl = `while IFS= read -u 11 -r -d $'\0' cmd; do eval "$cmd"; echo $? >&1
 // done`
 
 func NewBashExecutor() (Executor, error) {
-	b := &BashExecutor{}
-	err := b.init()
-	return b, err
+	return &BashExecutor{
+		bashDone: make(chan error),
+	}, nil
 }
 
 func (b *BashExecutor) Name() string { return "bash-executor" }
@@ -71,7 +69,10 @@ func (b *BashExecutor) Execute(ctx context.Context, req *ExecRequest) *ExecRespo
 	b.isExecuting = true
 	defer func() { b.isExecuting = false }()
 
-	b.ensureRunning()
+	err := b.ensureRunning()
+	if err != nil {
+		return &ExecResponse{ExitStatus: -1, Err: err}
+	}
 
 	// update proxies with the requested i/o
 	inProxy := b.bash.Stdin.(*readWriterProxy)
@@ -89,7 +90,6 @@ func (b *BashExecutor) Execute(ctx context.Context, req *ExecRequest) *ExecRespo
 
 	responseHdr := &ResponseHdr{req.Hdr.ID}
 
-	var err error
 	exitStatus := -1
 
 	select {
@@ -98,9 +98,14 @@ func (b *BashExecutor) Execute(ctx context.Context, req *ExecRequest) *ExecRespo
 		exitStatus = result.exitStatus
 	case <-ctx.Done(): // interrupted by the context
 		err = ctx.Err()
-		// it's not possible to kill the current command so we have to error out and reset ourselves
-		b.Reset()
+		// it's difficult to kill the current command and its children so we have to error out and reset ourselves
+		// TODO: have our REPL above run every command in its own process group and report that back to us
+		b.cleanup(false)
 	case err = <-b.bashDone: // bash exited!
+		b.cleanup(true)
+		if err == nil {
+			err = errors.New("bash terminated unexpectedly")
+		}
 	}
 
 	// update proxies to avoid confusing caller if more junk comes in
@@ -112,26 +117,30 @@ func (b *BashExecutor) Execute(ctx context.Context, req *ExecRequest) *ExecRespo
 }
 
 func (b *BashExecutor) Cleanup() {
-	if b.isRunning.Load() {
-		stopKill(b.bash.Process)
-		b.bash.Process.Wait() // the previous kill won't let the `Run()` call clean up children
-		b.cmdWriter.Close()
-		b.resultReader.Close()
-		b.isRunning.Store(false)
-	}
+	b.cleanup(false)
 }
 
-func (b *BashExecutor) Reset() error {
-	b.Cleanup()
-	return b.init()
+func (b *BashExecutor) cleanup(alreadyDone bool) {
+	if b.isRunning {
+		if !alreadyDone {
+			stopKill(b.bash.Process)
+			<-b.bashDone // wait for our goroutine to exit
+		}
+		b.cmdWriter.Close()
+		b.resultReader.Close()
+		b.isRunning = false
+	}
 }
 
 //--------------------------------------------------------------------------------
 
-func (b *BashExecutor) init() error {
-	b.isRunning.Store(false)
+func (b *BashExecutor) ensureRunning() error {
+	if b.isRunning {
+		return nil
+	}
+
+	b.isRunning = false
 	b.bash = exec.Command("bash", "-c", repl)
-	b.bashDone = make(chan error, 1)
 
 	// make sure bash is in its own process group so we can terminate itself _and_ any children
 	b.bash.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
@@ -164,21 +173,13 @@ func (b *BashExecutor) init() error {
 	b.bash.ExtraFiles[8] = cmdReader    // this becomes file descriptor 11 in bash (in,out,err + 8)
 	b.bash.ExtraFiles[9] = resultWriter // and this is 12
 
-	return nil
-}
-
-func (b *BashExecutor) ensureRunning() {
-	if b.isRunning.Load() {
-		return
-	}
-
 	go func() {
 		b.bashDone <- b.bash.Run() // this calls `Wait()` for us
-		close(b.bashDone)
-		b.isRunning.Store(false)
 	}()
 
-	b.isRunning.Store(true)
+	b.isRunning = true
+
+	return nil
 }
 
 func (b *BashExecutor) collectStatus(ready chan *collectorResult) {
