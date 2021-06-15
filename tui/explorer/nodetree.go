@@ -58,16 +58,6 @@ func (view *nodeTreeView) buildTree(nodes []*graph.Node) error {
 func (view *nodeTreeView) setupChangeNavigation() {
 	view.SetChangedFunc(func(tn *tview.TreeNode) {
 		ref := tn.GetReference()
-		if ref == nil {
-			view.rootUI.SetNavHelp([][]string{
-				{"up/down", "navigate through this tree"},
-			})
-			return
-		}
-
-		navhelp := view.getNavHelp(tn)
-		view.rootUI.SetNavHelp(navhelp)
-
 		b, isBlock := ref.(*graph.Block)
 		n, isNode := ref.(*graph.Node)
 
@@ -79,34 +69,6 @@ func (view *nodeTreeView) setupChangeNavigation() {
 			view.rootUI.SetInfoNode(n)
 		}
 	})
-}
-
-func (view *nodeTreeView) getNavHelp(tn *tview.TreeNode) [][]string {
-	ref := tn.GetReference()
-	if ref == nil {
-		view.rootUI.SetNavHelp([][]string{
-			{"up/down", "navigate through this tree"},
-		})
-		return [][]string{}
-	}
-
-	_, isBlock := ref.(*graph.Block)
-	if len(tn.GetChildren()) > 0 {
-		return [][]string{
-			{"ctrl + R", "run this node"},
-			{"up/down", "navigate through this tree"},
-		}
-	} else if isBlock {
-		return [][]string{
-			{"Enter", "Execute code snippet in bash"},
-			{"Ctrl + Space", "print code snippet to stdout"},
-			{"up/down", "navigate through this tree"},
-		}
-	} else {
-		return [][]string{
-			{"up/down", "navigate through this tree"},
-		}
-	}
 }
 
 func (view *nodeTreeView) setupSelection() {
@@ -183,7 +145,7 @@ func (view *nodeTreeView) setupInputCapture() {
 }
 
 func (view *nodeTreeView) NavHelp() [][]string {
-	return view.getNavHelp(view.GetCurrentNode())
+	return nil
 }
 
 func newNodeTreeView(rootUI *UI, nodes []*graph.Node, title, mainTitle string) (*nodeTreeView, error) {

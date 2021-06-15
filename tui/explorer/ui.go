@@ -22,7 +22,6 @@ type UI struct {
 	explorer *NodeExplorer
 
 	nodeTreeView *nodeTreeView
-	navView      *navView
 	statusView   *statusView
 	contentView  *contentView
 	navigator    *common.Navigator
@@ -43,7 +42,6 @@ func (u *UI) GetChildren(nodeID string) []*graph.Node {
 
 func (u *UI) Run() error                                   { return u.app.Run() }
 func (u *UI) Stop()                                        { u.app.Stop() }
-func (u *UI) SetNavHelp(entries [][]string)                { u.navView.SetHelp(entries) }
 func (u *UI) SetContentNode(n *graph.Node)                 { u.contentView.SetNode(n) }
 func (u *UI) SetContentBlock(b *graph.Block)               { u.contentView.SetBlock(b) }
 func (u *UI) SetInfoBlock(b *graph.Block)                  { u.infoView.SetBlock(b) }
@@ -51,24 +49,9 @@ func (u *UI) SetInfoNode(n *graph.Node)                    { u.infoView.SetNode(
 func (u *UI) StatusInfof(format string, v ...interface{})  { u.statusView.Infof(format, v...) }
 func (u *UI) StatusErrorf(format string, v ...interface{}) { u.statusView.Errorf(format, v...) }
 func (u *UI) GetContext() *snippet.Context                 { return u.explorer.gCtx }
-
-func (u *UI) Navigate(key tcell.Key) {
-	u.navigator.Navigate(key)
-	n, ok := u.navigator.CurrentFocusedItem()
-	if ok {
-		u.SetNavHelp(n.NavHelp())
-	}
-}
+func (u *UI) Navigate(key tcell.Key)                       { u.navigator.Navigate(key) }
 
 func (u *UI) ShowHelpScreen() {
-	modal := func(p tview.Primitive, width, height int) tview.Primitive {
-		g := tview.NewGrid().
-			SetColumns(0, width, 0).
-			SetRows(0, height, 0).
-			AddItem(p, 1, 1, 1, 1, 0, 0, true)
-		return g
-	}
-
 	help := [][]string{
 		{"Enter", "Execute code block"},
 		{"Ctrl + R", "Open node in Runner UI"},
@@ -85,23 +68,12 @@ func (u *UI) ShowHelpScreen() {
 		}
 	})
 	dlg.SetBorderPadding(1, 1, 2, 1)
-	m := modal(dlg, 43, 10)
+	m := newModal(dlg, 43, 10)
 	u.pages.AddPage("help", m, true, true)
 }
 
 // ExecuteCmdDialog shows a modal dialog navigating a user to execute the provided command
 func (u *UI) ExecuteCmdDialog(cmd, title string) {
-	// Returns a new primitive which puts the provided primitive in the center and
-	// sets its size to the given width and height.
-	// Returns a new primitive which puts the provided primitive in the center and
-	// sets its size to the given width and height.
-	modal := func(p tview.Primitive, width, height int) tview.Primitive {
-		return tview.NewGrid().
-			SetColumns(0, width, 0).
-			SetRows(0, height, 0).
-			AddItem(p, 1, 1, 1, 1, 0, 0, true)
-	}
-
 	dlg := tview.NewModal().
 		SetText(title).
 		AddButtons([]string{"Yes", "No"}).
@@ -119,7 +91,7 @@ func (u *UI) ExecuteCmdDialog(cmd, title string) {
 				u.pages.RemovePage("execute")
 			}
 		})
-	m := modal(dlg, 40, 10)
+	m := newModal(dlg, 40, 10)
 	u.pages.AddPage("execute", m, true, true)
 }
 
@@ -145,7 +117,6 @@ func NewUI(gCtx *snippet.Context, title, borderTitle string, nodes []*graph.Node
 		return nil, err
 	}
 	ui.nodeTreeView = entriesView
-	ui.navView = newNavView(ui)
 	ui.statusView = newStatusView(ui)
 	ui.contentView = newContentView(ui)
 	ui.infoView = newInfoView(ui)
@@ -172,4 +143,15 @@ func NewUI(gCtx *snippet.Context, title, borderTitle string, nodes []*graph.Node
 		AddPage("main", ui.grid, true, true)
 	ui.app.SetRoot(ui.pages, true)
 	return ui, nil
+}
+
+// Returns a new primitive which puts the provided primitive in the center and
+// sets its size to the given width and height.
+// Returns a new primitive which puts the provided primitive in the center and
+// sets its size to the given width and height.
+func newModal(p tview.Primitive, width, height int) tview.Primitive {
+	return tview.NewGrid().
+		SetColumns(0, width, 0).
+		SetRows(0, height, 0).
+		AddItem(p, 1, 1, 1, 1, 0, 0, true)
 }
