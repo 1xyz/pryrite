@@ -195,9 +195,9 @@ func (r *remoteStore) UpdateNodeBlock(n *Node, b *Block) error {
 	client := r.newHTTPClient(true)
 	resp, err := client.R().
 		SetPathParam("nodeId", n.ID).
-		SetPathParam("snippetId", b.ID).
+		SetPathParam("blockId", b.ID).
 		SetBody(b).
-		Put("/api/v1/nodes/{nodeId}/snippet/{snippetId}")
+		Put("/api/v1/nodes/{nodeId}/blocks/{blockId}")
 	if err != nil {
 		return fmt.Errorf("http.put err: %v", err)
 	}

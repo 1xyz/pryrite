@@ -188,9 +188,9 @@ func (nr *nodesRender) getSummary(n *graph.Node) string {
 	if len(n.Markdown) > 0 {
 		return tools.TrimLength(n.Markdown, colLen)
 	}
-	if len(n.Snippets) > 0 {
-		for _, snippet := range n.Snippets {
-			return tools.TrimLength(snippet.Content, colLen)
+	if len(n.Blocks) > 0 {
+		for _, block := range n.Blocks {
+			return tools.TrimLength(block.Content, colLen)
 		}
 	}
 	return "No-Content"

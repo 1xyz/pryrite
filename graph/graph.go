@@ -3,10 +3,11 @@ package graph
 import (
 	"context"
 	"fmt"
-	"github.com/aardlabs/terminal-poc/tools"
 	"io"
 	"strings"
 	"time"
+
+	"github.com/aardlabs/terminal-poc/tools"
 )
 
 type Metadata struct {
@@ -32,7 +33,6 @@ type Node struct {
 	Markdown       string     `json:"markdown,omitempty"`
 	View           string     `json:"view"`
 	Blocks         []*Block   `json:"blocks,omitempty"`
-	Snippets       []*Snippet `json:"snippets,omitempty"`
 	Children       string     `json:"children,omitempty"`
 	IsShared       bool       `json:"is_shared"`
 	LastExecutedAt *time.Time `json:"last_executed_at"`
@@ -93,20 +93,19 @@ func (n Node) String() string {
 	return sb.String()
 }
 
-func NewNode(kind Kind, title, description, content, contentType string, metadata Metadata) (*Node, error) {
+func NewNode(kind Kind, content, contentType string, metadata Metadata) (*Node, error) {
 	now := time.Now().UTC()
-	snippet := &Snippet{
-		CreatedAt:   &now,
-		Content:     content,
-		ContentType: contentType,
+	var language string
+	vals := strings.Split(contentType, "/")
+	if len(vals) > 1 {
+		language = vals[1]
 	}
+	markdown := fmt.Sprintf("```%s\n%s\n```\n", language, content)
 	return &Node{
 		CreatedAt:  &now,
 		OccurredAt: &now,
 		Kind:       kind,
-		Title:      title,
-		Markdown:   description,
-		Snippets:   []*Snippet{snippet},
+		Markdown:   markdown,
 		Metadata:   metadata,
 	}, nil
 }
