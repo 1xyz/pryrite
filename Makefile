@@ -54,7 +54,6 @@ fmt:
 	$(GOFMT) -l -w $(SRC)
 
 release:
-	mkdir -p public
 ifeq ($(AWS_SECRET_ACCESS_KEY),)
   ifeq ($(CI),true)
 	$(error AWS credentials not provided: Unable to sync with S3 ***)
@@ -62,9 +61,10 @@ ifeq ($(AWS_SECRET_ACCESS_KEY),)
 else
 # Download three previous versions to allow for binary diff...
 	@for i in `seq 0 2`; do \
-	  u=$(S3_BASEURL)/$(MAJMINVER).$$(( $(PATVER) - $$i ))/; \
+	  v=$(MAJMINVER).$$(( $(PATVER) - $$i )); \
+	  u=$(S3_BASEURL)/$$v/; \
 	  echo "Attempting to sync $$u:"; \
-	  aws s3 sync $$u public/; \
+	  aws s3 sync $$u public/$$v/; \
 	done; true # ignore fails
 endif
 	$(MAKE) release/linux GOARCH=amd64 & \
