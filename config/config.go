@@ -24,6 +24,7 @@ type Entry struct {
 	LastUpdateCheck  time.Time                `yaml:"last_update_check"`
 	AuthScheme       string                   `yaml:"auth_scheme"`
 	User             string                   `yaml:"user"`
+	UserExpiresAt    *time.Time               `yaml:"user_expires_at"`
 	Email            string                   `yaml:"email"`
 	ClientID         string                   `yaml:"client_id"`
 	SkipSSLCheck     bool                     `yaml:"skip_ssl_check"`

@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net"
 	"net/http"
 	"net/url"
@@ -14,6 +15,7 @@ import (
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/cristalhq/jwt/v3"
+	"github.com/rs/zerolog/log"
 )
 
 const ClientTimeout = 30 * time.Second
@@ -66,6 +68,8 @@ func AuthUser(entry *config.Entry, serviceUrl string) error {
 		}
 	}
 
+	entry.UserExpiresAt = nil
+
 	// NOTE: this does _NOT_ verify since we don't download the issuer's key
 	//       this is purely to snag the user info out of the jwt
 	token, err := jwt.ParseString(tokenString)
@@ -76,6 +80,9 @@ func AuthUser(entry *config.Entry, serviceUrl string) error {
 			return err
 		}
 		entry.Email = claims["email"].(string)
+		exp := claims["exp"].(float64)
+		expTime := time.Unix(int64(math.Floor(exp)), 0)
+		entry.UserExpiresAt = &expTime
 	} else {
 		// FIXME: remove this when we stop supporting Silly auth
 		entry.Email = tokenString
@@ -94,5 +101,12 @@ func LogoutUser(entry *config.Entry) error {
 }
 
 func GetLoggedInUser(entry *config.Entry) (string, bool) {
-	return entry.User, entry.User != ""
+	isExpired := false
+	if entry.UserExpiresAt != nil {
+		isExpired = time.Now().After(*entry.UserExpiresAt)
+		if isExpired {
+			log.Info().Time("exp", *entry.UserExpiresAt).Msg("credentials have expired")
+		}
+	}
+	return entry.User, entry.User != "" && !isExpired
 }
