@@ -2,6 +2,7 @@ package explorer
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/snippet"
@@ -12,8 +13,9 @@ import (
 )
 
 type UI struct {
-	app  *tview.Application
-	grid *tview.Grid
+	app   *tview.Application
+	grid  *tview.Grid
+	pages *tview.Pages
 
 	focusColor tcell.Color
 
@@ -25,6 +27,7 @@ type UI struct {
 	contentView  *contentView
 	navigator    *common.Navigator
 	infoView     *infoView
+	helpview     *tview.TextView
 }
 
 func (u *UI) GetChildren(nodeID string) []*graph.Node {
@@ -40,7 +43,7 @@ func (u *UI) GetChildren(nodeID string) []*graph.Node {
 
 func (u *UI) Run() error                                   { return u.app.Run() }
 func (u *UI) Stop()                                        { u.app.Stop() }
-func (u *UI) SetNavHelp(entries [][]string)                { u.navView.setHelp(entries) }
+func (u *UI) SetNavHelp(entries [][]string)                { u.navView.SetHelp(entries) }
 func (u *UI) SetContentNode(n *graph.Node)                 { u.contentView.SetNode(n) }
 func (u *UI) SetContentBlock(b *graph.Block)               { u.contentView.SetBlock(b) }
 func (u *UI) SetInfoBlock(b *graph.Block)                  { u.infoView.SetBlock(b) }
@@ -55,6 +58,69 @@ func (u *UI) Navigate(key tcell.Key) {
 	if ok {
 		u.SetNavHelp(n.NavHelp())
 	}
+}
+
+func (u *UI) ShowHelpScreen() {
+	modal := func(p tview.Primitive, width, height int) tview.Primitive {
+		g := tview.NewGrid().
+			SetColumns(0, width, 0).
+			SetRows(0, height, 0).
+			AddItem(p, 1, 1, 1, 1, 0, 0, true)
+		return g
+	}
+
+	help := [][]string{
+		{"Enter", "Execute code block"},
+		{"Ctrl + R", "Open node in Runner UI"},
+		{"Ctrl + Space", "Print code block and exit"},
+	}
+
+	dlg := newNavView(u)
+	dlg.SetHelp(help)
+	dlg.SetBorder(true).
+		SetTitle("Help...")
+	dlg.SetDoneFunc(func(key tcell.Key) {
+		if key == tcell.KeyEsc {
+			u.pages.RemovePage("help")
+		}
+	})
+	dlg.SetBorderPadding(1, 1, 2, 1)
+	m := modal(dlg, 43, 10)
+	u.pages.AddPage("help", m, true, true)
+}
+
+// ExecuteCmdDialog shows a modal dialog navigating a user to execute the provided command
+func (u *UI) ExecuteCmdDialog(cmd, title string) {
+	// Returns a new primitive which puts the provided primitive in the center and
+	// sets its size to the given width and height.
+	// Returns a new primitive which puts the provided primitive in the center and
+	// sets its size to the given width and height.
+	modal := func(p tview.Primitive, width, height int) tview.Primitive {
+		return tview.NewGrid().
+			SetColumns(0, width, 0).
+			SetRows(0, height, 0).
+			AddItem(p, 1, 1, 1, 1, 0, 0, true)
+	}
+
+	dlg := tview.NewModal().
+		SetText(title).
+		AddButtons([]string{"Yes", "No"}).
+		SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+			if buttonLabel == "Yes" {
+				u.app.Stop()
+				fmt.Printf(">> %s\n", cmd)
+				if err := tools.BashExec(cmd); err != nil {
+					fmt.Printf("error = %v", err)
+					os.Exit(1)
+				} else {
+					os.Exit(0)
+				}
+			} else {
+				u.pages.RemovePage("execute")
+			}
+		})
+	m := modal(dlg, 40, 10)
+	u.pages.AddPage("execute", m, true, true)
 }
 
 func NewUI(gCtx *snippet.Context, title, borderTitle string, nodes []*graph.Node) (*UI, error) {
@@ -88,15 +154,22 @@ func NewUI(gCtx *snippet.Context, title, borderTitle string, nodes []*graph.Node
 		[]common.Navigable{ui.nodeTreeView, ui.contentView},
 		ui.Stop,
 	)
-	ui.grid = tview.NewGrid().
-		SetRows(-2, 0, 1).
-		SetColumns(-1, -4, 0).
-		AddItem(ui.nodeTreeView, 0, 0, 1, 2, 0, 0, true).
-		AddItem(ui.navView, 0, 2, 1, 1, 0, 0, false).
-		AddItem(ui.contentView, 1, 1, 1, 1, 0, 0, false).
-		AddItem(ui.infoView, 1, 0, 1, 1, 0, 0, false).
-		AddItem(ui.statusView, 2, 0, 1, 2, 0, 0, false)
+	ui.helpview = tview.NewTextView()
+	ui.helpview.SetTextColor(tcell.ColorYellow)
+	ui.helpview.SetText("Ctrl+H for help")
+	ui.helpview.SetTextAlign(tview.AlignRight)
 
-	ui.app.SetRoot(ui.grid, true)
+	ui.grid = tview.NewGrid().
+		SetRows(0, 2).
+		SetColumns(0, 0).
+		AddItem(ui.nodeTreeView, 0, 0, 1, 1, 0, 0, true).
+		AddItem(ui.contentView, 0, 1, 1, 1, 0, 0, false).
+		//AddItem(ui.infoView, 1, 1, 1, 1, 0, 0, false).
+		AddItem(ui.statusView, 1, 0, 1, 1, 0, 0, false).
+		AddItem(ui.helpview, 1, 1, 1, 1, 0, 0, false)
+
+	ui.pages = tview.NewPages().
+		AddPage("main", ui.grid, true, true)
+	ui.app.SetRoot(ui.pages, true)
 	return ui, nil
 }

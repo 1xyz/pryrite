@@ -65,5 +65,6 @@ func newInfoView(rootUI *UI) *infoView {
 			SetFixed(1, 1),
 		rootUI: rootUI,
 	}
+	n.SetBorderPadding(2, 2, 2, 2)
 	return n
 }

@@ -29,10 +29,9 @@ func NewCmdSnippetSearch(gCtx *snippet.Context) *cobra.Command {
 		Long: examplef(`
               {AppName} search, searches all snippets which are visible to the current
               logged-in user. This includes both a user's own snippets as well
-              as snippet shared.
+              as snippets shared.
 
-              By default, only "command" snippets are searched. This can be changed
-              by using the --kind=all flag.
+			  The results of search are presented in a simple UI interface
         `),
 		Example: examplef(`
             To search snippets for the term certutil, run:
@@ -40,9 +39,6 @@ func NewCmdSnippetSearch(gCtx *snippet.Context) *cobra.Command {
 
             To limit the search result to 10 entries, run:
               $ {AppName} search "certutil" -n 10
-
-            To include all kinds of snippets that include non-command snippets, run:
-              $ {AppName} search certutil --all-kinds
 		`),
 		Args: MinimumArgs(1, "You need to specify a search query"),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
@@ -51,10 +47,7 @@ func NewCmdSnippetSearch(gCtx *snippet.Context) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			query := args[0]
 			limit := opts.Limit
-			kind := graph.Command
-			if opts.ShowAllKind {
-				kind = graph.Unknown
-			}
+			kind := graph.Unknown
 			tools.Log.Info().Msgf("search query=%s Limit=%d Kind=%v", query, limit, kind)
 			nodes, err := snippet.SearchSnippetNodes(gCtx, query, limit, kind)
 			if err != nil {
@@ -66,8 +59,8 @@ func NewCmdSnippetSearch(gCtx *snippet.Context) *cobra.Command {
 				nodePtrs[i] = &nodes[i]
 			}
 
-			borderTitle := "Search: " + tools.TrimLength(query, 15)
-			searchUI, err := explorer.NewUI(gCtx, "nodes", borderTitle, nodePtrs)
+			borderTitle := "Search Results for query: " + tools.TrimLength(query, 15)
+			searchUI, err := explorer.NewUI(gCtx, "Result nodes", borderTitle, nodePtrs)
 			if err != nil {
 				return err
 			}
@@ -82,8 +75,6 @@ func NewCmdSnippetSearch(gCtx *snippet.Context) *cobra.Command {
 	}
 	cmd.Flags().IntVarP(&opts.Limit, "limit", "n",
 		100, "Limit the number of results to display")
-	cmd.Flags().BoolVarP(&opts.ShowAllKind, "all-kinds", "a",
-		false, "include all kinds of snippets")
 	return cmd
 }
 
