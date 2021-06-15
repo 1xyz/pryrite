@@ -5,7 +5,6 @@ go 1.16
 require (
 	github.com/1xyz/sseclient v0.0.0-20210510204826-9b958fd4e77e
 	github.com/MakeNowJust/heredoc v1.0.0
-	github.com/atotto/clipboard v0.1.4
 	github.com/charmbracelet/glamour v0.3.0
 	github.com/creack/pty v1.1.11
 	github.com/cristalhq/jwt/v3 v3.0.14
@@ -21,10 +20,12 @@ require (
 	github.com/rs/zerolog v1.21.0
 	github.com/sanbornm/go-selfupdate v0.0.0-20210106163404-c9b625feac49
 	github.com/spf13/cobra v1.1.3
-	github.com/stretchr/testify v1.7.0 // indirect
+	github.com/stretchr/testify v1.7.0
 	github.com/yuin/goldmark v1.3.3
 	go.uber.org/atomic v1.8.0
 	golang.org/x/term v0.0.0-20210503060354-a79de5458b56
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/yaml.v2 v2.4.0
 )
+
+replace github.com/sanbornm/go-selfupdate v0.0.0-20210106163404-c9b625feac49 => github.com/aardlabs/go-selfupdate v0.0.0-20210615201232-2426e0201381

@@ -39,10 +39,14 @@ func NewCmdRoot(cfg *config.Config) *cobra.Command {
 				if !update.Check(cfg, true) {
 					tools.LogStdout("The latest version is installed")
 				}
-				return nil
 			} else {
-				return update.GetLatest(cfg)
+				result, err := update.GetLatest(cfg)
+				if err != nil {
+					return err
+				}
+				tools.LogStdout(fmt.Sprintf("Done! The latest version is now installed: %s", result))
 			}
+			return nil
 		},
 	}
 	updateCmd.Flags().BoolVarP(&updateCheck, "check", "",

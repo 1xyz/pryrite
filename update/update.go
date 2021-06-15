@@ -1,14 +1,16 @@
 package update
 
 import (
+	"errors"
 	"net/url"
 	"path"
 	"time"
 
+	"github.com/sanbornm/go-selfupdate/selfupdate"
+
 	"github.com/aardlabs/terminal-poc/app"
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/tools"
-	"github.com/sanbornm/go-selfupdate/selfupdate"
 )
 
 func Check(cfg *config.Config, force bool) bool {
@@ -48,11 +50,26 @@ func Check(cfg *config.Config, force bool) bool {
 	return false
 }
 
-func GetLatest(cfg *config.Config) error {
+func GetLatest(cfg *config.Config) (string, error) {
 	entry, _ := cfg.GetDefaultEntry()
+	// updater := getUpdater(entry, "0.9.32")
 	updater := getUpdater(entry, app.Version)
 
-	return updater.BackgroundRun()
+	err := updater.BackgroundRun()
+	if err != nil {
+		return "", err
+	}
+
+	switch updater.Result {
+	case selfupdate.PatchResult:
+		return updater.Info.Version + " (patched)", nil
+	case selfupdate.FullBinResult:
+		return updater.Info.Version, nil
+	case selfupdate.AtLatestResult:
+		return "", errors.New(updater.Info.Version + " already installed")
+	default:
+		return "", errors.New("failed to install new version: See log file for details")
+	}
 }
 
 func getUpdater(entry *config.Entry, currentVersion string) *selfupdate.Updater {

@@ -320,7 +320,7 @@ func handleGraphHTTPErr(ghe *graph.HttpError, ctxMessage string) error {
 	tools.Log.Err(ghe).Msgf("%s HTTP error = %v reason = %s",
 		ctxMessage, ghe.HTTPCode, ghe.Error())
 	if ghe.HTTPCode == http.StatusUnauthorized {
-		return fmt.Errorf("not authorized to get snippet")
+		return ghe
 	}
 	if ghe.HTTPCode == http.StatusNotFound {
 		return fmt.Errorf("snippet not found")
