@@ -2,13 +2,12 @@ package explorer
 
 import (
 	"fmt"
-	"os"
-	"strings"
-
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	"os"
+	"strings"
 )
 
 type nodeTreeView struct {
@@ -59,16 +58,6 @@ func (view *nodeTreeView) buildTree(nodes []*graph.Node) error {
 func (view *nodeTreeView) setupChangeNavigation() {
 	view.SetChangedFunc(func(tn *tview.TreeNode) {
 		ref := tn.GetReference()
-		if ref == nil {
-			view.rootUI.SetNavHelp([][]string{
-				{"up/down", "navigate through this tree"},
-			})
-			return
-		}
-
-		navhelp := view.getNavHelp(tn)
-		view.rootUI.SetNavHelp(navhelp)
-
 		b, isBlock := ref.(*graph.Block)
 		n, isNode := ref.(*graph.Node)
 
@@ -80,34 +69,6 @@ func (view *nodeTreeView) setupChangeNavigation() {
 			view.rootUI.SetInfoNode(n)
 		}
 	})
-}
-
-func (view *nodeTreeView) getNavHelp(tn *tview.TreeNode) [][]string {
-	ref := tn.GetReference()
-	if ref == nil {
-		view.rootUI.SetNavHelp([][]string{
-			{"up/down", "navigate through this tree"},
-		})
-		return [][]string{}
-	}
-
-	_, isBlock := ref.(*graph.Block)
-	if len(tn.GetChildren()) > 0 {
-		return [][]string{
-			{"ctrl + R", "run this node"},
-			{"up/down", "navigate through this tree"},
-		}
-	} else if isBlock {
-		return [][]string{
-			{"Enter", "Execute code snippet in bash"},
-			{"Ctrl + Space", "print code snippet to stdout"},
-			{"up/down", "navigate through this tree"},
-		}
-	} else {
-		return [][]string{
-			{"up/down", "navigate through this tree"},
-		}
-	}
 }
 
 func (view *nodeTreeView) setupSelection() {
@@ -143,7 +104,6 @@ func (view *nodeTreeView) setupSelection() {
 
 func (view *nodeTreeView) setupInputCapture() {
 	view.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		event = view.rootUI.navigator.GlobalKeyBindings(event)
 		tn := view.GetCurrentNode()
 		if tn == nil {
 			return event
@@ -157,14 +117,8 @@ func (view *nodeTreeView) setupInputCapture() {
 		case tcell.KeyEnter:
 			tools.Log.Info().Msgf("nodeTreeView: Ctrl+Enter request to exec block")
 			if b, ok := ref.(*graph.Block); ok {
-				view.rootUI.Stop()
-				fmt.Printf(">> %s\n", b.Content)
-				if err := tools.BashExec(b.Content); err != nil {
-					fmt.Printf("error = %v", err)
-					os.Exit(1)
-				} else {
-					os.Exit(0)
-				}
+				view.rootUI.ExecuteCmdDialog(b.Content,
+					"Do you want to run selected command?")
 			}
 
 		case tcell.KeyCtrlSpace:
@@ -176,25 +130,22 @@ func (view *nodeTreeView) setupInputCapture() {
 			}
 
 		case tcell.KeyCtrlR:
-			tools.Log.Info().Msgf("nodeTreeView: Ctrl+R request to run a node")
 			if n, ok := ref.(*graph.Node); ok {
-				view.rootUI.Stop()
 				cmd := fmt.Sprintf("%s run %s", os.Args[0], n.ID)
-				fmt.Printf(">> %s", cmd)
-				if err := tools.BashExec(cmd); err != nil {
-					fmt.Printf("error = %v\n", err)
-					os.Exit(1)
-				} else {
-					os.Exit(0)
-				}
+				view.rootUI.ExecuteCmdDialog(cmd,
+					"Do you want to open this selected node in the Run UI?")
 			}
+
+		case tcell.KeyCtrlH:
+			view.rootUI.ShowHelpScreen()
 		}
+
 		return event
 	})
 }
 
 func (view *nodeTreeView) NavHelp() [][]string {
-	return view.getNavHelp(view.GetCurrentNode())
+	return nil
 }
 
 func newNodeTreeView(rootUI *UI, nodes []*graph.Node, title, mainTitle string) (*nodeTreeView, error) {

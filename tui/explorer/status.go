@@ -13,10 +13,12 @@ type statusView struct {
 }
 
 func newStatusView(rootUI *UI) *statusView {
-	return &statusView{
+	s := &statusView{
 		TextView: tview.NewTextView(),
 		rootUI:   rootUI,
 	}
+	s.SetWrap(true)
+	return s
 }
 
 func (s *statusView) Infof(format string, v ...interface{}) {
