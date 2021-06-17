@@ -122,14 +122,19 @@ func (r *Run) buildGraph() error {
 		parentView := e.Value.(*graph.NodeView)
 		q.Remove(e)
 
-		childIDs := parentView.Node.GetChildIDs()
-		for _, childID := range childIDs {
-			childView, err := r.getNodeView(childID)
-			if err != nil {
-				return err
+		children, err := r.Store.GetChildren(parentView.Node.ID)
+		if err != nil {
+			return err
+		}
+		for i := range children {
+			child := &children[i]
+			childView := graph.NodeView{Node: child, View: child.View, Children: []*graph.NodeView{}}
+			if err := r.ViewIndex.Add(&childView); err != nil {
+				tools.Log.Err(err).Msgf("buildGraph: ViewIndex.Add(%s) failed", childView.Node.ID)
+				continue
 			}
-			parentView.Children = append(parentView.Children, childView)
-			q.PushBack(childView)
+			parentView.Children = append(parentView.Children, &childView)
+			q.PushBack(&childView)
 		}
 	}
 
