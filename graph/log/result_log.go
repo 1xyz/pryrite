@@ -1,6 +1,7 @@
 package log
 
 import (
+	"fmt"
 	"github.com/aardlabs/terminal-poc/tools"
 	"time"
 )
@@ -37,6 +38,35 @@ type ResultLogEntry struct {
 	Content string `yaml:"content" json:"content"`
 }
 
+func (e *ResultLogEntry) SetError(err error) {
+	if err == nil {
+		e.Err = nil
+	} else {
+		e.Err = tools.NewMarshalledError(err)
+	}
+}
+
+func NewResultLogEntry(executionID, nodeID, blockID, requestID, executedBy, content string) *ResultLogEntry {
+	now := time.Now().UTC()
+	res := &ResultLogEntry{
+		ID:          tools.RandAlphaNumericStr(8),
+		ExecutionID: executionID,
+		NodeID:      nodeID,
+		BlockID:     blockID,
+		RequestID:   requestID,
+		ExecutedAt:  &now,
+		ExecutedBy:  executedBy,
+		Err:         nil,
+		Content:     content,
+		ExitStatus:  "",
+		Stdout:      "",
+		Stderr:      "",
+		State:       ExecStateUnknown,
+	}
+
+	return res
+}
+
 type ResultLog interface {
 	// Len returns the number of entries in the log
 	Len() int
@@ -58,4 +88,20 @@ type ResultLogIndex interface {
 
 	// Append an entry to the ResultLog associated with the nodeID
 	Append(*ResultLogEntry) error
+}
+
+type LogIndexType int
+
+const (
+	IndexUnknown  LogIndexType = 0
+	IndexInMemory LogIndexType = 1
+)
+
+func NewResultLogIndex(typ LogIndexType) (ResultLogIndex, error) {
+	switch typ {
+	case IndexInMemory:
+		return newInMemLogIndex(), nil
+	default:
+		return nil, fmt.Errorf("un-supported type %v", typ)
+	}
 }

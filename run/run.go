@@ -3,6 +3,7 @@ package run
 import (
 	"container/list"
 	"fmt"
+	"github.com/aardlabs/terminal-poc/graph/log"
 	"github.com/aardlabs/terminal-poc/tools/queue"
 	"go.uber.org/atomic"
 	"io"
@@ -18,7 +19,7 @@ import (
 )
 
 type StatusUpdateFn func(*Status)
-type ExecutionUpdateFn func(*graph.BlockExecutionResult)
+type ExecutionUpdateFn func(entry *log.ResultLogEntry)
 
 // Run encapsulates a playbook's execution
 type Run struct {
@@ -38,7 +39,7 @@ type Run struct {
 	ViewIndex *NodeViewIndex
 
 	// NodeExecutionResult indexed by NodeID
-	ExecIndex *NodeExecResultIndex
+	ExecIndex log.ResultLogIndex
 
 	// Store refers to the graph store
 	Store graph.Store
@@ -54,8 +55,8 @@ type Run struct {
 
 	blockReqCh      chan *graph.BlockExecutionRequest
 	blockCancelCh   chan *graph.BlockCancelRequest
-	logRecvCh       chan *graph.BlockExecutionResult
-	executionDoneCh chan *graph.BlockExecutionResult
+	logRecvCh       chan *log.ResultLogEntry
+	executionDoneCh chan *log.ResultLogEntry
 	stopCh          chan bool
 	statusCh        chan *Status
 	executionDoneFn ExecutionUpdateFn
@@ -79,13 +80,18 @@ func NewRun(gCtx *snippet.Context, playbookIDOrURL string) (*Run, error) {
 		return nil, err
 	}
 
+	execIndex, err := log.NewResultLogIndex(log.IndexInMemory)
+	if err != nil {
+		return nil, err
+	}
+
 	run := &Run{
 		gCtx:       gCtx,
 		ID:         uuid.New().String(),
 		PlaybookID: id,
 		Root:       nil,
 		ViewIndex:  NewNodeViewIndex(),
-		ExecIndex:  NewNodeExecResultIndex(),
+		ExecIndex:  execIndex,
 		Store:      store,
 		Register:   register,
 		isRunning:  atomic.NewBool(false),
@@ -93,8 +99,8 @@ func NewRun(gCtx *snippet.Context, playbookIDOrURL string) (*Run, error) {
 
 		blockReqCh:      make(chan *graph.BlockExecutionRequest),
 		blockCancelCh:   make(chan *graph.BlockCancelRequest),
-		logRecvCh:       make(chan *graph.BlockExecutionResult),
-		executionDoneCh: make(chan *graph.BlockExecutionResult),
+		logRecvCh:       make(chan *log.ResultLogEntry),
+		executionDoneCh: make(chan *log.ResultLogEntry),
 		stopCh:          make(chan bool),
 		statusCh:        make(chan *Status),
 	}
@@ -171,10 +177,10 @@ func (r *Run) GetBlock(nodeID, blockID string) (*graph.Block, error) {
 }
 
 // GetBlockExecutionResult retrieves the execution result for the specified LogID within that node
-func (r *Run) GetBlockExecutionResult(nodeID, logID string) (*graph.BlockExecutionResult, error) {
-	execResults, found := r.ExecIndex.Get(nodeID)
-	if !found {
-		return nil, fmt.Errorf("node %s not found", nodeID)
+func (r *Run) GetBlockExecutionResult(nodeID, logID string) (*log.ResultLogEntry, error) {
+	execResults, err := r.ExecIndex.Get(nodeID)
+	if err != nil {
+		return nil, err
 	}
 	result, found := execResults.Find(logID)
 	if !found {
@@ -208,7 +214,7 @@ func (r *Run) reqDispatchLoop() {
 			return
 		}
 
-		r.sendLog(req, graph.BlockStateStarted)
+		r.sendLog(req, log.ExecStateStarted)
 		result := r.executeBlock(req)
 		if r.isRunning.Load() {
 			r.executionDoneCh <- result
@@ -235,12 +241,13 @@ func (r *Run) Start() {
 			// not in a separate go-routine
 			r.requestQ.Enqueue(req)
 			go func(blockReq *graph.BlockExecutionRequest) {
-				r.sendLog(blockReq, graph.BlockStateQueued)
+				r.sendLog(blockReq, log.ExecStateQueued)
 			}(req)
 
 		case entry := <-r.executionDoneCh:
 			_, ok := requests[entry.RequestID]
-			r.statusInfof("ExecutionDone: request:%s found:%v completed processing", entry.RequestID, ok)
+			r.statusInfof("ExecutionDone: request:%s found:%v completed processing",
+				entry.RequestID, ok)
 			delete(requests, entry.RequestID)
 			go func() {
 				if r.isRunning.Load() {
@@ -250,7 +257,10 @@ func (r *Run) Start() {
 
 		case logEntry := <-r.logRecvCh:
 			go func() {
-				r.ExecIndex.Append(logEntry)
+				if err := r.ExecIndex.Append(logEntry); err != nil {
+					tools.Log.Err(err).Msgf("logEntryRecv: ExecIndex.Append:")
+					return
+				}
 				if r.executionDoneFn != nil {
 					go r.executionDoneFn(logEntry)
 				}
@@ -263,7 +273,7 @@ func (r *Run) Start() {
 			} else {
 				go func() {
 					r.statusInfof("CancelRequest: req:%s received", cancelReq.RequestID)
-					r.sendLog(req, graph.BlockStateCanceled)
+					r.sendLog(req, log.ExecStateCanceled)
 					req.CancelFn()
 				}()
 			}
@@ -326,9 +336,9 @@ func (r *Run) sendStatus(level StatusLevel, format string, v ...interface{}) {
 	}()
 }
 
-func (r *Run) sendLog(req *graph.BlockExecutionRequest, state graph.BlockState) {
+func (r *Run) sendLog(req *graph.BlockExecutionRequest, state log.ExecState) {
 	go func() {
-		entry := graph.NewBlockExecutionResultFromRequest(req)
+		entry := graph.NewResultLogEntryFromRequest(req)
 		entry.State = state
 		r.logRecvCh <- entry
 	}()
@@ -360,39 +370,33 @@ func (r *Run) ExecuteBlock(n *graph.Node, b *graph.Block, stdout, stderr io.Writ
 	r.blockReqCh <- req
 }
 
-func (r *Run) executeBlock(req *graph.BlockExecutionRequest) *graph.BlockExecutionResult {
+func (r *Run) executeBlock(req *graph.BlockExecutionRequest) *log.ResultLogEntry {
 	contentType := executor.ContentType(req.Block.ContentType)
 	tools.Log.Info().Msgf("ExecuteBlock: req %v", req)
-	execResult := graph.NewBlockExecutionResult(
-		req.ExecutionID,
-		req.Node.ID,
-		req.Block.ID,
-		req.ID,
-		req.ExecutedBy,
-		req.Block.Content)
+	execResult := graph.NewResultLogEntryFromRequest(req)
 
 	if contentType == executor.Empty {
-		execResult.SetErr(fmt.Errorf("cannot execute. No contentType specified"))
+		execResult.SetError(fmt.Errorf("cannot execute. No contentType specified"))
 		return execResult
 	}
 
 	exec, err := r.Register.Get(contentType)
 	if err != nil {
-		execResult.SetErr(fmt.Errorf("cannot execute. No contentType specified"))
+		execResult.SetError(fmt.Errorf("cannot execute. No contentType specified"))
 		return execResult
 	}
 
+	stdoutWriter := tools.NewBytesWriter()
+	stderrWriter := tools.NewBytesWriter()
 	defer func() {
-		// This can take a while for rendering large captures…
-		if err := execResult.Close(); err != nil {
-			tools.Log.Err(err).Msg("Execute: execResult.close()")
-		}
+		execResult.Stdout = stdoutWriter.GetString()
+		execResult.Stderr = stderrWriter.GetString()
 	}()
 
 	// Write to both the real TUI passed in (with buffering to avoid delays) and
 	// a capture writer in the result.
-	outWriter := tools.NewBufferedWriteCloser(io.MultiWriter(execResult.StdoutWriter, req.Stdout))
-	errWriter := tools.NewBufferedWriteCloser(io.MultiWriter(execResult.StderrWriter, req.Stderr))
+	outWriter := tools.NewBufferedWriteCloser(io.MultiWriter(stdoutWriter, req.Stdout))
+	errWriter := tools.NewBufferedWriteCloser(io.MultiWriter(stderrWriter, req.Stderr))
 
 	startMarker := fmt.Sprintf("\n[yellow]>> executing node:%s req-id:%s [white]\n", req.Node.ID, req.ID)
 	outWriter.Write([]byte(startMarker))
@@ -416,11 +420,11 @@ func (r *Run) executeBlock(req *graph.BlockExecutionRequest) *graph.BlockExecuti
 	}
 
 	execResult.ExitStatus = strconv.Itoa(res.ExitStatus)
-	execResult.SetErr(res.Err)
+	execResult.SetError(res.Err)
 	if res.ExitStatus != 0 || res.Err != nil {
-		execResult.State = graph.BlockStateFailed
+		execResult.State = log.ExecStateFailed
 	} else {
-		execResult.State = graph.BlockStateCompleted
+		execResult.State = log.ExecStateCompleted
 	}
 	return execResult
 }

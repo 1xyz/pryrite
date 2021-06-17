@@ -3,6 +3,7 @@ package graph
 import (
 	"context"
 	"fmt"
+	"github.com/aardlabs/terminal-poc/graph/log"
 	"io"
 	"strings"
 	"time"
@@ -127,32 +128,6 @@ func (n NodeView) String() string {
 	return sb.String()
 }
 
-type bytesSetFn = func(bytes []byte)
-
-type byteWriter struct {
-	bytes []byte
-	fn    bytesSetFn
-}
-
-func newByteWriter(fn bytesSetFn) io.WriteCloser {
-	return &byteWriter{
-		bytes: []byte{},
-		fn:    fn,
-	}
-}
-
-func (b *byteWriter) Write(p []byte) (int, error) {
-	b.bytes = append(b.bytes, p...)
-	return len(p), nil
-}
-
-func (b *byteWriter) Close() error {
-	if b.fn != nil {
-		b.fn(b.bytes)
-	}
-	return nil
-}
-
 type BlockExecutionRequest struct {
 	// CancelFn - can be called by multiple go routines, and is idempotent
 	CancelFn    context.CancelFunc
@@ -191,101 +166,14 @@ func NewBlockExecutionRequest(n *Node, b *Block, stdout, stderr io.Writer,
 	return req
 }
 
-type BlockState string
-
-const (
-	BlockStateUnknown   BlockState = "Unknown"
-	BlockStateQueued    BlockState = "Queued"
-	BlockStateStarted   BlockState = "Started"
-	BlockStateCanceled  BlockState = "Cancel-Requested"
-	BlockStateCompleted BlockState = "Completed"
-	BlockStateFailed    BlockState = "Failed"
-)
-
-// BlockExecutionResult encapsulates a node's execution result
-type BlockExecutionResult struct {
-	ID          string     `yaml:"id" json:"id"`
-	ExecutionID string     `yaml:"execution_id" json:"execution_id"`
-	NodeID      string     `yaml:"node_id" json:"node_id"`
-	BlockID     string     `yaml:"block_id" json:"block_id"`
-	RequestID   string     `yaml:"request_id" json:"request_id"`
-	ExitStatus  string     `yaml:"exit_status" json:"exit_status"`
-	Stdout      []byte     `yaml:"-" json:"stdout"`
-	Stderr      []byte     `yaml:"-" json:"stderr"`
-	ExecutedAt  *time.Time `yaml:"executed_at,omitempty" json:"executed_at,omitempty"`
-	ExecutedBy  string     `yaml:"executed_by" json:"executed_by"`
-	State       BlockState `yaml:"state" json:"state"`
-
-	// Err can be marshalled to json or yaml
-	Err *tools.MarshalledError `yaml:"err,omitempty" json:"err,omitempty"`
-
-	// The Content can change (in the referenced block)
-	// so persist the original  command alongside
-	Content string `yaml:"content" json:"content"`
-
-	StdoutWriter io.WriteCloser `yaml:"-" json:"-"`
-	StderrWriter io.WriteCloser `yaml:"-" json:"-"`
-}
-
-func (b *BlockExecutionResult) SetErr(err error) {
-	if err == nil {
-		b.Err = nil
-	} else {
-		b.Err = tools.NewMarshalledError(err)
-	}
-}
-
-func (b *BlockExecutionResult) Close() error {
-	w := []io.Closer{b.StderrWriter, b.StdoutWriter}
-	for _, c := range w {
-		if c != nil {
-			if err := c.Close(); err != nil {
-				tools.Log.Err(err).Msgf("close writer %v", err)
-			}
-		}
-	}
-	return nil
-}
-
-func NewBlockExecutionResult(executionID, nodeID, blockID, requestID, executedBy, content string) *BlockExecutionResult {
-	now := time.Now().UTC()
-	res := &BlockExecutionResult{
-		ID:          tools.RandAlphaNumericStr(8),
-		ExecutionID: executionID,
-		NodeID:      nodeID,
-		BlockID:     blockID,
-		RequestID:   requestID,
-		ExecutedAt:  &now,
-		ExecutedBy:  executedBy,
-		Err:         nil,
-		Content:     content,
-		ExitStatus:  "",
-		State:       BlockStateUnknown,
-	}
-	res.StdoutWriter = newByteWriter(func(bytes []byte) {
-		res.Stdout = bytes
-	})
-	res.StderrWriter = newByteWriter(func(bytes []byte) {
-		res.Stderr = bytes
-	})
-	return res
-}
-
-func NewBlockExecutionResultFromRequest(req *BlockExecutionRequest) *BlockExecutionResult {
-	now := time.Now().UTC()
-	res := &BlockExecutionResult{
-		ID:          tools.RandAlphaNumericStr(8),
-		ExecutionID: req.ExecutionID,
-		NodeID:      req.Node.ID,
-		BlockID:     req.Block.ID,
-		RequestID:   req.ID,
-		ExecutedAt:  &now,
-		ExecutedBy:  req.ExecutedBy,
-		Err:         nil,
-		Content:     req.Block.Content,
-		ExitStatus:  "",
-		State:       BlockStateUnknown,
-	}
+func NewResultLogEntryFromRequest(req *BlockExecutionRequest) *log.ResultLogEntry {
+	res := log.NewResultLogEntry(
+		req.ExecutionID,
+		req.Node.ID,
+		req.Block.ID,
+		req.ID,
+		req.ExecutedBy,
+		req.Block.Content)
 	return res
 }
 

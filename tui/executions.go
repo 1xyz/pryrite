@@ -1,13 +1,11 @@
 package tui
 
 import (
-	"strconv"
-
-	"github.com/aardlabs/terminal-poc/graph"
-	"github.com/aardlabs/terminal-poc/run"
+	"github.com/aardlabs/terminal-poc/graph/log"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"gopkg.in/yaml.v2"
+	"strconv"
 )
 
 type executionsView struct {
@@ -32,7 +30,7 @@ func newExecutionsView(root *Tui) *executionsView {
 	return view
 }
 
-func (b *executionsView) Refresh(results *run.BlockExecutionResults) {
+func (b *executionsView) Refresh(results log.ResultLog) {
 	table := b.Clear()
 	if results == nil {
 		return
@@ -63,18 +61,18 @@ func (b *executionsView) Refresh(results *run.BlockExecutionResults) {
 	}
 
 	j := 1
-	results.Each(func(_ int, r *graph.BlockExecutionResult) bool {
+	results.Each(func(_ int, r *log.ResultLogEntry) bool {
 		showColor := tcell.ColorWhite
 		switch r.State {
-		case graph.BlockStateQueued:
+		case log.ExecStateQueued:
 			showColor = tcell.ColorDarkCyan
-		case graph.BlockStateStarted:
+		case log.ExecStateStarted:
 			showColor = tcell.ColorYellow
-		case graph.BlockStateCompleted:
+		case log.ExecStateCompleted:
 			showColor = tcell.ColorGreen
-		case graph.BlockStateFailed:
+		case log.ExecStateFailed:
 			showColor = tcell.ColorRed
-		case graph.BlockStateCanceled:
+		case log.ExecStateCanceled:
 			showColor = tcell.ColorPurple
 		}
 
@@ -118,7 +116,7 @@ func (b *executionsView) Refresh(results *run.BlockExecutionResults) {
 		if r.Err != nil {
 			errStr = r.Err.Error()
 			expansion = 15
-		} else if r.Stderr != nil && len(r.Stderr) > 0 {
+		} else if len(r.Stderr) > 0 {
 			errStr = string(r.Stderr)
 			expansion = 15
 		}
@@ -180,13 +178,6 @@ func (b *executionsView) NavHelp() [][]string {
 	}
 }
 
-func (b *executionsView) renderYaml(result *graph.BlockExecutionResult) ([]byte, error) {
-	resultView := struct {
-		*graph.BlockExecutionResult
-		Stdout string `yaml:"stdout"`
-		Stderr string `yaml:"stderr"`
-	}{result,
-		string(result.Stdout),
-		string(result.Stderr)}
-	return yaml.Marshal(&resultView)
+func (b *executionsView) renderYaml(result *log.ResultLogEntry) ([]byte, error) {
+	return yaml.Marshal(&result)
 }
