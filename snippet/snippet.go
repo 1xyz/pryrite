@@ -276,16 +276,13 @@ func GetSnippetNodeViewWithChildren(ctx *Context, id string) (*graph.NodeView, e
 	}
 
 	nv.Children = []*graph.NodeView{}
-	childIDs := nv.Node.GetChildIDs()
-	for _, childID := range childIDs {
-		cnv, err := GetSnippetNodeView(store, childID)
-		if err != nil {
-			return nil, fmt.Errorf("error fetching childId = %v for node %v. err = %v",
-				childID, id, err)
-		}
-		nv.Children = append(nv.Children, cnv)
+	childNodes, err := store.GetChildren(id)
+	if err != nil {
+		return nil, err
 	}
-
+	for i := range childNodes {
+		nv.Children = append(nv.Children, &graph.NodeView{Node: &childNodes[i], View: childNodes[i].View})
+	}
 	return nv, nil
 }
 
