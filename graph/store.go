@@ -30,6 +30,9 @@ type Store interface {
 	// SearchNodes searches for nodes for provided query
 	SearchNodes(query string, limit int, kind Kind) ([]Node, error)
 
+	// GetChildren returns the children nodes of the parent node with this id
+	GetChildren(parentID string) ([]Node, error)
+
 	// UpdateNode updates the content of an existing node
 	UpdateNode(node *Node) error
 
@@ -154,6 +157,28 @@ func (r *remoteStore) UpdateNode(n *Node) error {
 		return err
 	}
 	return nil
+}
+
+func (r *remoteStore) GetChildren(parentID string) ([]Node, error) {
+	client := r.newHTTPClient(false)
+	req := client.R().
+		SetPathParam("parentID", parentID).
+		SetQueryParams(map[string]string{
+			"include": "blocks",
+		})
+	resp, err := req.Get("/api/v1/nodes/{parentID}/children")
+	if err != nil {
+		return nil, fmt.Errorf("http.get err: %v", err)
+	}
+	if err := checkHTTP2XX(fmt.Sprintf("GetChildren(%s)", parentID), resp); err != nil {
+		return nil, err
+	}
+	result := getNodesResponse{N: []Node{}}
+	if err := json.NewDecoder(resp.RawBody()).Decode(&result); err != nil {
+		return nil, &Error{"GetNodes", err}
+	}
+
+	return result.N, nil
 }
 
 func (r *remoteStore) SearchNodes(query string, limit int, kind Kind) ([]Node, error) {
