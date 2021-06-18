@@ -80,7 +80,7 @@ func NewRun(gCtx *snippet.Context, playbookIDOrURL string) (*Run, error) {
 		return nil, err
 	}
 
-	execIndex, err := log.NewResultLogIndex(log.IndexInMemory)
+	execIndex, err := log.NewResultLogIndex(log.IndexFileSystem)
 	if err != nil {
 		return nil, err
 	}
@@ -182,9 +182,9 @@ func (r *Run) GetBlockExecutionResult(nodeID, logID string) (*log.ResultLogEntry
 	if err != nil {
 		return nil, err
 	}
-	result, found := execResults.Find(logID)
-	if !found {
-		return nil, fmt.Errorf("LogID=%s not found in node=%s", logID, nodeID)
+	result, err := execResults.Find(logID)
+	if err != nil {
+		return nil, fmt.Errorf("LogID=%s not found in node=%s err = %v", logID, nodeID, err)
 	}
 	return result, nil
 }
