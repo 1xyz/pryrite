@@ -24,23 +24,17 @@ func (exp *NodeExplorer) GetChildren(nodeID string) ([]*graph.Node, error) {
 	}
 
 	if n.childNodes == nil {
-		// populate the child nodes
-		n.childNodes = make([]*graph.Node, 0)
-		childIDs := n.GetChildIDs()
-		for _, childID := range childIDs {
-			// check if already found and store
-			if cachedNode, found := exp.nodes[childID]; found {
-				n.childNodes = append(n.childNodes, cachedNode.Node)
-				continue
-			}
+		children, err := exp.store.GetChildren(n.ID)
+		if err != nil {
+			return nil, err
+		}
 
-			// request the download the child from remote store
-			childNode, err := exp.store.GetNode(childID)
-			if err != nil {
-				return nil, err
+		n.childNodes = make([]*graph.Node, 0)
+		for i := range children {
+			n.childNodes = append(n.childNodes, &children[i])
+			if _, found := exp.nodes[children[i].ID]; !found {
+				exp.nodes[children[i].ID] = &nodeW{Node: &children[i], childNodes: nil}
 			}
-			exp.nodes[childID] = &nodeW{Node: childNode, childNodes: nil}
-			n.childNodes = append(n.childNodes, childNode)
 		}
 	}
 
