@@ -18,7 +18,7 @@ func NewCmdRoot(cfg *config.Config) *cobra.Command {
 	var rootCmd = &cobra.Command{
 		Version:      app.Version,
 		Use:          app.Name,
-		Short:        "Work seamlessly with the aard service from the command line",
+		Short:        "Work seamlessly with the aardy service from the command line",
 		SilenceUsage: true,
 	}
 	var versionCmd = &cobra.Command{
