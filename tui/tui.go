@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"github.com/aardlabs/terminal-poc/graph/log"
 	"os"
 	"time"
 
@@ -328,12 +329,7 @@ func (t *Tui) InspectBlockExecution(logID string) {
 		return
 	}
 
-	d := struct {
-		*graph.BlockExecutionResult
-		Stdout string `yaml:"stdout"`
-		Stderr string `yaml:"stderr"`
-	}{res, string(res.Stdout), string(res.Stderr)}
-	b, err := yaml.Marshal(&d)
+	b, err := yaml.Marshal(&res)
 	if err != nil {
 		t.StatusErrorf("InspectBlockExecution: req-id: %s err = %v", logID, err)
 		return
@@ -353,7 +349,7 @@ func (t *Tui) InspectActivity(a *activity) {
 }
 
 func (t *Tui) setExecutionUpdate() {
-	t.run.SetExecutionUpdateFn(func(result *graph.BlockExecutionResult) {
+	t.run.SetExecutionUpdateFn(func(result *log.ResultLogEntry) {
 		t.QueueRefresh("setExecutionUpdate")
 	})
 }
