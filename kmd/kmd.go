@@ -58,6 +58,7 @@ func NewCmdRoot(cfg *config.Config) *cobra.Command {
 	rootCmd.AddCommand(NewCmdSnippetSave(gCtx))
 	rootCmd.AddCommand(NewCmdSnippetEdit(gCtx))
 	rootCmd.AddCommand(NewCmdHui(gCtx))
+	rootCmd.AddCommand(NewCmdRepl(gCtx))
 	rootCmd.AddCommand(NewCmdAuth(cfg))
 	rootCmd.AddCommand(NewCmdConfig(cfg))
 	rootCmd.AddCommand(NewCmdCompletion())

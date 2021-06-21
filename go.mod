@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/1xyz/sseclient v0.0.0-20210510204826-9b958fd4e77e
 	github.com/MakeNowJust/heredoc v1.0.0
+	github.com/c-bata/go-prompt v0.2.6 // indirect
 	github.com/charmbracelet/glamour v0.3.0
 	github.com/creack/pty v1.1.11
 	github.com/cristalhq/jwt/v3 v3.0.14
