@@ -50,7 +50,11 @@ func (l *fsLog) Each(cb func(int, *ResultLogEntry) bool) error {
 	if err != nil {
 		return err
 	}
+	sort.Slice(files, func(i, j int) bool {
+		return files[i].ModTime().Before(files[j].ModTime())
+	})
 	for i := range files {
+		tools.Log.Info().Msgf("Each: %d entry %s", i, files[i].Name())
 		entry, err := l.decode(files[i].Name())
 		if err != nil {
 			return err
@@ -113,9 +117,6 @@ func (l *fsLog) getLogFiles() ([]fs.FileInfo, error) {
 		logfiles = append(logfiles, files[i])
 	}
 
-	sort.Slice(logfiles, func(i, j int) bool {
-		return logfiles[i].ModTime().Before(logfiles[j].ModTime())
-	})
 	return files, nil
 }
 
