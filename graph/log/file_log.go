@@ -54,7 +54,6 @@ func (l *fsLog) Each(cb func(int, *ResultLogEntry) bool) error {
 		return files[i].ModTime().Before(files[j].ModTime())
 	})
 	for i := range files {
-		tools.Log.Info().Msgf("Each: %d entry %s", i, files[i].Name())
 		entry, err := l.decode(files[i].Name())
 		if err != nil {
 			return err
