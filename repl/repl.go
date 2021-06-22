@@ -10,11 +10,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const program = "aardy"
-
 type Context struct {
 	Cfg      *config.Config
-	RootCmd  *cobra.Command
 	GraphCtx *snippet.Context
 }
 
@@ -23,16 +20,15 @@ func (ctx *Context) NewRootCmd() *cobra.Command {
 }
 
 type repl struct {
-	ctx *Context
-	c   *Completer
-	r   *Runner
-	p   *prompt.Prompt
+	ctx       *Context
+	completer *Completer
+	runner    *Runner
+	prompt    *prompt.Prompt
 }
 
 func newRepl(cfg *config.Config) (*repl, error) {
 	ctx := &Context{
 		Cfg:      cfg,
-		RootCmd:  kmd.NewCmdRoot(cfg),
 		GraphCtx: snippet.NewContext(cfg, app.Version),
 	}
 
@@ -42,22 +38,23 @@ func newRepl(cfg *config.Config) (*repl, error) {
 	}
 
 	r := NewRunner(ctx)
-	fmt.Printf("%s %s (service: %s)\n", program,
+	fmt.Printf("%s %s (service: %s)\n", app.Name,
 		ctx.GraphCtx.Metadata.Agent,
 		ctx.GraphCtx.ConfigEntry.ServiceUrl)
-	fmt.Println("Please use `exit` or `Ctrl-D` to exit.")
+	fmt.Println("Please type `quit` or `Ctrl-D` to exit.")
 	pt := prompt.New(
-		r.Run,
+		r.Execute,
 		c.Complete,
-		prompt.OptionTitle("aardy: interactive aardy"),
-		prompt.OptionPrefix(">>> "),
+		prompt.OptionTitle(fmt.Sprintf("interactive %s", app.Name)),
+		prompt.OptionPrefix(fmt.Sprintf("%s >>> ", app.Name)),
+		prompt.OptionPrefixTextColor(prompt.White),
 		prompt.OptionInputTextColor(prompt.Yellow),
 		//prompt.OptionCompletionWordSeparator(completer.FilePathCompletionSeparator),
 	)
 
 	return &repl{
-		ctx: ctx,
-		c:   c, r: r, p: pt,
+		ctx:       ctx,
+		completer: c, runner: r, prompt: pt,
 	}, nil
 }
 
@@ -67,6 +64,6 @@ func Repl(cfg *config.Config) error {
 	if err != nil {
 		return err
 	}
-	r.p.Run()
+	r.prompt.Run()
 	return nil
 }

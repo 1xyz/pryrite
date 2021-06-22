@@ -25,6 +25,7 @@ var (
 
 func main() {
 	app.Name = "aardy"
+	app.UsageName = app.Name
 	app.Version = strings.TrimSpace(version)
 	app.CommitHash = strings.TrimSpace(commitHash)
 	app.BuildTime = strings.TrimSpace(buildTime)
@@ -51,6 +52,9 @@ func main() {
 
 	// if #arguments (incl. of program-name) is one; open the repl
 	if len(os.Args) == 1 {
+		// Turn off the usageName so that the program name does
+		// not show as a prefix is usage strings inside the REPL
+		app.UsageName = ""
 		if err := repl.Repl(cfg); err != nil {
 			tools.LogStderrExit(err, "error from repl")
 		}

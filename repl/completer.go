@@ -8,11 +8,15 @@ import (
 )
 
 func NewCompleter(ctx *Context) (*Completer, error) {
-	return &Completer{ctx}, nil
+	return &Completer{
+		rootCmd: ctx.NewRootCmd(),
+		ctx:     ctx,
+	}, nil
 }
 
 type Completer struct {
-	ctx *Context
+	rootCmd *cobra.Command
+	ctx     *Context
 }
 
 func (c *Completer) Complete(d prompt.Document) []prompt.Suggest {
@@ -29,7 +33,7 @@ func (c *Completer) Complete(d prompt.Document) []prompt.Suggest {
 		}
 	}
 
-	s := c.commandSuggestions(c.ctx.RootCmd, args, 0, w)
+	s := c.commandSuggestions(c.rootCmd, args, 0, w)
 	return prompt.FilterHasPrefix(s, d.GetWordBeforeCursor(), true)
 }
 
