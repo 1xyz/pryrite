@@ -3,6 +3,7 @@ package main
 import (
 	_ "embed"
 	"fmt"
+	"github.com/aardlabs/terminal-poc/repl"
 	"os"
 	"strings"
 
@@ -47,6 +48,14 @@ func main() {
 		tools.LogStderrExit(err, "config.Default")
 	}
 	update.Check(cfg, false)
+
+	// if #arguments (incl. of program-name) is one; open the repl
+	if len(os.Args) == 1 {
+		if err := repl.Repl(cfg); err != nil {
+			tools.LogStderrExit(err, "error from repl")
+		}
+		return
+	}
 	// the error is handled by cobra (so let us not handle it)
 	kmd.Execute(cfg)
 }

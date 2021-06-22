@@ -2,46 +2,68 @@ package repl
 
 import (
 	"fmt"
+	"github.com/aardlabs/terminal-poc/app"
+	"github.com/aardlabs/terminal-poc/config"
+	"github.com/aardlabs/terminal-poc/kmd"
 	"github.com/aardlabs/terminal-poc/snippet"
 	"github.com/c-bata/go-prompt"
+	"github.com/spf13/cobra"
 )
 
-type repl struct {
-	c *completor
-	r *runner
-	p *prompt.Prompt
+const program = "aardy"
+
+type Context struct {
+	Cfg      *config.Config
+	RootCmd  *cobra.Command
+	GraphCtx *snippet.Context
 }
 
-func newRepl(gCtx *snippet.Context) (*repl, error) {
-	c, err := newCompletor(gCtx)
+func (ctx *Context) NewRootCmd() *cobra.Command {
+	return kmd.NewCmdRoot(ctx.Cfg)
+}
+
+type repl struct {
+	ctx *Context
+	c   *Completer
+	r   *Runner
+	p   *prompt.Prompt
+}
+
+func newRepl(cfg *config.Config) (*repl, error) {
+	ctx := &Context{
+		Cfg:      cfg,
+		RootCmd:  kmd.NewCmdRoot(cfg),
+		GraphCtx: snippet.NewContext(cfg, app.Version),
+	}
+
+	c, err := NewCompleter(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	r, err := newRunner()
-	if err != nil {
-		return nil, err
-	}
-
-	fmt.Printf("kube-prompt %s (service-%s)\n", gCtx.Metadata.Agent, gCtx.ConfigEntry.ServiceUrl)
-	fmt.Println("Please use `exit` or `Ctrl-D` to exit this program.")
+	r := NewRunner(ctx)
+	fmt.Printf("%s %s (service: %s)\n", program,
+		ctx.GraphCtx.Metadata.Agent,
+		ctx.GraphCtx.ConfigEntry.ServiceUrl)
+	fmt.Println("Please use `exit` or `Ctrl-D` to exit.")
 	pt := prompt.New(
 		r.Run,
 		c.Complete,
-		prompt.OptionTitle("kube-prompt: interactive kubernetes client"),
+		prompt.OptionTitle("aardy: interactive aardy"),
 		prompt.OptionPrefix(">>> "),
 		prompt.OptionInputTextColor(prompt.Yellow),
 		//prompt.OptionCompletionWordSeparator(completer.FilePathCompletionSeparator),
 	)
 
 	return &repl{
-		c: c, r: r, p: pt,
+		ctx: ctx,
+		c:   c, r: r, p: pt,
 	}, nil
 }
 
-func Repl(gCtx *snippet.Context) error {
+func Repl(cfg *config.Config) error {
 	defer fmt.Println("Bye!")
-	r, err := newRepl(gCtx)
+	r, err := newRepl(cfg)
 	if err != nil {
 		return err
 	}

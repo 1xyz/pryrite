@@ -1,15 +1,27 @@
 package repl
 
-import "github.com/c-bata/go-prompt"
+import (
+	"strings"
+)
 
-type runner struct {
-	e *prompt.Executor
+type Runner struct {
+	ctx *Context
 }
 
-func (r *runner) Run(cmd string) {
-
+func NewRunner(ctx *Context) *Runner {
+	return &Runner{
+		ctx: ctx,
+	}
 }
 
-func newRunner() (*runner, error) {
-	return &runner{}, nil
+func (r *Runner) Run(cmd string) {
+	cmd = strings.TrimSpace(cmd)
+	if len(cmd) == 0 {
+		return
+	}
+	args := strings.Split(cmd, " ")
+	c := r.ctx.NewRootCmd()
+	c.SetArgs(args)
+	// Don't handle the error (kobra does it for you)
+	c.Execute()
 }
