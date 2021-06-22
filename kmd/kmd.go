@@ -78,7 +78,7 @@ func NewGraphContext(cfg *config.Config) *snippet.Context {
 }
 
 func examplef(format string, args ...string) string {
-	args = append(args, "{AppName}", app.Name)
+	args = append(args, "{AppName}", app.UsageName)
 	r := strings.NewReplacer(args...)
 	return heredoc.Doc(r.Replace(format))
 }
