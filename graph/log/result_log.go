@@ -37,8 +37,8 @@ type ResultLogEntry struct {
 	ExecutedBy  string     `yaml:"executed_by" json:"executed_by"`
 	State       ExecState  `yaml:"state" json:"state"`
 
-	// Err can be marshalled to json or yaml
-	Err *tools.MarshalledError `yaml:"err,omitempty" json:"err,omitempty"`
+	// Err is a string representation of error
+	Err string `yaml:"err,omitempty" json:"err,omitempty"`
 
 	// The Content can change (in the referenced block)
 	// so persist the original  command alongside
@@ -47,9 +47,9 @@ type ResultLogEntry struct {
 
 func (e *ResultLogEntry) SetError(err error) {
 	if err == nil {
-		e.Err = nil
+		e.Err = ""
 	} else {
-		e.Err = tools.NewMarshalledError(err)
+		e.Err = err.Error()
 	}
 }
 
@@ -63,7 +63,7 @@ func NewResultLogEntry(executionID, nodeID, blockID, requestID, executedBy, cont
 		RequestID:   requestID,
 		ExecutedAt:  &now,
 		ExecutedBy:  executedBy,
-		Err:         nil,
+		Err:         "",
 		Content:     content,
 		ExitStatus:  "",
 		Stdout:      "",
