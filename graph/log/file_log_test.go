@@ -139,7 +139,7 @@ func newTestLogEntry() *ResultLogEntry {
 		ExecutedAt:  nil,
 		ExecutedBy:  "",
 		State:       "",
-		Err:         nil,
+		Err:         "",
 		Content:     "",
 	}
 }

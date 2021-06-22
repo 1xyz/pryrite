@@ -376,12 +376,14 @@ func (r *Run) executeBlock(req *graph.BlockExecutionRequest) *log.ResultLogEntry
 	execResult := graph.NewResultLogEntryFromRequest(req)
 
 	if contentType == executor.Empty {
+		execResult.State = log.ExecStateFailed
 		execResult.SetError(fmt.Errorf("cannot execute. No contentType specified"))
 		return execResult
 	}
 
 	exec, err := r.Register.Get(contentType)
 	if err != nil {
+		execResult.State = log.ExecStateFailed
 		execResult.SetError(fmt.Errorf("cannot execute. No contentType specified"))
 		return execResult
 	}
