@@ -262,7 +262,7 @@ func (r *Run) Start() {
 					return
 				}
 				if r.executionDoneFn != nil {
-					go r.executionDoneFn(logEntry)
+					r.executionDoneFn(logEntry)
 				}
 			}()
 
