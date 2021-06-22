@@ -113,8 +113,8 @@ func (b *executionsView) Refresh(results log.ResultLog) {
 
 		errStr := "N/A"
 		expansion := 5
-		if r.Err != nil {
-			errStr = r.Err.Error()
+		if len(r.Err) > 0 {
+			errStr = r.Err
 			expansion = 15
 		} else if len(r.Stderr) > 0 {
 			errStr = string(r.Stderr)
