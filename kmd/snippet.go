@@ -22,7 +22,6 @@ type SnippetListOpts struct {
 }
 
 func NewCmdSnippetSearch(gCtx *snippet.Context) *cobra.Command {
-	opts := &SnippetListOpts{}
 	cmd := &cobra.Command{
 		Use:   "search",
 		Short: "Search available snippets",
@@ -35,46 +34,33 @@ func NewCmdSnippetSearch(gCtx *snippet.Context) *cobra.Command {
         `),
 		Example: examplef(`
             To search snippets for the term certutil, run:
-              $ {AppName} search "certutil"
-
-            To limit the search result to 10 entries, run:
-              $ {AppName} search "certutil" -n 10
+              $ {AppName} search certutil
 		`),
 		Args: MinimumArgs(1, "You need to specify a search query"),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			return IsUserLoggedIn(gCtx.ConfigEntry)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			query := args[0]
-			limit := opts.Limit
+			if args[0] == "-h" || args[0] == "--help" {
+				return cmd.Help()
+			}
+
+			query := strings.Join(args, " ")
+
+			limit := 100
 			kind := graph.Unknown
 			tools.Log.Info().Msgf("search query=%s Limit=%d Kind=%v", query, limit, kind)
 			nodes, err := snippet.SearchSnippetNodes(gCtx, query, limit, kind)
 			if err != nil {
 				return err
 			}
-
-			nodePtrs := make([]*graph.Node, len(nodes))
-			for i := 0; i < len(nodes); i++ {
-				nodePtrs[i] = &nodes[i]
-			}
-
-			borderTitle := "Search Results for query: " + tools.TrimLength(query, 15)
-			searchUI, err := explorer.NewUI(gCtx, "Result nodes", borderTitle, nodePtrs)
-			if err != nil {
+			if err := snippet.RenderNodesPicker(gCtx.ConfigEntry, nodes,
+				"query: "+query, 10); err != nil {
 				return err
 			}
-			if err := searchUI.Run(); err != nil {
-				return err
-			}
-			//if err := snippet.RenderSnippetNodes(gCtx.ConfigEntry, nodes, kind); err != nil {
-			//	return err
-			//}
 			return nil
 		},
 	}
-	cmd.Flags().IntVarP(&opts.Limit, "limit", "n",
-		100, "Limit the number of results to display")
 	return cmd
 }
 
@@ -121,16 +107,7 @@ func NewCmdSnippetList(gCtx *snippet.Context) *cobra.Command {
 				return err
 			}
 			if opts.interactive {
-				nodePtrs := make([]*graph.Node, len(nodes))
-				for i := 0; i < len(nodes); i++ {
-					nodePtrs[i] = &nodes[i]
-				}
-
-				listUI, err := explorer.NewUI(gCtx, "nodes", "Node listing", nodePtrs)
-				if err != nil {
-					return err
-				}
-				if err := listUI.Run(); err != nil {
+				if err := snippet.RenderNodesPicker(gCtx.ConfigEntry, nodes, "Select the node...", 10); err != nil {
 					return err
 				}
 			} else {

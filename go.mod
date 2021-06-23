@@ -14,6 +14,7 @@ require (
 	github.com/go-resty/resty/v2 v2.5.0
 	github.com/google/uuid v1.2.0
 	github.com/jedib0t/go-pretty/v6 v6.1.0
+	github.com/manifoldco/promptui v0.8.0 // indirect
 	github.com/mattn/go-runewidth v0.0.12 // indirect
 	github.com/muesli/reflow v0.2.1-0.20210115123740-9e1d0d53df68 // indirect
 	github.com/muesli/termenv v0.8.1
