@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	executor "github.com/aardlabs/terminal-poc/executors"
 	"github.com/aardlabs/terminal-poc/tools"
 )
 
@@ -53,19 +54,17 @@ func (n *Node) GetBlock(blockID string) (*Block, bool) {
 }
 
 type Block struct {
-	ID          string     `json:"id,omitempty"`
-	CreatedAt   *time.Time `json:"created_at"`
-	Content     string     `json:"content"`
-	ContentType string     `json:"content_type"`
-	MD5         string     `json:"md5"`
+	ID          string                `json:"id,omitempty"`
+	CreatedAt   *time.Time            `json:"created_at"`
+	Content     string                `json:"content"`
+	ContentType *executor.ContentType `json:"content_type"`
+	MD5         string                `json:"md5"`
 }
 
 func (block *Block) IsCode() bool {
-	return strings.HasPrefix(block.ContentType, "text/") &&
-		!strings.HasSuffix(block.ContentType, "markdown")
+	return block.ContentType != nil &&
+		block.ContentType.Type == "text" && block.ContentType.Subtype != "markdown"
 }
-
-type Snippet Block
 
 func (n *Node) GetChildIDs() []string {
 	ids := strings.Split(n.Children, ",")

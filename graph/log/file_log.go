@@ -3,13 +3,15 @@ package log
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/aardlabs/terminal-poc/tools"
 	"io/fs"
 	"io/ioutil"
 	"os"
 	"path"
 	"sort"
 	"strings"
+
+	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/pkg/errors"
 )
 
 // log on the file system
@@ -96,7 +98,7 @@ func (l *fsLog) decode(filename string) (*ResultLogEntry, error) {
 
 	var r ResultLogEntry
 	if err := json.NewDecoder(fr).Decode(&r); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, fileWithPath)
 	}
 	return &r, nil
 }

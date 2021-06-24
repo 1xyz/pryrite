@@ -1,15 +1,18 @@
 package explorer
 
 import (
+	"context"
 	"fmt"
 	"os"
 
+	"github.com/gdamore/tcell/v2"
+	"github.com/rivo/tview"
+
+	executor "github.com/aardlabs/terminal-poc/executors"
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/snippet"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/aardlabs/terminal-poc/tui/common"
-	"github.com/gdamore/tcell/v2"
-	"github.com/rivo/tview"
 )
 
 type UI struct {
@@ -20,6 +23,7 @@ type UI struct {
 	focusColor tcell.Color
 
 	explorer *NodeExplorer
+	register *executor.Register
 
 	nodeTreeView *nodeTreeView
 	statusView   *statusView
@@ -74,29 +78,14 @@ func (u *UI) ShowHelpScreen() {
 
 // ExecuteCmdDialog shows a modal dialog navigating a user to execute the provided command
 func (u *UI) ExecuteCmdDialog(cmd, title string) {
-	dlg := tview.NewModal().
-		SetText(title).
-		AddButtons([]string{"Yes", "No"}).
-		SetDoneFunc(func(buttonIndex int, buttonLabel string) {
-			if buttonLabel == "Yes" {
-				u.app.Stop()
-				fmt.Printf(">> %s\n", cmd)
-				if err := tools.BashExec(cmd); err != nil {
-					fmt.Printf("error = %v", err)
-					os.Exit(1)
-				} else {
-					os.Exit(0)
-				}
-			} else {
-				u.pages.RemovePage("execute")
-			}
-		})
-	m := newModal(dlg, 40, 10)
-	u.pages.AddPage("execute", m, true, true)
+	u.askExecuteBlockOrCmd(nil, cmd, title)
+}
+func (u *UI) ExecuteBlockDialog(block *graph.Block, title string) {
+	u.askExecuteBlockOrCmd(block, "", title)
 }
 
 func NewUI(gCtx *snippet.Context, title, borderTitle string, nodes []*graph.Node) (*UI, error) {
-	if nodes == nil || len(nodes) == 0 {
+	if len(nodes) == 0 {
 		return nil, fmt.Errorf("no entries found")
 	}
 
@@ -105,10 +94,16 @@ func NewUI(gCtx *snippet.Context, title, borderTitle string, nodes []*graph.Node
 		return nil, err
 	}
 
+	register, err := executor.NewRegister()
+	if err != nil {
+		return nil, err
+	}
+
 	app := tview.NewApplication()
 	ui := &UI{
 		app:        app,
 		explorer:   explorer,
+		register:   register,
 		focusColor: tcell.ColorYellow,
 	}
 
@@ -154,4 +149,48 @@ func newModal(p tview.Primitive, width, height int) tview.Primitive {
 		SetColumns(0, width, 0).
 		SetRows(0, height, 0).
 		AddItem(p, 1, 1, 1, 1, 0, 0, true)
+}
+
+func (u *UI) askExecuteBlockOrCmd(block *graph.Block, cmd, title string) {
+	dlg := tview.NewModal().
+		SetText(title).
+		AddButtons([]string{"Yes", "No"}).
+		SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+			if buttonLabel == "Yes" {
+				u.app.Stop()
+
+				if block == nil {
+					fmt.Printf(">> %s\n", cmd)
+					if err := tools.BashExec(cmd); err != nil {
+						fmt.Printf("error = %v", err)
+						os.Exit(1)
+					}
+
+					os.Exit(0)
+				}
+
+				req := executor.DefaultRequest()
+				req.Content = []byte(block.Content)
+				req.ContentType = block.ContentType
+
+				executor, err := u.register.Get(req.Content, req.ContentType)
+				if err != nil {
+					tools.LogStderrExit(err, "Failed to locate a matching executor\n")
+				}
+
+				fmt.Printf(">> %s\n", string(req.Content))
+
+				resp := executor.Execute(context.Background(), req)
+				if resp.Err != nil {
+					tools.LogStderrExit(resp.Err, "Failed to execute command: %v\n", err)
+				}
+
+				os.Exit(resp.ExitStatus)
+			} else {
+				u.pages.RemovePage("execute")
+			}
+		})
+
+	m := newModal(dlg, 40, 10)
+	u.pages.AddPage("execute", m, true, true)
 }

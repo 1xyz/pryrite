@@ -2,6 +2,7 @@ package explorer
 
 import (
 	"fmt"
+
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/gdamore/tcell/v2"
@@ -17,7 +18,7 @@ func (i *infoView) SetBlock(b *graph.Block) {
 	i.Clear()
 	entries := [][]string{
 		{"Block ID", b.ID},
-		{"Content Type", b.ContentType},
+		{"Content Type", b.ContentType.String()},
 		{"MD5", b.MD5},
 		{"Is Code", fmt.Sprintln(b.IsCode())},
 		{"Created At", tools.FormatTime(b.CreatedAt)},

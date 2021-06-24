@@ -3,19 +3,21 @@ package run
 import (
 	"container/list"
 	"fmt"
-	"github.com/aardlabs/terminal-poc/graph/log"
-	"github.com/aardlabs/terminal-poc/tools/queue"
-	"go.uber.org/atomic"
 	"io"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/pkg/errors"
+	"go.uber.org/atomic"
+
 	executor "github.com/aardlabs/terminal-poc/executors"
 	"github.com/aardlabs/terminal-poc/graph"
+	"github.com/aardlabs/terminal-poc/graph/log"
 	"github.com/aardlabs/terminal-poc/snippet"
 	"github.com/aardlabs/terminal-poc/tools"
-	"github.com/google/uuid"
+	"github.com/aardlabs/terminal-poc/tools/queue"
 )
 
 type StatusUpdateFn func(*Status)
@@ -371,20 +373,13 @@ func (r *Run) ExecuteBlock(n *graph.Node, b *graph.Block, stdout, stderr io.Writ
 }
 
 func (r *Run) executeBlock(req *graph.BlockExecutionRequest) *log.ResultLogEntry {
-	contentType := executor.ContentType(req.Block.ContentType)
 	tools.Log.Info().Msgf("ExecuteBlock: req %v", req)
 	execResult := graph.NewResultLogEntryFromRequest(req)
 
-	if contentType == executor.Empty {
-		execResult.State = log.ExecStateFailed
-		execResult.SetError(fmt.Errorf("cannot execute. No contentType specified"))
-		return execResult
-	}
-
-	exec, err := r.Register.Get(contentType)
+	exec, err := r.Register.Get([]byte(req.Block.Content), req.Block.ContentType)
 	if err != nil {
 		execResult.State = log.ExecStateFailed
-		execResult.SetError(fmt.Errorf("cannot execute. No contentType specified"))
+		execResult.SetError(errors.Wrap(err, "cannot execute"))
 		return execResult
 	}
 
@@ -405,10 +400,11 @@ func (r *Run) executeBlock(req *graph.BlockExecutionRequest) *log.ResultLogEntry
 	cmdInfo := fmt.Sprintf("[yellow]>> %s[white]\n", req.Block.Content)
 	outWriter.Write([]byte(cmdInfo))
 	execReq := &executor.ExecRequest{
-		Hdr:     &executor.RequestHdr{ID: req.ID, ExecutionID: req.ExecutionID, NodeID: req.Node.ID},
-		Content: []byte(req.Block.Content),
-		Stdout:  outWriter,
-		Stderr:  errWriter,
+		Hdr:         &executor.RequestHdr{ID: req.ID, ExecutionID: req.ExecutionID, NodeID: req.Node.ID},
+		Content:     []byte(req.Block.Content),
+		ContentType: req.Block.ContentType,
+		Stdout:      outWriter,
+		Stderr:      errWriter,
 	}
 
 	res := exec.Execute(req.Ctx, execReq)

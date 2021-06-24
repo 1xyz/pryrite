@@ -26,13 +26,7 @@ type ExecRequest struct {
 	Content []byte
 
 	// ContentType refers to the MIME type of the content
-	ContentType ContentType
-
-	// Stdin messages are unique in that the request comes from the kernel, and the reply from the caller.
-	// The caller is not required to support this, but if it does not, it must set 'allow_stdin' : False
-	// in its execute requests. In this case, the kernel may not send Stdin requests. If that field is true,
-	// the kernel may send Stdin requests and block waiting for a reply, so the frontend must answer.
-	Stdin io.Reader
+	ContentType *ContentType
 
 	// the executor publishes all side effects (Stdout, Stderr, debugging events etc.)
 	Stdout io.WriteCloser
@@ -55,11 +49,10 @@ type ExecResponse struct {
 }
 
 type Executor interface {
-	// Name returns the name of the executor
 	Name() string
 
-	// ContentTypes returns the content types supported by the Executor
-	ContentTypes() []ContentType
+	// ContentType returns the content type supported by the Executor
+	ContentType() *ContentType
 
 	// Execute requests the Executor to execute the provided request
 	Execute(context.Context, *ExecRequest) *ExecResponse
