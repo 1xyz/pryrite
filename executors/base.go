@@ -128,7 +128,7 @@ func (be *BaseExecutor) setDefaults() {
 }
 
 func (be *BaseExecutor) processContentType(content []byte, myContentType, wantContentType *ContentType) error {
-	if !myContentType.ParentOf(wantContentType) {
+	if !myContentType.ParentOf(wantContentType, nil) {
 		return ErrUnsupportedContentType
 	}
 

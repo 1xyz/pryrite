@@ -13,7 +13,7 @@ type RemoteShellExecutor struct {
 }
 
 // Unlike the Bash Executor, we can't use file descriptors for communicating the exit status.
-// Instead, this will issue each command follwed by an echo and watch for the marker in output.
+// Instead, this will issue each command followed by an echo and watch for the marker in output.
 
 const rshellExitMarker = "__AARDY_EXIT="
 
@@ -36,6 +36,8 @@ func NewRemoteShellExecutor(content []byte, contentType *ContentType) (Executor,
 			return nil, err
 		}
 	}
+
+	se.name = "remote-" + se.name
 
 	if se.command == "" {
 		return nil, fmt.Errorf("remote shell requires a command (%s)", contentType)

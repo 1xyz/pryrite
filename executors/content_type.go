@@ -47,7 +47,13 @@ func (ct *ContentType) Clone() *ContentType {
 
 // ParentOf returns true when the other content-type matches but may have more
 // specific parameters (i.e. this content-type is a "parent" of the other).
-func (ct *ContentType) ParentOf(other *ContentType) bool {
+func (ct *ContentType) ParentOf(other *ContentType, requiredKeys []string) bool {
+	for _, key := range requiredKeys {
+		if _, ok := ct.Params[key]; !ok {
+			return false
+		}
+	}
+
 	if ct.Type == other.Type && ct.Subtype == other.Subtype {
 		for myK, myV := range ct.Params {
 			otherV, ok := other.Params[myK]

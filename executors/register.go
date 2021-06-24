@@ -8,6 +8,8 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+
+	"github.com/aardlabs/terminal-poc/tools"
 )
 
 type Register struct {
@@ -41,6 +43,9 @@ func (r *Register) Register(executor Executor) error {
 			executor.ContentType(), entry.(Executor).Name())
 	}
 
+	tools.Log.Debug().Str("contentType", executor.ContentType().String()).Str("name", executor.Name()).
+		Msg("Registered executor")
+
 	return nil
 }
 
@@ -49,14 +54,15 @@ func (r *Register) Get(content []byte, contentType *ContentType) (Executor, erro
 	var ok bool
 
 	// if a prompt is provided, we need to locate an executor of that type...
-	isPrompted := false
 	var start, stop int
 	n, _ := fmt.Sscanf(contentType.Params["prompt-assign"], "%d:%d", &start, &stop)
-	if n != 2 {
+	isAssigned := n == 2
+	isPrompted := false
+	if !isAssigned {
 		n, _ = fmt.Sscanf(contentType.Params["prompt"], "%d:%d", &start, &stop)
 		isPrompted = n == 2
 	}
-	if n == 2 {
+	if isAssigned || isPrompted {
 		contentType = contentType.Clone()
 		contentType.Subtype = string(content[start:stop])
 		if isPrompted {
@@ -65,16 +71,22 @@ func (r *Register) Get(content []byte, contentType *ContentType) (Executor, erro
 		}
 	}
 
-	// try to reuse one already running...
-	r.Range(func(key interface{}, val interface{}) bool {
-		ct := key.(*ContentType)
-		if ct.ParentOf(contentType) {
-			executor = val.(Executor)
-			ok = true
-			return false
-		}
-		return true
-	})
+	if !isAssigned {
+		// try to reuse one already running, but only if it is NOT a prompt assignment...
+		r.Range(func(key interface{}, val interface{}) bool {
+			ct := key.(*ContentType)
+			var requiredKeys []string
+			if isPrompted {
+				requiredKeys = []string{"prompt"}
+			}
+			if ct.ParentOf(contentType, requiredKeys) {
+				executor = val.(Executor)
+				ok = true
+				return false
+			}
+			return true
+		})
+	}
 
 	if !ok {
 		// attempt to create a new one if one of our executors supports this type...
