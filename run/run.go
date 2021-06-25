@@ -3,6 +3,7 @@ package run
 import (
 	"container/list"
 	"fmt"
+	"github.com/briandowns/spinner"
 	"io"
 	"strconv"
 	"strings"
@@ -106,6 +107,15 @@ func NewRun(gCtx *snippet.Context, playbookIDOrURL string) (*Run, error) {
 		stopCh:          make(chan bool),
 		statusCh:        make(chan *Status),
 	}
+
+	spin := spinner.New(spinner.CharSets[70], 100*time.Millisecond)
+	spin.Color("white")
+	spin.Start()
+	spin.Suffix = "Fetching node content from service..."
+	defer func() {
+		spin.Suffix += "[Completed]"
+		spin.Stop()
+	}()
 
 	if err := run.buildGraph(); err != nil {
 		return nil, err
@@ -355,10 +365,10 @@ func (r *Run) CancelBlock(nodeID, requestID string) {
 }
 
 // ExecuteBlock executes the specified block in the context of this node
-func (r *Run) ExecuteBlock(n *graph.Node, b *graph.Block, stdout, stderr io.Writer) {
+func (r *Run) ExecuteBlock(n *graph.Node, b *graph.Block, stdout, stderr io.Writer) (string, error) {
 	if !r.isRunning.Load() {
-		tools.Log.Warn().Msgf("CancelBlock: Run system is not started")
-		return
+		tools.Log.Warn().Msgf("ExecuteBlock: Run system is not started")
+		return "", fmt.Errorf("run system is not started")
 	}
 
 	timeout := r.gCtx.ConfigEntry.ExecutionTimeout.Duration()
@@ -370,6 +380,7 @@ func (r *Run) ExecuteBlock(n *graph.Node, b *graph.Block, stdout, stderr io.Writ
 	tools.Log.Info().Msgf("ExecuteBlock: node:%s block:%s req:%s content:%s",
 		n.ID, b.ID, req.ID, tools.TrimLength(b.Content, 6))
 	r.blockReqCh <- req
+	return req.ID, nil
 }
 
 func (r *Run) executeBlock(req *graph.BlockExecutionRequest) *log.ResultLogEntry {
@@ -395,9 +406,9 @@ func (r *Run) executeBlock(req *graph.BlockExecutionRequest) *log.ResultLogEntry
 	outWriter := tools.NewBufferedWriteCloser(io.MultiWriter(stdoutWriter, req.Stdout))
 	errWriter := tools.NewBufferedWriteCloser(io.MultiWriter(stderrWriter, req.Stderr))
 
-	startMarker := fmt.Sprintf("\n[yellow]>> executing node:%s req-id:%s [white]\n", req.Node.ID, req.ID)
+	startMarker := fmt.Sprintf("\n>> executing node:%s req-id:%s \n", req.Node.ID, req.ID)
 	outWriter.Write([]byte(startMarker))
-	cmdInfo := fmt.Sprintf("[yellow]>> %s[white]\n", req.Block.Content)
+	cmdInfo := fmt.Sprintf(">> %s\n", req.Block.Content)
 	outWriter.Write([]byte(cmdInfo))
 	execReq := &executor.ExecRequest{
 		Hdr:         &executor.RequestHdr{ID: req.ID, ExecutionID: req.ExecutionID, NodeID: req.Node.ID},

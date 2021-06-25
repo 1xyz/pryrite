@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/1xyz/sseclient v0.0.0-20210510204826-9b958fd4e77e
 	github.com/MakeNowJust/heredoc v1.0.0
+	github.com/briandowns/spinner v1.16.0 // indirect
 	github.com/c-bata/go-prompt v0.2.6
 	github.com/charmbracelet/glamour v0.3.0
 	github.com/creack/pty v1.1.11
@@ -14,6 +15,7 @@ require (
 	github.com/go-resty/resty/v2 v2.5.0
 	github.com/google/uuid v1.2.0
 	github.com/jedib0t/go-pretty/v6 v6.1.0
+	github.com/manifoldco/promptui v0.8.0 // indirect
 	github.com/mattn/go-runewidth v0.0.12 // indirect
 	github.com/mattn/go-shellwords v1.0.12
 	github.com/muesli/reflow v0.2.1-0.20210115123740-9e1d0d53df68 // indirect

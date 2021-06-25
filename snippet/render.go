@@ -2,15 +2,14 @@ package snippet
 
 import (
 	"fmt"
-	"io"
-	"os"
-	"strings"
-
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/graph"
+	"github.com/aardlabs/terminal-poc/internal/common"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/rs/zerolog/log"
+	"io"
+	"os"
 )
 
 const (
@@ -31,7 +30,7 @@ const (
 func RenderSnippetNodeView(entry *config.Entry, nv *graph.NodeView) error {
 	nr := &nodeRender{
 		view:       nv,
-		serviceURL: getServiceURL(entry),
+		serviceURL: common.GetServiceURL(entry),
 		style:      entry.Style,
 	}
 	nr.Render()
@@ -43,17 +42,9 @@ func RenderSnippetNodes(entry *config.Entry, nodes []graph.Node, kind graph.Kind
 		tools.LogStdout("No results found!")
 		return nil
 	}
-	nr := &nodesRender{Nodes: nodes, kind: kind, serviceURL: getServiceURL(entry)}
+	nr := &nodesRender{Nodes: nodes, kind: kind, serviceURL: common.GetServiceURL(entry)}
 	nr.Render()
 	return nil
-}
-
-func getServiceURL(entry *config.Entry) string {
-	serviceURL := entry.ServiceUrl
-	if !strings.HasSuffix(serviceURL, "/") {
-		serviceURL += "/"
-	}
-	return serviceURL
 }
 
 type nodeRender struct {
@@ -83,7 +74,7 @@ func (nr *nodeRender) renderNodeView(nv *graph.NodeView, w io.Writer) {
 	t := table.NewWriter()
 	t.SetStyle(table.StyleBold)
 	t.SetOutputMirror(w)
-	t.AppendRow(table.Row{"URL", fmtID(nr.serviceURL, nv.Node.ID)})
+	t.AppendRow(table.Row{"URL", common.GetNodeURL(nr.serviceURL, nv.Node.ID)})
 	t.AppendRow(table.Row{"Total-Blocks", nBlocks})
 	t.AppendRow(table.Row{"Created-On", tools.FmtTime(nv.Node.CreatedAt)})
 	t.AppendSeparator()
@@ -138,7 +129,7 @@ func (nr *nodesRender) Render() {
 	t.SetOutputMirror(w)
 	for _, e := range nr.Nodes {
 		summary := nr.getSummary(&e)
-		idURL := fmtID(nr.serviceURL, e.ID)
+		idURL := common.GetNodeURL(nr.serviceURL, e.ID)
 		if nr.kind == graph.Unknown {
 			t.AppendRow(table.Row{
 				idURL,
@@ -194,8 +185,4 @@ func (nr *nodesRender) getSummary(n *graph.Node) string {
 		}
 	}
 	return "No-Content"
-}
-
-func fmtID(serviceURL, id string) string {
-	return fmt.Sprintf("%snodes/%s", serviceURL, id)
 }

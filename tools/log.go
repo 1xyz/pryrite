@@ -121,12 +121,20 @@ func FmtTime(t *time.Time) string {
 	return t.In(time.Local).Format("Jan _2 3:04PM")
 }
 
-func LogStdout(message string) {
-	Log.Info().Msg(message)
-	_, fErr := fmt.Fprintln(os.Stdout, message)
-	if fErr != nil {
-		panic(fErr)
+func LogStdout(format string, v ...interface{}) {
+	_, err := fmt.Fprintf(os.Stdout, format, v...)
+	if err != nil {
+		panic(err)
 	}
+	Log.Info().Msgf(format, v...)
+}
+
+func LogStdError(format string, v ...interface{}) {
+	_, err := fmt.Fprintf(os.Stderr, format, v...)
+	if err != nil {
+		panic(err)
+	}
+	Log.Error().Msgf(format, v...)
 }
 
 func LogStderr(err error, format string, v ...interface{}) {

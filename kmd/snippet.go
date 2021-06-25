@@ -2,6 +2,8 @@ package kmd
 
 import (
 	"fmt"
+	"github.com/aardlabs/terminal-poc/inspector"
+	"github.com/aardlabs/terminal-poc/internal/ui/components"
 	"os"
 	"strings"
 
@@ -22,7 +24,6 @@ type SnippetListOpts struct {
 }
 
 func NewCmdSnippetSearch(gCtx *snippet.Context) *cobra.Command {
-	opts := &SnippetListOpts{}
 	cmd := &cobra.Command{
 		Use:   "search",
 		Short: "Search available snippets",
@@ -35,18 +36,19 @@ func NewCmdSnippetSearch(gCtx *snippet.Context) *cobra.Command {
         `),
 		Example: examplef(`
             To search snippets for the term certutil, run:
-              $ {AppName} search "certutil"
-
-            To limit the search result to 10 entries, run:
-              $ {AppName} search "certutil" -n 10
+              $ {AppName} search certutil
 		`),
 		Args: MinimumArgs(1, "You need to specify a search query"),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			return IsUserLoggedIn(gCtx.ConfigEntry)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			query := args[0]
-			limit := opts.Limit
+			if args[0] == "-h" || args[0] == "--help" {
+				return cmd.Help()
+			}
+
+			const limit = 25
+			query := strings.Join(args, " ")
 			kind := graph.Unknown
 			tools.Log.Info().Msgf("search query=%s Limit=%d Kind=%v", query, limit, kind)
 			nodes, err := snippet.SearchSnippetNodes(gCtx, query, limit, kind)
@@ -54,27 +56,15 @@ func NewCmdSnippetSearch(gCtx *snippet.Context) *cobra.Command {
 				return err
 			}
 
-			nodePtrs := make([]*graph.Node, len(nodes))
-			for i := 0; i < len(nodes); i++ {
-				nodePtrs[i] = &nodes[i]
-			}
-
-			borderTitle := "Search Results for query: " + tools.TrimLength(query, 15)
-			searchUI, err := explorer.NewUI(gCtx, "Result nodes", borderTitle, nodePtrs)
+			selNode, err := components.RenderNodesPicker(gCtx.ConfigEntry, nodes,
+				"result for query: "+query+"; pick a node", 10, -1)
 			if err != nil {
 				return err
 			}
-			if err := searchUI.Run(); err != nil {
-				return err
-			}
-			//if err := snippet.RenderSnippetNodes(gCtx.ConfigEntry, nodes, kind); err != nil {
-			//	return err
-			//}
-			return nil
+
+			return inspector.InspectNode(gCtx, selNode.Node.ID)
 		},
 	}
-	cmd.Flags().IntVarP(&opts.Limit, "limit", "n",
-		100, "Limit the number of results to display")
 	return cmd
 }
 
@@ -121,18 +111,12 @@ func NewCmdSnippetList(gCtx *snippet.Context) *cobra.Command {
 				return err
 			}
 			if opts.interactive {
-				nodePtrs := make([]*graph.Node, len(nodes))
-				for i := 0; i < len(nodes); i++ {
-					nodePtrs[i] = &nodes[i]
-				}
-
-				listUI, err := explorer.NewUI(gCtx, "nodes", "Node listing", nodePtrs)
+				selNode, err := components.RenderNodesPicker(gCtx.ConfigEntry, nodes,
+					"select a node to inspect", 10, -1)
 				if err != nil {
 					return err
 				}
-				if err := listUI.Run(); err != nil {
-					return err
-				}
+				return inspector.InspectNode(gCtx, selNode.Node.ID)
 			} else {
 				if err := snippet.RenderSnippetNodes(gCtx.ConfigEntry, nodes, kind); err != nil {
 					return err
@@ -142,7 +126,7 @@ func NewCmdSnippetList(gCtx *snippet.Context) *cobra.Command {
 		},
 	}
 	cmd.Flags().IntVarP(&opts.Limit, "limit", "n",
-		100, "Limit the number of results to display")
+		15, "Limit the number of results to display")
 	cmd.Flags().BoolVarP(&opts.ShowAllKind, "all-kinds", "a",
 		false, "include all kinds of snippets")
 	cmd.Flags().BoolVarP(&opts.interactive, "interactive", "i",
@@ -294,6 +278,41 @@ func NewCmdSnippetEdit(gCtx *snippet.Context) *cobra.Command {
 			//	return err
 			//}
 			return nil
+		},
+	}
+	return cmd
+}
+
+func NewCmdSnippetInspect(gCtx *snippet.Context) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "inspect <name>",
+		Short: "Inspect the content of the specified snippet",
+		Long: examplef(`
+              {AppName} inspect <name>, inspects the content of the specified snippet.
+
+              Here, <name> can be the identifier or the URL of the snippet.
+
+              The inspect command allows you to directly interact with the content of a snippet.
+        `),
+		Example: examplef(`
+            To inspect a specific snippet by URL, run:
+              $ {AppName} inspect https://aardy.app/edy6819l
+
+            To inspect a specific snippet by ID, run:
+              $ {AppName} inspect edy6819l
+		`),
+		Args: MinimumArgs(1, "no name specified"),
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			return IsUserLoggedIn(gCtx.ConfigEntry)
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if args[0] == "-h" || args[0] == "--help" {
+				return cmd.Help()
+			}
+
+			name := args[0]
+			tools.Log.Info().Msgf("edit name=%s", name)
+			return inspector.InspectNode(gCtx, name)
 		},
 	}
 	return cmd

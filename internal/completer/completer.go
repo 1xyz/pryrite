@@ -1,4 +1,4 @@
-package repl
+package completer
 
 import (
 	"github.com/c-bata/go-prompt"
@@ -7,37 +7,27 @@ import (
 	"strings"
 )
 
-func NewCompleter(ctx *Context) (*Completer, error) {
-	return &Completer{
-		rootCmd: ctx.NewRootCmd(),
-		ctx:     ctx,
-	}, nil
+func NewCobraCommandCompleter(cmd *cobra.Command) *CobraCommandCompleter {
+	return &CobraCommandCompleter{
+		rootCmd: cmd,
+	}
 }
 
-type Completer struct {
+type CobraCommandCompleter struct {
 	rootCmd *cobra.Command
-	ctx     *Context
 }
 
-func (c *Completer) Complete(d prompt.Document) []prompt.Suggest {
+func (c *CobraCommandCompleter) Complete(d prompt.Document) []prompt.Suggest {
 	if d.TextBeforeCursor() == "" {
 		return []prompt.Suggest{}
 	}
 	args := strings.Split(d.TextBeforeCursor(), " ")
 	w := d.GetWordBeforeCursor()
-
-	// If PIPE is in text before the cursor, returns empty suggestions.
-	for i := range args {
-		if args[i] == "|" {
-			return []prompt.Suggest{}
-		}
-	}
-
 	s := c.commandSuggestions(c.rootCmd, args, 0, w)
 	return prompt.FilterHasPrefix(s, d.GetWordBeforeCursor(), true)
 }
 
-func (c *Completer) commandSuggestions(cmd *cobra.Command, args []string, index int, w string) []prompt.Suggest {
+func (c *CobraCommandCompleter) commandSuggestions(cmd *cobra.Command, args []string, index int, w string) []prompt.Suggest {
 	if len(args) == 0 || index >= len(args) {
 		return cmdSuggestions(cmd)
 	}

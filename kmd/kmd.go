@@ -17,7 +17,7 @@ import (
 func NewCmdRoot(cfg *config.Config) *cobra.Command {
 	var rootCmd = &cobra.Command{
 		Version:      app.Version,
-		Use:          app.Name,
+		Use:          app.UsageName,
 		Short:        "Work seamlessly with the aardy service from the command line",
 		SilenceUsage: true,
 	}
@@ -57,6 +57,7 @@ func NewCmdRoot(cfg *config.Config) *cobra.Command {
 	rootCmd.AddCommand(NewCmdSnippetDesc(gCtx))
 	rootCmd.AddCommand(NewCmdSnippetSave(gCtx))
 	rootCmd.AddCommand(NewCmdSnippetEdit(gCtx))
+	rootCmd.AddCommand(NewCmdSnippetInspect(gCtx))
 	rootCmd.AddCommand(NewCmdHui(gCtx))
 	rootCmd.AddCommand(NewCmdAuth(cfg))
 	rootCmd.AddCommand(NewCmdConfig(cfg))
