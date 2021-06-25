@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"syscall"
@@ -29,15 +30,16 @@ type BaseExecutor struct {
 	skipCount   uint
 
 	// callbacks for replacing parts of the base logic
-	prepareCmd func() error
+	prepareCmd func(stdout, stderr io.WriteCloser) (execReadyCh, error)
 	prepareIO  func(*ExecRequest, bool) (resultReadyCh, error)
 	clearIO    func(bool)
 	cleanup    func(bool)
 }
 
+type execReadyCh chan error
 type resultReadyCh chan collectorResult
 
-var expectExitResultReady = make(resultReadyCh)
+var expectExitResultReady = make(resultReadyCh, 1)
 
 type collectorResult struct {
 	err        error
@@ -54,35 +56,29 @@ func (be *BaseExecutor) Execute(ctx context.Context, req *ExecRequest) *ExecResp
 		ExitStatus: -1,
 	}
 
+	resp.Err = be.ensureRunning(req.Stdout, req.Stderr)
+	if resp.Err != nil {
+		return resp
+	}
+
 	if be.isExecuting {
 		resp.Err = ErrExecInProgress
 		return resp
 	}
 
 	be.isExecuting = true
-	defer func() { be.isExecuting = false }()
+	defer func() {
+		be.isExecuting = false
+		if be.skipCount > 0 {
+			be.skipCount--
+		}
+	}()
 
-	resp.Err = be.ensureRunning()
-	if resp.Err != nil {
-		return resp
-	}
+	tools.Log.Debug().Str("name", be.Name()).Str("command", string(req.Content)).
+		Str("contentType", req.ContentType.String()).Int("skip", int(be.skipCount)).
+		Msg("Preparing I/O (if required)")
 
 	var resultReady resultReadyCh
-
-	if be.skipCount > 0 {
-		defer func() { be.skipCount-- }()
-		resultReady = make(resultReadyCh)
-		go func() {
-			// give the run time to fail if the cmd is invalid, otherwise, declare success
-			time.Sleep(100 * time.Millisecond)
-			resultReady <- collectorResult{exitStatus: 0}
-		}()
-	} else {
-		tools.Log.Debug().Str("name", be.Name()).Str("command", string(req.Content)).
-			Str("contentType", req.ContentType.String()).
-			Msg("Feeding executor")
-	}
-
 	resultReady, resp.Err = be.prepareIO(req, be.skipCount > 0)
 	if resp.Err != nil {
 		return resp
@@ -137,7 +133,7 @@ func (be *BaseExecutor) processContentType(content []byte, myContentType, wantCo
 		return fmt.Errorf("prompted content found without a running command: %s", wantContentType)
 	}
 
-	be.execDone = make(chan error)
+	be.execDone = make(chan error, 1)
 
 	be.name = myContentType.Subtype + "-executor"
 	be.contentType = myContentType.Clone()
@@ -169,7 +165,7 @@ func (be *BaseExecutor) processContentType(content []byte, myContentType, wantCo
 		be.command = args[0]
 		be.commandArgs = args[1:]
 
-		// since we use this command for the exeutor itself, we need to skip it when requested
+		// since we use this command for the executor itself, we need to skip it when requested
 		be.skipCount = 1
 	}
 
@@ -194,12 +190,12 @@ func (be *BaseExecutor) getCommand(content []byte, contentType *ContentType) ([]
 	return content, nil
 }
 
-func (be *BaseExecutor) ensureRunning() error {
+func (be *BaseExecutor) ensureRunning(stdout, stderr io.WriteCloser) error {
 	if be.isRunning {
 		return nil
 	}
 
-	err := be.prepareCmd()
+	execReady, err := be.prepareCmd(stdout, stderr)
 	if err != nil {
 		return err
 	}
@@ -209,8 +205,10 @@ func (be *BaseExecutor) ensureRunning() error {
 		be.execDone <- err
 	}()
 
-	// teeny bit of time to let the execution begin
-	time.Sleep(10 * time.Millisecond)
+	err = <-execReady
+	if err != nil {
+		return err
+	}
 
 	be.isRunning = true
 
@@ -233,21 +231,28 @@ func (be *BaseExecutor) ensureRunning() error {
 	return nil
 }
 
-func (be *BaseExecutor) defaultPrepareCmd() error {
+func (be *BaseExecutor) defaultPrepareCmd(stdout, stderr io.WriteCloser) (execReadyCh, error) {
 	be.execCmd = exec.Command(be.command, be.commandArgs...)
 
 	be.execCmd.Stdin = NewCommandFeeder()
 	// proxy out/err to allow for dynamic reassignment for each execution
-	be.execCmd.Stdout = &readWriterProxy{name: "stdout"}
-	be.execCmd.Stderr = &readWriterProxy{name: "stderr"}
+	be.execCmd.Stdout = &readWriterProxy{name: "stdout", writer: stdout}
+	be.execCmd.Stderr = &readWriterProxy{name: "stderr", writer: stderr}
 
-	return nil
+	// default is to be ready immediately (but executors can/will override this)
+	execReady := make(execReadyCh, 1)
+	execReady <- nil
+
+	return execReady, nil
 }
 
 func (be *BaseExecutor) defaultPrepareIO(req *ExecRequest, isExecCmd bool) (resultReadyCh, error) {
-	if !isExecCmd {
-		cf := be.execCmd.Stdin.(*CommandFeeder)
+	cf := be.execCmd.Stdin.(*CommandFeeder)
 
+	if isExecCmd {
+		// just a test connection so provide EOF to the input to have the command exit
+		cf.Put(nil)
+	} else {
 		command, err := be.getCommand(req.Content, req.ContentType)
 		if err != nil {
 			return nil, err
@@ -258,10 +263,6 @@ func (be *BaseExecutor) defaultPrepareIO(req *ExecRequest, isExecCmd bool) (resu
 		// for now we can only support one command per execution for the basic input feeder executors
 		cf.Close()
 	}
-
-	// temporarily redirect out/err into caller's writers
-	be.execCmd.Stdout.(*readWriterProxy).SetWriter(req.Stdout)
-	be.execCmd.Stderr.(*readWriterProxy).SetWriter(req.Stderr)
 
 	// this will never "fire"--instead, we expect the command to exit once done processing
 	ready := expectExitResultReady

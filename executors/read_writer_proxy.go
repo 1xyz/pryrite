@@ -78,35 +78,41 @@ func (proxy *readWriterProxy) Write(data []byte) (int, error) {
 	proxy.wlock.Lock()
 	defer proxy.wlock.Unlock()
 
+	origLen := len(data) // need to respond with the original length for success
+
+	// always look for markers, even if no writer was assigned
+	if proxy.markerRE != nil {
+		var found []byte
+
+		data = proxy.markerRE.ReplaceAllFunc(data, func(match []byte) []byte {
+			if found != nil {
+				// only replace the first one found, but this is weird, so warn
+				tools.Log.Warn().Str("found", string(found)).Str("match", string(match)).
+					Str("regexp", proxy.markerRE.String()).Msg("Found more than one match")
+				return match
+			}
+			found = match
+			return nil
+		})
+
+		if found != nil {
+			// give the caller time to finish before we record "done"
+			go func() {
+				time.Sleep(10 * time.Millisecond)
+				proxy.markerFound(string(found))
+			}()
+		}
+	}
+
 	if proxy.writer == nil {
 		tools.Log.Error().Str("proxy", proxy.name).Str("data", string(data)).
 			Msg("asked to write without a writer assigned")
-		// lie to bash about the success of the write to avoid killing our repl
-		return len(data), nil
+		// lie to caller about the success of the write to avoid killing our repl
+		return origLen, nil
 	}
-
-	if proxy.markerRE == nil {
-		return proxy.writer.Write(data)
-	}
-
-	origLen := len(data) // need to respond with the original length for success
-
-	var found []byte
-	data = proxy.markerRE.ReplaceAllFunc(data, func(match []byte) []byte {
-		found = match
-		return nil
-	})
 
 	_, err := proxy.writer.Write(data)
 	proxy.lastWrite = time.Now()
-
-	if found != nil {
-		// give the caller time to finish before we record "done"
-		go func() {
-			time.Sleep(10 * time.Millisecond)
-			proxy.markerFound(string(found))
-		}()
-	}
 
 	return origLen, err
 }

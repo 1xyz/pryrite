@@ -10,12 +10,12 @@ type CommandFeeder struct {
 
 func NewCommandFeeder() *CommandFeeder {
 	return &CommandFeeder{
-		input: make(chan []byte),
+		input: make(chan []byte, 100),
 	}
 }
 
 func (cf *CommandFeeder) Put(content []byte) {
-	if content[len(content)-1] != '\n' {
+	if content != nil && content[len(content)-1] != '\n' {
 		content = append(content, '\n')
 	}
 	cf.input <- content

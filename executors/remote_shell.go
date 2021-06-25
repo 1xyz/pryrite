@@ -3,14 +3,21 @@ package executor
 import (
 	"errors"
 	"fmt"
+	"io"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/aardlabs/terminal-poc/tools"
 )
 
 type RemoteShellExecutor struct {
 	BaseExecutor
 }
+
+const rshellReadyMarker = "__AARDY_READY"
+
+var rshellReadyMarkerRE = regexp.MustCompile(`(?m)^` + rshellReadyMarker + `\s*`)
 
 // Unlike the Bash Executor, we can't use file descriptors for communicating the exit status.
 // Instead, this will issue each command followed by an echo and watch for the marker in output.
@@ -23,6 +30,7 @@ func NewRemoteShellExecutor(content []byte, contentType *ContentType) (Executor,
 	se := &RemoteShellExecutor{}
 	se.setDefaults()
 
+	se.prepareCmd = se.prepareShellCmd
 	se.prepareIO = se.prepareShellIO
 
 	err := se.processContentType(content, Bash, contentType)
@@ -46,9 +54,29 @@ func NewRemoteShellExecutor(content []byte, contentType *ContentType) (Executor,
 	return se, nil
 }
 
+func (se *RemoteShellExecutor) prepareShellCmd(stdout, stderr io.WriteCloser) (execReadyCh, error) {
+	execReady, err := se.defaultPrepareCmd(stdout, stderr)
+	if err != nil {
+		return nil, err
+	}
+
+	<-execReady // drop immediate ready signal from the default prep
+
+	go func() {
+		se.execCmd.Stdin.(*CommandFeeder).Put([]byte("echo " + rshellReadyMarker))
+		se.execCmd.Stdout.(*readWriterProxy).SetWriterMarker(stdout, rshellReadyMarkerRE, func(marker string) {
+			execReady <- nil
+		})
+	}()
+
+	return execReady, nil
+}
+
 func (se *RemoteShellExecutor) prepareShellIO(req *ExecRequest, isExecCmd bool) (resultReadyCh, error) {
 	if isExecCmd {
-		return se.defaultPrepareIO(req, isExecCmd)
+		resultReady := make(resultReadyCh, 1)
+		resultReady <- collectorResult{} // already waited for execReady as part of ensureRunning
+		return resultReady, nil
 	}
 
 	cf := se.execCmd.Stdin.(*CommandFeeder)
@@ -62,10 +90,17 @@ func (se *RemoteShellExecutor) prepareShellIO(req *ExecRequest, isExecCmd bool) 
 	cf.Put(command)
 	cf.Put([]byte("echo " + rshellExitMarker + "$?"))
 
-	ready := make(resultReadyCh)
+	ready := make(resultReadyCh, 1)
 	se.execCmd.Stdout.(*readWriterProxy).SetWriterMarker(req.Stdout, rshellExitMarkerRE, func(marker string) {
+		var err error
+		var status int
 		vals := strings.Split(strings.TrimSpace(marker), "=")
-		status, err := strconv.Atoi(vals[1])
+		if len(vals) < 2 {
+			tools.Log.Error().Str("marker", marker).Msg("Unexpected exit marker found")
+			status = -1
+		} else {
+			status, err = strconv.Atoi(vals[1])
+		}
 		ready <- collectorResult{err: err, exitStatus: status}
 	})
 

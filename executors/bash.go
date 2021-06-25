@@ -3,6 +3,7 @@ package executor
 import (
 	"bufio"
 	"errors"
+	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -71,10 +72,10 @@ func NewBashExecutor(content []byte, contentType *ContentType) (Executor, error)
 
 //--------------------------------------------------------------------------------
 
-func (b *BashExecutor) prepareBashCmd() error {
-	err := b.BaseExecutor.defaultPrepareCmd()
+func (b *BashExecutor) prepareBashCmd(stdout, stderr io.WriteCloser) (execReadyCh, error) {
+	execReady, err := b.BaseExecutor.defaultPrepareCmd(stdout, stderr)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// TODO: leverage CommandFeeder to trigger a UI prompt when a read is request from STDIN
@@ -89,13 +90,13 @@ func (b *BashExecutor) prepareBashCmd() error {
 	// prepare a pipe to let us inject commands (i.e. avoid their stdin)
 	cmdReader, b.cmdWriter, err = os.Pipe()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// prepare a pipe to let our injected commands communicate only to us (i.e. avoid their stdout)
 	b.resultReader, resultWriter, err = os.Pipe()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// offset our descriptors in case the user wants to get fancy with their own scripts
@@ -104,7 +105,7 @@ func (b *BashExecutor) prepareBashCmd() error {
 	b.execCmd.ExtraFiles[8] = cmdReader    // this becomes file descriptor 11 in bash (in,out,err + 8)
 	b.execCmd.ExtraFiles[9] = resultWriter // and this is 12
 
-	return nil
+	return execReady, nil
 }
 
 func (b *BashExecutor) prepareBashIO(req *ExecRequest, isExecCmd bool) (resultReadyCh, error) {
@@ -117,7 +118,7 @@ func (b *BashExecutor) prepareBashIO(req *ExecRequest, isExecCmd bool) (resultRe
 	b.execCmd.Stdout.(*readWriterProxy).SetWriter(req.Stdout)
 	b.execCmd.Stderr.(*readWriterProxy).SetWriter(req.Stderr)
 
-	resultReady := make(resultReadyCh)
+	resultReady := make(resultReadyCh, 1)
 	go b.collectStatus(resultReady)
 
 	command, err := b.getCommand(req.Content, req.ContentType)
