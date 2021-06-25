@@ -15,7 +15,6 @@ import (
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/cristalhq/jwt/v3"
-	"github.com/rs/zerolog/log"
 )
 
 const ClientTimeout = 30 * time.Second
@@ -105,7 +104,7 @@ func GetLoggedInUser(entry *config.Entry) (string, bool) {
 	if entry.UserExpiresAt != nil {
 		isExpired = time.Now().After(*entry.UserExpiresAt)
 		if isExpired {
-			log.Info().Time("exp", *entry.UserExpiresAt).Msg("credentials have expired")
+			tools.Log.Info().Time("exp", *entry.UserExpiresAt).Msg("credentials have expired")
 		}
 	}
 	return entry.User, entry.User != "" && !isExpired
