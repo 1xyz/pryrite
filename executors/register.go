@@ -28,7 +28,8 @@ func NewRegister() (*Register, error) {
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
 	go func() {
-		<-shutdown
+		sig := <-shutdown
+		tools.Log.Info().Msgf("shutdown signal received %v", sig)
 		signal.Stop(shutdown)
 		r.Cleanup()
 		os.Exit(2)

@@ -149,13 +149,14 @@ func (c *codeBlock) RunBlock() {
 		return
 	}
 
-	sigCh := make(chan os.Signal, syscall.SIGTERM)
-	signal.Notify(sigCh, os.Interrupt)
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	select {
-	case <-sigCh:
+	case sig := <-sigCh:
+		tools.LogStdout("signal %v received", sig)
 		c.runner.CancelBlock(c.node.ID, reqID)
 	case <-doneCh:
-		return
+		fmt.Println()
 	}
 }
 
