@@ -4,11 +4,14 @@ import (
 	"fmt"
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/graph/log"
+	"github.com/aardlabs/terminal-poc/internal/completer"
 	"github.com/aardlabs/terminal-poc/run"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/c-bata/go-prompt"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 )
 
 func newCodeBlock(index int, prefix string, b *graph.Block, n *graph.Node, r *run.Run) *codeBlock {
@@ -44,7 +47,7 @@ type codeBlock struct {
 
 func (c *codeBlock) OpenRepl() {
 	c.SetExitAction(nil)
-	completer := NewCobraCommandCompleter(newRootCmd(c))
+	completer := completer.NewCobraCommandCompleter(newRootCmd(c))
 	prefix := fmt.Sprintf("[%d/%d] %s :: %s", c.index, c.nBlocks, c.prefix, c.block.ID)
 	pt := prompt.New(
 		c.handleCommand,
@@ -58,7 +61,11 @@ func (c *codeBlock) OpenRepl() {
 				return true
 			}
 			c.handleExitCmd(in)
-			return c.exitAction != nil
+			b := c.exitAction != nil
+			if b {
+				fmt.Println("Bye")
+			}
+			return b
 		}),
 	)
 
@@ -135,8 +142,21 @@ func (c *codeBlock) RunBlock() {
 		c.runner.SetExecutionUpdateFn(nil)
 		c.runner.SetStatusUpdateFn(nil)
 	}()
-	c.runner.ExecuteBlock(c.node, c.block, os.Stdout, os.Stderr)
-	<-doneCh
+
+	reqID, err := c.runner.ExecuteBlock(c.node, c.block, os.Stdout, os.Stderr)
+	if err != nil {
+		tools.LogStdError("\U0000274C  Execution failed: %s", err)
+		return
+	}
+
+	sigCh := make(chan os.Signal, syscall.SIGTERM)
+	signal.Notify(sigCh, os.Interrupt)
+	select {
+	case <-sigCh:
+		c.runner.CancelBlock(c.node.ID, reqID)
+	case <-doneCh:
+		return
+	}
 }
 
 func (c *codeBlock) String() string {

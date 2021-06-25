@@ -3,6 +3,7 @@ package kmd
 import (
 	"fmt"
 	"github.com/aardlabs/terminal-poc/inspector"
+	"github.com/aardlabs/terminal-poc/internal/ui/components"
 	"os"
 	"strings"
 
@@ -46,20 +47,22 @@ func NewCmdSnippetSearch(gCtx *snippet.Context) *cobra.Command {
 				return cmd.Help()
 			}
 
+			const limit = 25
 			query := strings.Join(args, " ")
-
-			limit := 100
 			kind := graph.Unknown
 			tools.Log.Info().Msgf("search query=%s Limit=%d Kind=%v", query, limit, kind)
 			nodes, err := snippet.SearchSnippetNodes(gCtx, query, limit, kind)
 			if err != nil {
 				return err
 			}
-			if err := snippet.RenderNodesPicker(gCtx.ConfigEntry, nodes,
-				"query: "+query, 10); err != nil {
+
+			selNode, err := components.RenderNodesPicker(gCtx.ConfigEntry, nodes,
+				"result for query: "+query+"; pick a node", 10, -1)
+			if err != nil {
 				return err
 			}
-			return nil
+
+			return inspector.InspectNode(gCtx, selNode.Node.ID)
 		},
 	}
 	return cmd
@@ -108,9 +111,12 @@ func NewCmdSnippetList(gCtx *snippet.Context) *cobra.Command {
 				return err
 			}
 			if opts.interactive {
-				if err := snippet.RenderNodesPicker(gCtx.ConfigEntry, nodes, "Select the node...", 10); err != nil {
+				selNode, err := components.RenderNodesPicker(gCtx.ConfigEntry, nodes,
+					"select a node to inspect", 10, -1)
+				if err != nil {
 					return err
 				}
+				return inspector.InspectNode(gCtx, selNode.Node.ID)
 			} else {
 				if err := snippet.RenderSnippetNodes(gCtx.ConfigEntry, nodes, kind); err != nil {
 					return err
@@ -120,7 +126,7 @@ func NewCmdSnippetList(gCtx *snippet.Context) *cobra.Command {
 		},
 	}
 	cmd.Flags().IntVarP(&opts.Limit, "limit", "n",
-		100, "Limit the number of results to display")
+		15, "Limit the number of results to display")
 	cmd.Flags().BoolVarP(&opts.ShowAllKind, "all-kinds", "a",
 		false, "include all kinds of snippets")
 	cmd.Flags().BoolVarP(&opts.interactive, "interactive", "i",
@@ -289,10 +295,10 @@ func NewCmdSnippetInspect(gCtx *snippet.Context) *cobra.Command {
               The inspect command allows you to directly interact with the content of a snippet.
         `),
 		Example: examplef(`
-            To edit a specific snippet by URL, run:
+            To inspect a specific snippet by URL, run:
               $ {AppName} inspect https://aardy.app/edy6819l
 
-            To edit a specific snippet by ID, run:
+            To inspect a specific snippet by ID, run:
               $ {AppName} inspect edy6819l
 		`),
 		Args: MinimumArgs(1, "no name specified"),

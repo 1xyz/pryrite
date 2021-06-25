@@ -1,20 +1,25 @@
-package snippet
+package components
 
 import (
 	"fmt"
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/graph"
+	"github.com/aardlabs/terminal-poc/internal/common"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/manifoldco/promptui"
 	"strings"
 )
 
-func RenderNodesPicker(entry *config.Entry, nodes []graph.Node, header string, pageSize int) error {
+type NodePickResult struct {
+	Node *graph.Node
+}
+
+func RenderNodesPicker(entry *config.Entry, nodes []graph.Node, header string, pageSize, startIndex int) (*NodePickResult, error) {
 	if len(nodes) == 0 {
-		return nil
+		return nil, fmt.Errorf("an empty node list provided")
 	}
 
-	serviceUrl := getServiceURL(entry)
+	serviceUrl := common.GetServiceURL(entry)
 	rows := newDisplayRows(nodes, serviceUrl, entry.Style)
 
 	templates := &promptui.SelectTemplates{
@@ -44,14 +49,18 @@ func RenderNodesPicker(entry *config.Entry, nodes []graph.Node, header string, p
 		Searcher:  searcher,
 	}
 
+	if startIndex >= 0 {
+		prompt.CursorPos = startIndex
+	}
+
 	i, _, err := prompt.Run()
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	fmt.Printf("You choose number %d: %s\n", i+1, rows[i].Summary)
-	return nil
+	tools.Log.Info().Msgf("RenderNodesPicker: You choose number %d: %s\n", i+1, rows[i].Summary)
+	return &NodePickResult{Node: rows[i].node}, nil
 }
 
 type displayRow struct {
@@ -62,14 +71,15 @@ type displayRow struct {
 	Markdown    string
 	Date        string
 	KindGlyph   string
+	node        *graph.Node
 }
 
 func newDisplayRows(nodes []graph.Node, serviceURL, style string) []displayRow {
 	rows := make([]displayRow, len(nodes))
 	const summaryLen = 40
 	for i, n := range nodes {
-		nodeID := fmtID(serviceURL, n.ID)
-		summary := createNodeSummary(&nodes[i])
+		nodeID := common.GetNodeURL(serviceURL, n.ID)
+		summary := common.CreateNodeSummary(&nodes[i])
 		date := tools.FmtTime(n.OccurredAt)
 
 		rows[i] = displayRow{
@@ -77,10 +87,19 @@ func newDisplayRows(nodes []graph.Node, serviceURL, style string) []displayRow {
 			NodeID:      nodeID,
 			Summary:     tools.TrimLength(summary, summaryLen),
 			SummaryLong: summary,
-			Markdown:    renderNodeMarkdown(&nodes[i], style),
+			Markdown:    common.GenerateNodeMarkdown(&nodes[i], style),
 			Date:        date,
 			KindGlyph:   kindGlyph(&nodes[i]),
+			node:        &nodes[i],
 		}
 	}
 	return rows
+}
+
+func kindGlyph(n *graph.Node) string {
+	if n.HasChildren() {
+		return "\U0001F4C2"
+	}
+
+	return "\U0001F4DC"
 }
