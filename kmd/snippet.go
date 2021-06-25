@@ -2,6 +2,7 @@ package kmd
 
 import (
 	"fmt"
+	"github.com/aardlabs/terminal-poc/inspector"
 	"os"
 	"strings"
 
@@ -271,6 +272,41 @@ func NewCmdSnippetEdit(gCtx *snippet.Context) *cobra.Command {
 			//	return err
 			//}
 			return nil
+		},
+	}
+	return cmd
+}
+
+func NewCmdSnippetInspect(gCtx *snippet.Context) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "inspect <name>",
+		Short: "Inspect the content of the specified snippet",
+		Long: examplef(`
+              {AppName} inspect <name>, inspects the content of the specified snippet.
+
+              Here, <name> can be the identifier or the URL of the snippet.
+
+              The inspect command allows you to directly interact with the content of a snippet.
+        `),
+		Example: examplef(`
+            To edit a specific snippet by URL, run:
+              $ {AppName} inspect https://aardy.app/edy6819l
+
+            To edit a specific snippet by ID, run:
+              $ {AppName} inspect edy6819l
+		`),
+		Args: MinimumArgs(1, "no name specified"),
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			return IsUserLoggedIn(gCtx.ConfigEntry)
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if args[0] == "-h" || args[0] == "--help" {
+				return cmd.Help()
+			}
+
+			name := args[0]
+			tools.Log.Info().Msgf("edit name=%s", name)
+			return inspector.InspectNode(gCtx, name)
 		},
 	}
 	return cmd
