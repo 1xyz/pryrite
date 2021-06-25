@@ -175,7 +175,8 @@ func (u *UI) askExecuteBlockOrCmd(block *graph.Block, cmd, title string) {
 
 				executor, err := u.register.Get(req.Content, req.ContentType)
 				if err != nil {
-					tools.LogStderrExit(err, "Failed to locate a matching executor\n")
+					tools.LogStderrExit(err, "Failed to locate a matching executor for \"%s\" content\n",
+						req.ContentType.Subtype)
 				}
 
 				fmt.Printf(">> %s\n", string(req.Content))
