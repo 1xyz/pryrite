@@ -2,12 +2,14 @@ package explorer
 
 import (
 	"fmt"
-	"github.com/aardlabs/terminal-poc/graph"
-	"github.com/aardlabs/terminal-poc/tools"
-	"github.com/gdamore/tcell/v2"
-	"github.com/rivo/tview"
 	"os"
 	"strings"
+
+	"github.com/gdamore/tcell/v2"
+	"github.com/rivo/tview"
+
+	"github.com/aardlabs/terminal-poc/graph"
+	"github.com/aardlabs/terminal-poc/tools"
 )
 
 type nodeTreeView struct {
@@ -82,7 +84,7 @@ func (view *nodeTreeView) setupSelection() {
 		if len(tn.GetChildren()) == 0 {
 			if n, ok := ref.(*graph.Node); ok {
 				children := view.rootUI.GetChildren(n.ID)
-				if children != nil && len(children) > 0 {
+				if len(children) > 0 {
 					for _, c := range children {
 						view.addNode(tn, c)
 					}
@@ -117,7 +119,7 @@ func (view *nodeTreeView) setupInputCapture() {
 		case tcell.KeyEnter:
 			tools.Log.Info().Msgf("nodeTreeView: Ctrl+Enter request to exec block")
 			if b, ok := ref.(*graph.Block); ok {
-				view.rootUI.ExecuteCmdDialog(b.Content,
+				view.rootUI.ExecuteBlockDialog(b,
 					"Do you want to run selected command?")
 			}
 

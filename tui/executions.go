@@ -1,11 +1,12 @@
 package tui
 
 import (
+	"strconv"
+
 	"github.com/aardlabs/terminal-poc/graph/log"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"gopkg.in/yaml.v2"
-	"strconv"
 )
 
 type executionsView struct {

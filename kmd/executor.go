@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"time"
 
 	executor "github.com/aardlabs/terminal-poc/executors"
@@ -24,22 +25,35 @@ func NewCmdExecutor() *cobra.Command {
 				return err
 			}
 
-			contentType := executor.ContentType(args[0])
+			var contentType *executor.ContentType
 
-			for count, content := range args[1:] {
+			count := 0
+			for _, content := range args {
+				if contentType == nil {
+					contentType, err = executor.Parse(content)
+					if err != nil {
+						return err
+					}
+
+					continue
+				}
+
+				count++
+
 				req := executor.DefaultRequest()
 
 				req.Content = []byte(content)
 				req.ContentType = contentType
+				contentType = nil
 
 				req.Stdout = &prefixWriter{
 					writer: os.Stdout,
-					prefix: []byte(fmt.Sprint(count, "-out> ")),
+					prefix: fmt.Sprint(count, "-out> "),
 				}
 
 				req.Stderr = &prefixWriter{
 					writer: os.Stderr,
-					prefix: []byte(fmt.Sprint(count, "-err> ")),
+					prefix: fmt.Sprint(count, "-err> "),
 				}
 
 				var ctx context.Context
@@ -53,9 +67,9 @@ func NewCmdExecutor() *cobra.Command {
 
 				res := register.Execute(ctx, req)
 				if res.Err != nil {
-					cmd.PrintErrf("Execution failed: %v\n", res.Err)
+					cmd.PrintErrf("%d-exit> execution failed: %v\n", count, res.Err)
 				} else {
-					cmd.Printf("Exit status: %d\n", res.ExitStatus)
+					cmd.Printf("%d-exit> status: %d\n", count, res.ExitStatus)
 				}
 			}
 
@@ -71,13 +85,20 @@ func NewCmdExecutor() *cobra.Command {
 }
 
 type prefixWriter struct {
-	writer io.Writer
-	prefix []byte
+	writer    io.Writer
+	prefix    string
+	skipWrite bool
 }
 
 func (pw *prefixWriter) Write(data []byte) (int, error) {
-	pw.writer.Write(pw.prefix)
-	return pw.writer.Write(data)
+	origLen := len(data)
+	out := strings.ReplaceAll(string(data), "\n", "\n"+pw.prefix)
+	if !pw.skipWrite {
+		pw.skipWrite = true
+		pw.writer.Write([]byte(pw.prefix))
+	}
+	_, err := pw.writer.Write([]byte(out))
+	return origLen, err
 }
 
 func (pw *prefixWriter) Close() error {
