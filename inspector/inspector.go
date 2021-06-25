@@ -17,6 +17,10 @@ func InspectNode(gCtx *snippet.Context, nodeID string) error {
 		return fmt.Errorf("no code blocks found for %s", nodeID)
 	}
 
+	go ni.runner.Start()
+	defer func() {
+		ni.runner.Shutdown()
+	}()
 	i := 0
 	for {
 		if i >= len(ni.codeBlocks) {
@@ -53,15 +57,18 @@ func NewNodeInspector(graphCtx *snippet.Context, nodeID string) (*NodeInspector,
 	}
 
 	ni := &NodeInspector{
-		run:        r,
+		runner:     r,
 		codeBlocks: []*codeBlock{},
 	}
 	ni.populateCodeBlocks(r.Root, "")
+	for _, b := range ni.codeBlocks {
+		b.SetNBlocks(len(ni.codeBlocks))
+	}
 	return ni, err
 }
 
 type NodeInspector struct {
-	run        *run.Run
+	runner     *run.Run
 	codeBlocks []*codeBlock
 }
 
@@ -78,7 +85,7 @@ func (n *NodeInspector) populateCodeBlocks(p *graph.NodeView, prefix string) {
 			}
 			curIndex := len(n.codeBlocks) + 1
 			n.codeBlocks = append(n.codeBlocks,
-				newCodeBlock(curIndex, pfx, node.Blocks[i], node))
+				newCodeBlock(curIndex, pfx, node.Blocks[i], node, n.runner))
 		}
 	}
 

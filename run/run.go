@@ -395,9 +395,9 @@ func (r *Run) executeBlock(req *graph.BlockExecutionRequest) *log.ResultLogEntry
 	outWriter := tools.NewBufferedWriteCloser(io.MultiWriter(stdoutWriter, req.Stdout))
 	errWriter := tools.NewBufferedWriteCloser(io.MultiWriter(stderrWriter, req.Stderr))
 
-	startMarker := fmt.Sprintf("\n[yellow]>> executing node:%s req-id:%s [white]\n", req.Node.ID, req.ID)
+	startMarker := fmt.Sprintf("\n>> executing node:%s req-id:%s \n", req.Node.ID, req.ID)
 	outWriter.Write([]byte(startMarker))
-	cmdInfo := fmt.Sprintf("[yellow]>> %s[white]\n", req.Block.Content)
+	cmdInfo := fmt.Sprintf(">> %s\n", req.Block.Content)
 	outWriter.Write([]byte(cmdInfo))
 	execReq := &executor.ExecRequest{
 		Hdr:         &executor.RequestHdr{ID: req.ID, ExecutionID: req.ExecutionID, NodeID: req.Node.ID},

@@ -129,6 +129,14 @@ func LogStdout(format string, v ...interface{}) {
 	Log.Info().Msgf(format, v...)
 }
 
+func LogStdError(format string, v ...interface{}) {
+	_, err := fmt.Fprintf(os.Stderr, format, v...)
+	if err != nil {
+		panic(err)
+	}
+	Log.Error().Msgf(format, v...)
+}
+
 func LogStderr(err error, format string, v ...interface{}) {
 	Log.Err(err).Msgf(format, v...)
 	_, fErr := fmt.Fprintf(os.Stderr, format, v...)
