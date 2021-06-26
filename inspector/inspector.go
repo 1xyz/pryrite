@@ -3,6 +3,7 @@ package inspector
 import (
 	"fmt"
 	"github.com/aardlabs/terminal-poc/graph"
+	"github.com/aardlabs/terminal-poc/internal/ui/components"
 	"github.com/aardlabs/terminal-poc/run"
 	"github.com/aardlabs/terminal-poc/snippet"
 	"github.com/aardlabs/terminal-poc/tools"
@@ -45,6 +46,18 @@ func InspectNode(gCtx *snippet.Context, nodeID string) error {
 			if i <= 0 {
 				i = 0
 			}
+		case BlockActionJump:
+			entries := components.BlockPickList{}
+			for j := range ni.codeBlocks {
+				entries = append(entries, ni.codeBlocks[j])
+			}
+
+			selEntry, err := components.RenderBlockPicker(entries, "Switch to code-block", 10, i)
+			if err != nil {
+				tools.LogStdError("RenderBlockPicker err = %v", err)
+				return err
+			}
+			i = selEntry.Index()
 		}
 	}
 	return nil
@@ -83,7 +96,7 @@ func (n *NodeInspector) populateCodeBlocks(p *graph.NodeView, prefix string) {
 			if !node.Blocks[i].IsCode() {
 				continue
 			}
-			curIndex := len(n.codeBlocks) + 1
+			curIndex := len(n.codeBlocks)
 			n.codeBlocks = append(n.codeBlocks,
 				newCodeBlock(curIndex, pfx, node.Blocks[i], node, n.runner))
 		}

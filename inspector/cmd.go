@@ -12,6 +12,7 @@ func newRootCmd(b *codeBlock) *cobra.Command {
 	}
 	rootCmd.AddCommand(newNilCmd("next", "Navigate to the next code block"))
 	rootCmd.AddCommand(newNilCmd("prev", "Navigate to the previous code block"))
+	rootCmd.AddCommand(newNilCmd("jump", "Switch to another code block"))
 	rootCmd.AddCommand(newRunCmd(b))
 	rootCmd.AddCommand(newWhereAmICmd(b))
 	rootCmd.AddCommand(newNilCmd("quit", "Quit this session"))
