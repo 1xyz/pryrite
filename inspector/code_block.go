@@ -47,11 +47,11 @@ type codeBlock struct {
 
 func (c *codeBlock) OpenRepl() {
 	c.SetExitAction(nil)
-	completer := completer.NewCobraCommandCompleter(newRootCmd(c))
-	prefix := fmt.Sprintf("[%d/%d] %s :: %s", c.index, c.nBlocks, c.prefix, c.block.ID)
+	cc := completer.NewCobraCommandCompleter(newRootCmd(c))
+	prefix := fmt.Sprintf("[%d/%d] %s :: %s", c.index+1, c.nBlocks, c.prefix, c.block.ID)
 	pt := prompt.New(
 		c.handleCommand,
-		completer.Complete,
+		cc.Complete,
 		prompt.OptionTitle(fmt.Sprintf("interactive inspector")),
 		prompt.OptionPrefix(fmt.Sprintf("%s >>> ", prefix)),
 		prompt.OptionPrefixTextColor(prompt.Green),
@@ -62,9 +62,6 @@ func (c *codeBlock) OpenRepl() {
 			}
 			c.handleExitCmd(in)
 			b := c.exitAction != nil
-			if b {
-				fmt.Println("Bye")
-			}
 			return b
 		}),
 	)
@@ -90,6 +87,7 @@ func (c *codeBlock) handleExitCmd(in string) {
 		"quit": BlockActionQuit,
 		"next": BlockActionNext,
 		"prev": BlockActionPrev,
+		"jump": BlockActionJump,
 	}
 	if action, found := cmdToActions[in]; found {
 		c.exitAction = &BlockAction{Action: action}
@@ -100,17 +98,6 @@ func (c *codeBlock) SetNBlocks(nblocks int)            { c.nBlocks = nblocks }
 func (c *codeBlock) SetExitAction(action *BlockAction) { c.exitAction = action }
 func (c *codeBlock) GetExitAction() (*BlockAction, bool) {
 	return c.exitAction, c.exitAction != nil
-}
-
-func (c *codeBlock) WhereAmI() {
-	sb := strings.Builder{}
-	for _, block := range c.node.Blocks {
-		if block.ID == c.block.ID {
-			sb.WriteString("\U0001F449 \U0001F449 ")
-		}
-		sb.WriteString(block.Content)
-	}
-	fmt.Println(md(sb.String(), ""))
 }
 
 func (c *codeBlock) RunBlock() {
@@ -150,20 +137,40 @@ func (c *codeBlock) RunBlock() {
 	}
 
 	sigCh := make(chan os.Signal, 1)
+	// ToDo: the Ctrl+C is not captured because the go-prompt's run
+	// is on the main go-routine.
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	select {
 	case sig := <-sigCh:
 		tools.LogStdout("signal %v received", sig)
 		c.runner.CancelBlock(c.node.ID, reqID)
 	case <-doneCh:
-		fmt.Println()
+		return
 	}
+}
+
+func (c *codeBlock) WhereAmI() {
+	sb := strings.Builder{}
+	for _, block := range c.node.Blocks {
+		if block.ID == c.block.ID {
+			sb.WriteString("\U0001F449 \U0001F449 ")
+		}
+		sb.WriteString(block.Content)
+	}
+	fmt.Println(md(sb.String(), ""))
 }
 
 func (c *codeBlock) String() string {
 	return fmt.Sprintf("[%d/%d] %s/%s - %s",
 		c.index, c.nBlocks, c.node.ID, c.block.ID, tools.TrimLength(c.block.Content, 15))
 }
+
+func (c *codeBlock) QualifiedID() string {
+	return fmt.Sprintf("%s :: %s", c.prefix, c.block.ID)
+}
+func (c *codeBlock) Block() *graph.Block { return c.block }
+func (c *codeBlock) Index() int          { return c.index }
+func (c *codeBlock) Len() int            { return c.nBlocks }
 
 func logResultLogEntry(entry *log.ResultLogEntry) {
 	tools.Log.Info().Msgf(
