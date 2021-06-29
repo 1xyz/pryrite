@@ -54,8 +54,8 @@ func NewRemoteShellExecutor(content []byte, contentType *ContentType) (Executor,
 	return se, nil
 }
 
-func (se *RemoteShellExecutor) prepareShellCmd(stdout, stderr io.WriteCloser) (execReadyCh, error) {
-	execReady, err := se.defaultPrepareCmd(stdout, stderr)
+func (se *RemoteShellExecutor) prepareShellCmd(stdout, stderr io.WriteCloser, usePty bool) (execReadyCh, error) {
+	execReady, err := se.defaultPrepareCmd(stdout, stderr, usePty)
 	if err != nil {
 		return nil, err
 	}
@@ -63,8 +63,8 @@ func (se *RemoteShellExecutor) prepareShellCmd(stdout, stderr io.WriteCloser) (e
 	<-execReady // drop immediate ready signal from the default prep
 
 	go func() {
-		se.execCmd.Stdin.(*CommandFeeder).Put([]byte("echo " + rshellReadyMarker))
-		se.execCmd.Stdout.(*readWriterProxy).SetWriterMarker(stdout, rshellReadyMarkerRE, func(marker string) {
+		se.stdin.Put([]byte("echo " + rshellReadyMarker))
+		se.stdout.SetWriterMarker(stdout, rshellReadyMarkerRE, func(marker string) {
 			execReady <- nil
 		})
 	}()
@@ -79,19 +79,17 @@ func (se *RemoteShellExecutor) prepareShellIO(req *ExecRequest, isExecCmd bool) 
 		return resultReady, nil
 	}
 
-	cf := se.execCmd.Stdin.(*CommandFeeder)
-
 	command, err := se.getCommand(req.Content, req.ContentType)
 	if err != nil {
 		return nil, err
 	}
 
 	// feed in the command and follow it up with a marker indicating the exit status
-	cf.Put(command)
-	cf.Put([]byte("echo " + rshellExitMarker + "$?"))
+	se.stdin.Put(command)
+	se.stdin.Put([]byte("echo " + rshellExitMarker + "$?"))
 
 	ready := make(resultReadyCh, 1)
-	se.execCmd.Stdout.(*readWriterProxy).SetWriterMarker(req.Stdout, rshellExitMarkerRE, func(marker string) {
+	se.stdout.SetWriterMarker(req.Stdout, rshellExitMarkerRE, func(marker string) {
 		var err error
 		var status int
 		vals := strings.Split(strings.TrimSpace(marker), "=")
@@ -104,7 +102,7 @@ func (se *RemoteShellExecutor) prepareShellIO(req *ExecRequest, isExecCmd bool) 
 		ready <- collectorResult{err: err, exitStatus: status}
 	})
 
-	se.execCmd.Stderr.(*readWriterProxy).SetWriter(req.Stderr)
+	se.stderr.SetWriter(req.Stderr)
 
 	return ready, nil
 }

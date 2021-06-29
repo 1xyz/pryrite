@@ -7,11 +7,13 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/aardlabs/terminal-poc/tools"
 
+	pseudoTY "github.com/creack/pty"
 	"github.com/mattn/go-shellwords"
 	"github.com/rs/zerolog"
 )
@@ -26,11 +28,16 @@ type BaseExecutor struct {
 
 	execCmd     *exec.Cmd
 	execDone    chan error
+	execErr     error
 	isExecuting bool
 	skipCount   uint
 
+	stdin  *CommandFeeder
+	stdout *readWriterProxy
+	stderr *readWriterProxy
+
 	// callbacks for replacing parts of the base logic
-	prepareCmd func(stdout, stderr io.WriteCloser) (execReadyCh, error)
+	prepareCmd func(stdout, stderr io.WriteCloser, usePty bool) (execReadyCh, error)
 	prepareIO  func(*ExecRequest, bool) (resultReadyCh, error)
 	clearIO    func(bool)
 	cleanup    func(bool)
@@ -56,8 +63,24 @@ func (be *BaseExecutor) Execute(ctx context.Context, req *ExecRequest) *ExecResp
 		ExitStatus: -1,
 	}
 
-	resp.Err = be.ensureRunning(req.Stdout, req.Stderr)
+	if be.execErr != nil {
+		resp.Err = be.execErr
+		return resp
+	}
+
+	// on by default but may be globally disabled or per commend through the content-type
+	usePty := true
+	if disablePTY {
+		usePty = false
+	} else {
+		if disPTY, ok := be.contentType.Params["disable-pty"]; ok {
+			usePty = strings.ToLower(disPTY) == "true"
+		}
+	}
+
+	resp.Err = be.ensureRunning(req.Stdout, req.Stderr, usePty)
 	if resp.Err != nil {
+		be.execErr = resp.Err
 		return resp
 	}
 
@@ -74,9 +97,9 @@ func (be *BaseExecutor) Execute(ctx context.Context, req *ExecRequest) *ExecResp
 		}
 	}()
 
-	tools.Log.Debug().Str("name", be.Name()).Str("command", string(req.Content)).
-		Str("contentType", req.ContentType.String()).Int("skip", int(be.skipCount)).
-		Msg("Preparing I/O (if required)")
+	tools.Log.Debug().Str("name", be.Name()).Str("id", req.Hdr.ID).Str("command", string(req.Content)).
+		Str("contentType", req.ContentType.String()).Int("skip", int(be.skipCount)).Bool("pty", usePty).
+		Msg("Executing")
 
 	var resultReady resultReadyCh
 	resultReady, resp.Err = be.prepareIO(req, be.skipCount > 0)
@@ -105,6 +128,8 @@ func (be *BaseExecutor) Execute(ctx context.Context, req *ExecRequest) *ExecResp
 	}
 
 	be.clearIO(be.skipCount > 0)
+
+	tools.Log.Debug().Str("name", be.Name()).Interface("response", resp).Msg("Execution complete")
 
 	return resp
 }
@@ -190,24 +215,37 @@ func (be *BaseExecutor) getCommand(content []byte, contentType *ContentType) ([]
 	return content, nil
 }
 
-func (be *BaseExecutor) ensureRunning(stdout, stderr io.WriteCloser) error {
+func (be *BaseExecutor) ensureRunning(stdout, stderr io.WriteCloser, usePty bool) error {
 	if be.isRunning {
 		return nil
 	}
 
-	execReady, err := be.prepareCmd(stdout, stderr)
+	execReady, err := be.prepareCmd(stdout, stderr, usePty)
 	if err != nil {
 		return err
 	}
 
+	tools.Trace("exec", "command ready to run")
+
 	go func() {
 		err := be.execCmd.Run() // this calls `Wait()` for us
+		tools.Trace("exec", "command stopped", err)
 		be.execDone <- err
 	}()
 
-	err = <-execReady
-	if err != nil {
-		return err
+	select {
+	case err = <-execReady:
+		if err != nil {
+			return err
+		}
+	case err = <-be.execDone:
+		if err != nil {
+			return err
+		}
+	case <-time.After(10 * time.Second):
+		be.stdin.Put(nil)
+		stopKill(be.execCmd.Process)
+		return errors.New("gave up waiting for executor to be ready")
 	}
 
 	be.isRunning = true
@@ -231,13 +269,41 @@ func (be *BaseExecutor) ensureRunning(stdout, stderr io.WriteCloser) error {
 	return nil
 }
 
-func (be *BaseExecutor) defaultPrepareCmd(stdout, stderr io.WriteCloser) (execReadyCh, error) {
+func (be *BaseExecutor) defaultPrepareCmd(stdout, stderr io.WriteCloser, usePty bool) (execReadyCh, error) {
 	be.execCmd = exec.Command(be.command, be.commandArgs...)
 
-	be.execCmd.Stdin = NewCommandFeeder()
+	var outPTY, errPTY *os.File
+	if usePty {
+		var err error
+		var outTTY, errTTY *os.File
+		outPTY, outTTY, err = pseudoTY.Open()
+		if err != nil {
+			return nil, err
+		}
+
+		errPTY, errTTY, err = pseudoTY.Open()
+		if err != nil {
+			return nil, err
+		}
+
+		be.execCmd.SysProcAttr = &syscall.SysProcAttr{}
+		be.execCmd.SysProcAttr.Setsid = true
+		be.execCmd.SysProcAttr.Setctty = true
+
+		be.execCmd.Stdin = outTTY
+		be.execCmd.Stdout = outTTY
+		be.execCmd.Stderr = errTTY
+	}
+
+	be.stdin = NewCommandFeeder(outPTY)
 	// proxy out/err to allow for dynamic reassignment for each execution
-	be.execCmd.Stdout = &readWriterProxy{name: "stdout", writer: stdout}
-	be.execCmd.Stderr = &readWriterProxy{name: "stderr", writer: stderr}
+	be.stdout = &readWriterProxy{name: "stdout", writer: stdout}
+	be.stderr = &readWriterProxy{name: "stderr", writer: stderr}
+
+	if outPTY != nil {
+		be.stdout.Monitor(outPTY)
+		be.stderr.Monitor(errPTY)
+	}
 
 	// default is to be ready immediately (but executors can/will override this)
 	execReady := make(execReadyCh, 1)
@@ -247,21 +313,19 @@ func (be *BaseExecutor) defaultPrepareCmd(stdout, stderr io.WriteCloser) (execRe
 }
 
 func (be *BaseExecutor) defaultPrepareIO(req *ExecRequest, isExecCmd bool) (resultReadyCh, error) {
-	cf := be.execCmd.Stdin.(*CommandFeeder)
-
 	if isExecCmd {
 		// just a test connection so provide EOF to the input to have the command exit
-		cf.Put(nil)
+		be.stdin.Put(nil)
 	} else {
 		command, err := be.getCommand(req.Content, req.ContentType)
 		if err != nil {
 			return nil, err
 		}
 
-		cf.Put(command)
+		be.stdin.Put(command)
 
 		// for now we can only support one command per execution for the basic input feeder executors
-		cf.Close()
+		be.stdin.Close()
 	}
 
 	// this will never "fire"--instead, we expect the command to exit once done processing
@@ -271,16 +335,14 @@ func (be *BaseExecutor) defaultPrepareIO(req *ExecRequest, isExecCmd bool) (resu
 
 func (be *BaseExecutor) defaultClearIO(isExecCmd bool) {
 	// update proxies to avoid confusing caller if more junk comes in
-	be.execCmd.Stdout.(*readWriterProxy).SetWriter(nil)
-	be.execCmd.Stderr.(*readWriterProxy).SetWriter(nil)
+	be.stdout.SetWriter(nil)
+	be.stderr.SetWriter(nil)
 }
 
 func (be *BaseExecutor) defaultCleanup(alreadyDone bool) {
 	if be.isRunning {
 		if !alreadyDone {
-			if cf, ok := be.execCmd.Stdin.(*CommandFeeder); ok {
-				cf.Close()
-			}
+			be.stdin.Close()
 			stopKill(be.execCmd.Process)
 			<-be.execDone // wait for our goroutine to exit
 		}
@@ -291,6 +353,9 @@ func (be *BaseExecutor) defaultCleanup(alreadyDone bool) {
 // attempt an interrupt immediately and then in the background try a full kill if still running
 // FIXME: this won't work on windows!!
 func stopKill(proc *os.Process) {
+	if proc == nil {
+		return
+	}
 	syscall.Kill(-proc.Pid, syscall.SIGINT)
 	go func() {
 		time.Sleep(500 * time.Millisecond)

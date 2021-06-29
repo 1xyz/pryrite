@@ -19,6 +19,8 @@ type Register struct {
 var (
 	ErrUnsupportedContentType = errors.New("unsupported content-type")
 	ErrExecInProgress         = errors.New("an execution is already in progress")
+
+	disablePTY = false
 )
 
 func NewRegister() (*Register, error) {
@@ -36,6 +38,10 @@ func NewRegister() (*Register, error) {
 	}()
 
 	return r, nil
+}
+
+func DisablePTY() {
+	disablePTY = true
 }
 
 func (r *Register) Register(executor Executor) error {

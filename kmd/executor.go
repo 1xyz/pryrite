@@ -14,6 +14,7 @@ import (
 
 func NewCmdExecutor() *cobra.Command {
 	var timeout time.Duration
+	var disablePTY bool
 	cmd := &cobra.Command{
 		Hidden: true,
 		Use:    "exec",
@@ -23,6 +24,10 @@ func NewCmdExecutor() *cobra.Command {
 			register, err := executor.NewRegister()
 			if err != nil {
 				return err
+			}
+
+			if disablePTY {
+				executor.DisablePTY()
 			}
 
 			var contentType *executor.ContentType
@@ -78,8 +83,10 @@ func NewCmdExecutor() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().DurationVarP(&timeout, "timeout", "t",
-		0, "Wait some amount of time before giving up on a command to return")
+	cmd.Flags().DurationVarP(&timeout, "timeout", "t", 0,
+		"Wait some amount of time before giving up on a command to return")
+	cmd.Flags().BoolVarP(&disablePTY, "disable-pty", "T", false,
+		"Disable psuedo-terminal allocation")
 
 	return cmd
 }

@@ -15,18 +15,33 @@ type readWriterProxy struct {
 	markerRE    *regexp.Regexp
 	markerFound func(string)
 
-	reader io.Reader
 	writer io.WriteCloser
-	rlock  sync.Mutex
 	wlock  sync.Mutex
 
 	lastWrite time.Time
 }
 
-func (proxy *readWriterProxy) SetReader(reader io.Reader) {
-	proxy.rlock.Lock()
-	proxy.reader = reader
-	proxy.rlock.Unlock()
+func (proxy *readWriterProxy) Monitor(output io.Reader) {
+	go func() {
+		buf := make([]byte, 65536)
+		for {
+			n, err := output.Read(buf)
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				tools.Log.Err(err).Str("name", proxy.name).Msg("Unable to read monitored output")
+				break
+			}
+			if n > 0 {
+				_, err = proxy.Write(buf[0:n])
+				if err != nil {
+					tools.Log.Err(err).Str("name", proxy.name).Str("data", string(buf[0:n])).
+						Msg("Unable to write monitored output")
+				}
+			}
+		}
+	}()
 }
 
 func (proxy *readWriterProxy) SetWriter(writer io.WriteCloser) {
@@ -61,17 +76,6 @@ func (proxy *readWriterProxy) SetWriterMarker(writer io.WriteCloser, markerRE *r
 	proxy.markerFound = markerFound
 	proxy.writer = writer
 	proxy.wlock.Unlock()
-}
-
-func (proxy *readWriterProxy) Read(buf []byte) (int, error) {
-	proxy.rlock.Lock()
-	defer proxy.rlock.Unlock()
-
-	if proxy.reader == nil {
-		return 0, io.EOF
-	}
-
-	return proxy.reader.Read(buf)
 }
 
 func (proxy *readWriterProxy) Write(data []byte) (int, error) {

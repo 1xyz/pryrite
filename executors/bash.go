@@ -72,14 +72,14 @@ func NewBashExecutor(content []byte, contentType *ContentType) (Executor, error)
 
 //--------------------------------------------------------------------------------
 
-func (b *BashExecutor) prepareBashCmd(stdout, stderr io.WriteCloser) (execReadyCh, error) {
-	execReady, err := b.BaseExecutor.defaultPrepareCmd(stdout, stderr)
+func (b *BashExecutor) prepareBashCmd(stdout, stderr io.WriteCloser, usePty bool) (execReadyCh, error) {
+	execReady, err := b.BaseExecutor.defaultPrepareCmd(stdout, stderr, usePty)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: leverage CommandFeeder to trigger a UI prompt when a read is request from STDIN
-	b.execCmd.Stdin = nil
+	// TODO: leverage CommandFeeder to trigger a UI prompt when a read is requested from STDIN
+	// b.execCmd.Stdin = nil
 
 	// make sure bash is in its own process group so we can terminate itself _and_ any children
 	b.execCmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
@@ -115,8 +115,8 @@ func (b *BashExecutor) prepareBashIO(req *ExecRequest, isExecCmd bool) (resultRe
 	}
 
 	// temporarily redirect out/err into caller's writers
-	b.execCmd.Stdout.(*readWriterProxy).SetWriter(req.Stdout)
-	b.execCmd.Stderr.(*readWriterProxy).SetWriter(req.Stderr)
+	b.stdout.SetWriter(req.Stdout)
+	b.stderr.SetWriter(req.Stderr)
 
 	resultReady := make(resultReadyCh, 1)
 	go b.collectStatus(resultReady)

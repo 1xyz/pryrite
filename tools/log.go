@@ -19,6 +19,7 @@ var (
 	Log           = zlog.Logger
 	logConfigFile = os.ExpandEnv("$HOME/.aardvark/logging.yaml")
 	logFile       = os.ExpandEnv("$HOME/.aardvark/aard.log")
+	traceLabels   = map[string]string{}
 )
 
 type rollingLogConfig struct {
@@ -107,6 +108,13 @@ func OpenLogger(verbose bool) (io.Closer, error) {
 	// set standard logger up to use zlog (for 3rd parties that use it, like selfupdate)
 	log.SetFlags(0) // remove timestamps, etc., since zlog handles that for us
 	log.SetOutput(&dumbLogWriter{})
+	labels := strings.Split(strings.ToLower(strings.TrimSpace(os.Getenv("AARDY_TRACE"))), ",")
+	for _, label := range labels {
+		traceLabels[label] = fmt.Sprintf("TRACE(%s): ", label)
+	}
+	if len(traceLabels) > 0 {
+		Trace = traceLog
+	}
 	return w, nil
 }
 
@@ -148,6 +156,17 @@ func LogStderr(err error, format string, v ...interface{}) {
 func LogStderrExit(err error, format string, v ...interface{}) {
 	LogStderr(err, format, v...)
 	os.Exit(1)
+}
+
+var Trace = func(label string, msg string, vals ...interface{}) {}
+
+func traceLog(label, msg string, vals ...interface{}) {
+	lbl, ok := traceLabels[label]
+	if !ok {
+		return
+	}
+	fmt := fmt.Sprint(lbl, msg, ":", strings.Repeat(" %v", len(vals)))
+	Log.Printf(fmt, vals...)
 }
 
 //--------------------------------------------------------------------------------
