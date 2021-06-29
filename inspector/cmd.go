@@ -10,12 +10,13 @@ func newRootCmd(b *codeBlock) *cobra.Command {
 		Version: app.Version,
 		Use:     "",
 	}
-	rootCmd.AddCommand(newNilCmd("next", "Navigate to the next code block"))
-	rootCmd.AddCommand(newNilCmd("prev", "Navigate to the previous code block"))
-	rootCmd.AddCommand(newNilCmd("jump", "Switch to another code block"))
+	// NOTE: these are actually handled/processed over in codeBlock.handleExitCmd()
+	rootCmd.AddCommand(newActionCmd(b, "next", []string{"n"}, "Navigate to the next code block"))
+	rootCmd.AddCommand(newActionCmd(b, "prev", []string{"p"}, "Navigate to the previous code block"))
+	rootCmd.AddCommand(newActionCmd(b, "jump", []string{"j"}, "Switch to another code block"))
 	rootCmd.AddCommand(newRunCmd(b))
 	rootCmd.AddCommand(newWhereAmICmd(b))
-	rootCmd.AddCommand(newNilCmd("quit", "Quit this session"))
+	rootCmd.AddCommand(newActionCmd(b, "quit", []string{"q", "exit"}, "Quit this session"))
 	return rootCmd
 }
 
@@ -41,10 +42,14 @@ func newWhereAmICmd(b *codeBlock) *cobra.Command {
 	}
 }
 
-func newNilCmd(use, short string) *cobra.Command {
+func newActionCmd(b *codeBlock, use string, aliases []string, short string) *cobra.Command {
 	return &cobra.Command{
-		Use:   use,
-		Short: short,
-		RunE:  func(cmd *cobra.Command, args []string) error { return nil },
+		Use:     use,
+		Aliases: aliases,
+		Short:   short,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			b.SetExitAction(NewBlockAction(use))
+			return nil
+		},
 	}
 }

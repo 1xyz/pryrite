@@ -2,16 +2,17 @@ package inspector
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
+	"strings"
+	"syscall"
+
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/graph/log"
 	"github.com/aardlabs/terminal-poc/internal/completer"
 	"github.com/aardlabs/terminal-poc/run"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/c-bata/go-prompt"
-	"os"
-	"os/signal"
-	"strings"
-	"syscall"
 )
 
 func newCodeBlock(index int, prefix string, b *graph.Block, n *graph.Node, r *run.Run) *codeBlock {
@@ -52,17 +53,12 @@ func (c *codeBlock) OpenRepl() {
 	pt := prompt.New(
 		c.handleCommand,
 		cc.Complete,
-		prompt.OptionTitle(fmt.Sprintf("interactive inspector")),
+		prompt.OptionTitle("interactive inspector"),
 		prompt.OptionPrefix(fmt.Sprintf("%s >>> ", prefix)),
 		prompt.OptionPrefixTextColor(prompt.Green),
 		prompt.OptionInputTextColor(prompt.Yellow),
 		prompt.OptionSetExitCheckerOnInput(func(in string, breakline bool) bool {
-			if in == "quit" {
-				return true
-			}
-			c.handleExitCmd(in)
-			b := c.exitAction != nil
-			return b
+			return c.exitAction != nil
 		}),
 	)
 
@@ -80,18 +76,6 @@ func (c *codeBlock) handleCommand(s string) {
 	cmd.SetArgs(strings.Split(s, " "))
 	// allow cobra to handle this
 	cmd.Execute()
-}
-
-func (c *codeBlock) handleExitCmd(in string) {
-	cmdToActions := map[string]BlockActionType{
-		"quit": BlockActionQuit,
-		"next": BlockActionNext,
-		"prev": BlockActionPrev,
-		"jump": BlockActionJump,
-	}
-	if action, found := cmdToActions[in]; found {
-		c.exitAction = &BlockAction{Action: action}
-	}
 }
 
 func (c *codeBlock) SetNBlocks(nblocks int)            { c.nBlocks = nblocks }
