@@ -6,7 +6,7 @@ require (
 	github.com/1xyz/sseclient v0.0.0-20210510204826-9b958fd4e77e
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/briandowns/spinner v1.16.0
-	github.com/c-bata/go-prompt v0.2.6
+	github.com/c-bata/go-prompt v0.2.5
 	github.com/charmbracelet/glamour v0.3.0
 	github.com/creack/pty v1.1.13
 	github.com/cristalhq/jwt/v3 v3.0.14
@@ -35,6 +35,6 @@ require (
 )
 
 replace (
-	github.com/sanbornm/go-selfupdate v0.0.0-20210106163404-c9b625feac49 => github.com/aardlabs/go-selfupdate v0.0.0-20210615201232-2426e0201381
 	github.com/manifoldco/promptui => github.com/aardlabs/promptui v0.8.1-0.20210630201735-534be89033d6
+	github.com/sanbornm/go-selfupdate v0.0.0-20210106163404-c9b625feac49 => github.com/aardlabs/go-selfupdate v0.0.0-20210615201232-2426e0201381
 )
