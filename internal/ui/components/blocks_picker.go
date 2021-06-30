@@ -35,9 +35,9 @@ func RenderBlockPicker(entries BlockPickList, header string, pageSize, startInde
 		Inactive: "\U00002026   [{{.Index | red | bold }}/{{ .RowLen | red | bold }}] {{ .DisplayTitle | yellow  }} - {{ .Date | white }}",
 		Selected: "\U0001F449  [{{.Index | red | bold }}/{{ .RowLen | red | bold }}] {{ .DisplayTitle | cyan | bold }} - {{ .Date | white }}",
 		Details: `
-- {{.DisplayID | white }}
-- {{.ContentType | yellow | bold }}
-- {{.Summary | yellow | bold }}
+ • Reference-ID  {{.DisplayID | white }}
+ • Content-Type  {{.ContentType | yellow | bold }}
+ • Summary       {{.Summary | yellow | bold }}
 `,
 	}
 
@@ -89,16 +89,18 @@ func createDisplayBlockRows(entries BlockPickList) []*displayBlockRow {
 	rows := make([]*displayBlockRow, len(entries))
 	for i, e := range entries {
 		index := e.Index() + 1
-		displayTitle := strings.Trim(e.Block().Content, "\n")
-		displayTitle = strings.ReplaceAll(displayTitle, "\n", " ")
-		displayTitle = tools.TrimLength(displayTitle, 30)
+		content := tools.RemoveNewLines(e.Block().Content, " ")
+		displayTitle := tools.TrimLength(content, 30)
+		summary := tools.TrimLength(content, 100)
+		contentType := tools.RemoveNewLines(e.Block().ContentType.String(), "")
+
 		rows[i] = &displayBlockRow{
 			Index:        index,
 			RowLen:       e.Len(),
 			DisplayTitle: displayTitle,
 			DisplayID:    e.QualifiedID(),
-			ContentType:  e.Block().ContentType.String(),
-			Summary:      e.Block().Content,
+			ContentType:  contentType,
+			Summary:      summary,
 			Date:         tools.FmtTime(e.Block().CreatedAt),
 			entry:        entries[i],
 		}

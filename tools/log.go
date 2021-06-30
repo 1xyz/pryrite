@@ -125,6 +125,12 @@ func TrimLength(s string, maxLen int) string {
 	return s
 }
 
+func RemoveNewLines(s string, r string) string {
+	s = strings.ReplaceAll(s, "\n", r)
+	s = strings.ReplaceAll(s, "\r", r)
+	return s
+}
+
 func FmtTime(t *time.Time) string {
 	return t.In(time.Local).Format("Jan _2 3:04PM")
 }
