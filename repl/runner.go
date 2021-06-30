@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"github.com/aardlabs/terminal-poc/app"
+
+	"github.com/mattn/go-shellwords"
 )
 
 type Runner struct {
@@ -28,7 +30,7 @@ func (r *Runner) Execute(cmd string) {
 		return
 	}
 
-	args := strings.Split(cmd, " ")
+	args, _ := shellwords.Parse(cmd)
 	if args[0] == app.Name {
 		args = args[1:]
 	}

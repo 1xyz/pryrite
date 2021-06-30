@@ -1,10 +1,11 @@
 package completer
 
 import (
+	"strings"
+
 	"github.com/c-bata/go-prompt"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"strings"
 )
 
 func NewCobraCommandCompleter(cmd *cobra.Command) *CobraCommandCompleter {
@@ -48,7 +49,7 @@ func optSuggestions(cmd *cobra.Command) []prompt.Suggest {
 	s := make([]prompt.Suggest, 0)
 	flags.VisitAll(func(f *pflag.Flag) {
 		s = append(s, prompt.Suggest{
-			Text:        "-" + f.Name,
+			Text:        "--" + f.Name,
 			Description: f.Usage,
 		})
 	})
