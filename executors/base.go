@@ -155,7 +155,7 @@ func (be *BaseExecutor) processContentType(content []byte, myContentType, wantCo
 
 	if _, ok := wantContentType.Params["prompt"]; ok {
 		// this happens if there wasn't a prompt-assign found associated with the same content-type
-		return fmt.Errorf("prompted content found without a running command: %s", wantContentType)
+		return fmt.Errorf("prompt requested but none found running: %s", wantContentType)
 	}
 
 	be.execDone = make(chan error, 1)
@@ -163,23 +163,14 @@ func (be *BaseExecutor) processContentType(content []byte, myContentType, wantCo
 	be.name = myContentType.Subtype + "-executor"
 	be.contentType = myContentType.Clone()
 
-	var start, stop int
-
-	n, _ := fmt.Sscanf(wantContentType.Params["prompt-assign"], "%d:%d", &start, &stop)
-	if n == 2 {
+	prompt := wantContentType.Params["prompt-assign"]
+	if prompt != "" {
 		// restrict matching this executor to only prompted request content-types
-		be.contentType.Params["prompt"] = string(content[start:stop])
+		be.contentType.Params["prompt"] = prompt
 
-		n, _ := fmt.Sscanf(wantContentType.Params["command"], "%d:%d", &start, &stop)
-		if n != 1 && n != 2 {
-			return errors.New("invalid prompt assignment without a command in " + wantContentType.String())
-		}
-
-		var commandLine string
-		if n == 1 {
-			commandLine = string(content[start:])
-		} else {
-			commandLine = string(content[start:stop])
+		commandLine := wantContentType.Params["command"]
+		if commandLine == "" {
+			commandLine = string(content)
 		}
 
 		args, err := shellwords.Parse(commandLine)
@@ -202,7 +193,7 @@ func (be *BaseExecutor) getCommand(content []byte, contentType *ContentType) ([]
 		var start, stop int
 		n, _ := fmt.Sscanf(contentType.Params["command"], "%d:%d", &start, &stop)
 		if n != 1 && n != 2 {
-			return nil, errors.New("invalid prompt without a command in " + contentType.String())
+			return content, nil
 		}
 
 		if n == 1 {

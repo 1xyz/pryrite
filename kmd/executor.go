@@ -9,15 +9,16 @@ import (
 	"time"
 
 	executor "github.com/aardlabs/terminal-poc/executors"
+
 	"github.com/spf13/cobra"
 )
 
-func NewCmdExecutor() *cobra.Command {
+func NewCmdRawExecutor() *cobra.Command {
 	var timeout time.Duration
 	var disablePTY bool
 	cmd := &cobra.Command{
 		Hidden: true,
-		Use:    "exec",
+		Use:    "exec-raw",
 		Short:  "Execute",
 		Args:   MinimumArgs(2, "You need to specify something to execute"),
 		RunE: func(cmd *cobra.Command, args []string) error {

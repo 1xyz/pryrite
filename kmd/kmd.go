@@ -9,6 +9,7 @@ import (
 
 	"github.com/aardlabs/terminal-poc/app"
 	"github.com/aardlabs/terminal-poc/config"
+	"github.com/aardlabs/terminal-poc/inspector"
 	"github.com/aardlabs/terminal-poc/snippet"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/aardlabs/terminal-poc/update"
@@ -62,7 +63,7 @@ func NewCmdRoot(cfg *config.Config) *cobra.Command {
 	rootCmd.AddCommand(NewCmdAuth(cfg))
 	rootCmd.AddCommand(NewCmdConfig(cfg))
 	rootCmd.AddCommand(NewCmdCompletion())
-	rootCmd.AddCommand(NewCmdExecutor())
+	rootCmd.AddCommand(inspector.NewCmdExecutor(nil))
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(updateCmd)
 

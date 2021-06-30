@@ -3,12 +3,12 @@ package run
 import (
 	"container/list"
 	"fmt"
-	"github.com/briandowns/spinner"
 	"io"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/briandowns/spinner"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"go.uber.org/atomic"

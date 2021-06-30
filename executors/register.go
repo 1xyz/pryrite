@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"regexp"
+	"strconv"
 	"sync"
 	"syscall"
 
@@ -60,18 +62,20 @@ func (r *Register) Get(content []byte, contentType *ContentType) (Executor, erro
 	var executor Executor
 	var ok bool
 
+	// convert any a:b positions into their string counterparts from the content
+	contentType = translatePositions(content, contentType)
+
 	// if a prompt is provided, we need to locate an executor of that type...
-	var start, stop int
-	n, _ := fmt.Sscanf(contentType.Params["prompt-assign"], "%d:%d", &start, &stop)
-	isAssigned := n == 2
+	prompt := contentType.Params["prompt-assign"]
+	isAssigned := prompt != ""
 	isPrompted := false
 	if !isAssigned {
-		n, _ = fmt.Sscanf(contentType.Params["prompt"], "%d:%d", &start, &stop)
-		isPrompted = n == 2
+		prompt = contentType.Params["prompt"]
+		isPrompted = prompt != ""
 	}
 	if isAssigned || isPrompted {
 		contentType = contentType.Clone()
-		contentType.Subtype = string(content[start:stop])
+		contentType.Subtype = prompt
 		if isPrompted {
 			// only match a prompted content-type request
 			contentType.Params["prompt"] = contentType.Subtype
@@ -86,6 +90,7 @@ func (r *Register) Get(content []byte, contentType *ContentType) (Executor, erro
 			if isPrompted {
 				requiredKeys = []string{"prompt"}
 			}
+			tools.Trace("register", "parent-of (running)", ct.String(), contentType.String(), requiredKeys)
 			if ct.ParentOf(contentType, requiredKeys) {
 				executor = val.(Executor)
 				ok = true
@@ -93,6 +98,10 @@ func (r *Register) Get(content []byte, contentType *ContentType) (Executor, erro
 			}
 			return true
 		})
+
+		if !ok && isPrompted {
+			return nil, fmt.Errorf("no running prompt found for content-type=%s", contentType)
+		}
 	}
 
 	if !ok {
@@ -142,4 +151,59 @@ func (r *Register) Cleanup() {
 		executor.(Executor).Cleanup()
 		return true
 	})
+}
+
+// Be very strict about what we "find" as a postion
+var positionRE = regexp.MustCompile(`^\s*(\d+):(\d+)?\s*$`)
+
+func translatePositions(content []byte, contentType *ContentType) *ContentType {
+	var clone *ContentType
+
+	for key, val := range contentType.Params {
+		results := positionRE.FindAllStringSubmatch(val, -1)
+		if len(results) != 1 {
+			continue
+		}
+
+		var err error
+		start := -1
+		stop := -1
+
+		result := results[0]
+		if result[2] == "" {
+			start, err = strconv.Atoi(result[1])
+			if err != nil {
+				continue
+			}
+		} else {
+			start, err = strconv.Atoi(result[1])
+			if err != nil {
+				continue
+			}
+			stop, err = strconv.Atoi(result[2])
+			if err != nil {
+				continue
+			}
+		}
+
+		if clone == nil {
+			clone = contentType.Clone()
+		}
+
+		var newVal string
+		if stop == -1 {
+			newVal = string(content[start:])
+		} else {
+			newVal = string(content[start:stop])
+		}
+
+		clone.Params[key] = newVal
+	}
+
+	if clone != nil {
+		tools.Trace("register", "translated content-type", contentType)
+		return clone
+	}
+
+	return contentType
 }
