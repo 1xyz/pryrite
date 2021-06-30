@@ -59,6 +59,9 @@ func NewCmdSnippetSearch(gCtx *snippet.Context) *cobra.Command {
 			selNode, err := components.RenderNodesPicker(gCtx.ConfigEntry, nodes,
 				"result for query: "+query+"; pick a node", 10, -1)
 			if err != nil {
+				if err == components.ErrNoEntryPicked {
+					return nil
+				}
 				return err
 			}
 
@@ -114,6 +117,9 @@ func NewCmdSnippetList(gCtx *snippet.Context) *cobra.Command {
 				selNode, err := components.RenderNodesPicker(gCtx.ConfigEntry, nodes,
 					"select a node to inspect", 10, -1)
 				if err != nil {
+					if err == components.ErrNoEntryPicked {
+						return nil
+					}
 					return err
 				}
 				return inspector.InspectNode(gCtx, selNode.Node.ID)
