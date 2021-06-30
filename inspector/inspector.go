@@ -2,6 +2,7 @@ package inspector
 
 import (
 	"fmt"
+
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/internal/ui/components"
 	"github.com/aardlabs/terminal-poc/run"
@@ -36,9 +37,11 @@ func InspectNode(gCtx *snippet.Context, nodeID string) error {
 			break
 		}
 
-		switch nextAction.Action {
-		case BlockActionQuit:
+		if nextAction.Action == BlockActionQuit {
 			break
+		}
+
+		switch nextAction.Action {
 		case BlockActionNext:
 			i++
 		case BlockActionPrev:

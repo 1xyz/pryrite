@@ -1,9 +1,10 @@
 package repl
 
 import (
-	"github.com/aardlabs/terminal-poc/app"
 	"os"
 	"strings"
+
+	"github.com/aardlabs/terminal-poc/app"
 )
 
 type Runner struct {
@@ -22,7 +23,7 @@ func (r *Runner) Execute(cmd string) {
 		return
 	}
 
-	if cmd == "quit" {
+	if cmd == "q" || cmd == "quit" || cmd == "exit" {
 		os.Exit(0)
 		return
 	}
