@@ -28,8 +28,9 @@ func RenderNodesPicker(entry *config.Entry, nodes []graph.Node, header string, p
 		Inactive: "\U00002026  {{.KindGlyph | white }} {{ .Summary | yellow  }} - {{ .Date | white }}",
 		Selected: "\U0001F449 {{.KindGlyph | white }} {{ .Name | cyan | bold }} - {{ .Date | white }}",
 		Details: `
-- {{.NodeID | white }}
-- {{.SummaryLong | yellow | bold }}
+ • URL      {{.NodeID | white }}
+ • Created  {{.DateLong | white }}
+ • Summary  {{.SummaryLong | yellow | bold }}
 `,
 	}
 
@@ -73,6 +74,7 @@ type displayRow struct {
 	SummaryLong string
 	Markdown    string
 	Date        string
+	DateLong    string
 	KindGlyph   string
 	node        *graph.Node
 }
@@ -80,18 +82,22 @@ type displayRow struct {
 func newDisplayRows(nodes []graph.Node, serviceURL, style string) []displayRow {
 	rows := make([]displayRow, len(nodes))
 	const summaryLen = 40
+	const summaryLongLen = 200
 	for i, n := range nodes {
 		nodeID := common.GetNodeURL(serviceURL, n.ID)
 		summary := common.CreateNodeSummary(&nodes[i])
+		summary = tools.RemoveNewLines(summary, " ")
 		date := tools.FmtTime(n.OccurredAt)
+		dateLong := n.OccurredAt.Format("Mon, 02 Jan 2006 15:04:05 MST")
 
 		rows[i] = displayRow{
 			Index:       i + 1,
 			NodeID:      nodeID,
 			Summary:     tools.TrimLength(summary, summaryLen),
-			SummaryLong: summary,
+			SummaryLong: tools.TrimLength(summary, summaryLongLen),
 			Markdown:    common.GenerateNodeMarkdown(&nodes[i], style),
 			Date:        date,
+			DateLong:    dateLong,
 			KindGlyph:   kindGlyph(&nodes[i]),
 			node:        &nodes[i],
 		}
