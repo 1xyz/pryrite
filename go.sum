@@ -21,6 +21,10 @@ github.com/MakeNowJust/heredoc v1.0.0/go.mod h1:mG5amYoWBHf8vpLOuehzbGGw0EHxpZZ6
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/aardlabs/go-selfupdate v0.0.0-20210615201232-2426e0201381 h1:11LGAk05LrVs4Izfo8PARr1qIw+RMC8lVuPYcI0YKPs=
 github.com/aardlabs/go-selfupdate v0.0.0-20210615201232-2426e0201381/go.mod h1:fY313ZGG810aWruFYcyq3coFpHDrWJVoMfSRI81y1r4=
+github.com/aardlabs/promptui v0.8.0 h1:pB4/yCB7JuPk/SiqrMEmTXxU1+ppQXotchX0nQavCv0=
+github.com/aardlabs/promptui v0.8.0/go.mod h1:n4zTdgP0vr0S3w7/O/g98U+e0gwLScEXGwov2nIKuGQ=
+github.com/aardlabs/promptui v0.8.1-0.20210630201735-534be89033d6 h1:NtND/ZJsrbRNcEUgDh7lL0oHLSK348HLphHuBp6OojA=
+github.com/aardlabs/promptui v0.8.1-0.20210630201735-534be89033d6/go.mod h1:n4zTdgP0vr0S3w7/O/g98U+e0gwLScEXGwov2nIKuGQ=
 github.com/alecthomas/assert v0.0.0-20170929043011-405dbfeb8e38 h1:smF2tmSOzy2Mm+0dGI2AIUHY+w0BUc+4tn40djz7+6U=
 github.com/alecthomas/assert v0.0.0-20170929043011-405dbfeb8e38/go.mod h1:r7bzyVFMNntcxPZXK3/+KdruV1H5KSlyVY0gc+NgInI=
 github.com/alecthomas/chroma v0.8.2 h1:x3zkuE2lUk/RIekyAJ3XRqSCP4zwWDfcw/YJCuCAACg=

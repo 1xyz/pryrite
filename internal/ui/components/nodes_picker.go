@@ -56,6 +56,9 @@ func RenderNodesPicker(entry *config.Entry, nodes []graph.Node, header string, p
 	i, _, err := prompt.Run()
 
 	if err != nil {
+		if err == promptui.ErrExit {
+			return nil, ErrNoEntryPicked
+		}
 		return nil, err
 	}
 

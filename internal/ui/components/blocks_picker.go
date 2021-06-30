@@ -1,6 +1,7 @@
 package components
 
 import (
+	"errors"
 	"fmt"
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/tools"
@@ -19,6 +20,8 @@ type BlockPickEntry interface {
 }
 
 type BlockPickList []BlockPickEntry
+
+var ErrNoEntryPicked = errors.New("no entry picked")
 
 func RenderBlockPicker(entries BlockPickList, header string, pageSize, startIndex int) (BlockPickEntry, error) {
 	if len(entries) == 0 {
@@ -61,6 +64,9 @@ func RenderBlockPicker(entries BlockPickList, header string, pageSize, startInde
 	i, _, err := prompt.Run()
 
 	if err != nil {
+		if err == promptui.ErrExit {
+			return nil, ErrNoEntryPicked
+		}
 		return nil, err
 	}
 
@@ -84,6 +90,7 @@ func createDisplayBlockRows(entries BlockPickList) []*displayBlockRow {
 	for i, e := range entries {
 		index := e.Index() + 1
 		displayTitle := strings.Trim(e.Block().Content, "\n")
+		displayTitle = strings.ReplaceAll(displayTitle, "\n", " ")
 		displayTitle = tools.TrimLength(displayTitle, 30)
 		rows[i] = &displayBlockRow{
 			Index:        index,

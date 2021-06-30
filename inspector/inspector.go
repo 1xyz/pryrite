@@ -57,10 +57,13 @@ func InspectNode(gCtx *snippet.Context, nodeID string) error {
 
 			selEntry, err := components.RenderBlockPicker(entries, "Switch to code-block", 10, i)
 			if err != nil {
-				tools.LogStdError("RenderBlockPicker err = %v", err)
-				return err
+				if err != components.ErrNoEntryPicked {
+					tools.LogStdError("RenderBlockPicker err = %v", err)
+					return err
+				}
+			} else {
+				i = selEntry.Index()
 			}
-			i = selEntry.Index()
 		}
 	}
 	return nil
