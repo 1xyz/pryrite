@@ -49,7 +49,7 @@ type codeBlock struct {
 func (c *codeBlock) OpenRepl() {
 	c.SetExitAction(nil)
 	cc := completer.NewCobraCommandCompleter(newRootCmd(c))
-	prefix := fmt.Sprintf("[%d/%d] %s :: %s", c.index+1, c.nBlocks, c.prefix, c.block.ID)
+	prefix := fmt.Sprintf("[Step %d of %d]", c.index+1, c.nBlocks)
 	pt := prompt.New(
 		c.handleCommand,
 		cc.Complete,
