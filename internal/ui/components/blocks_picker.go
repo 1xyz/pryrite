@@ -1,7 +1,6 @@
 package components
 
 import (
-	"errors"
 	"fmt"
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/tools"
@@ -20,8 +19,6 @@ type BlockPickEntry interface {
 }
 
 type BlockPickList []BlockPickEntry
-
-var ErrNoEntryPicked = errors.New("no entry picked")
 
 func RenderBlockPicker(entries BlockPickList, header string, pageSize, startIndex int) (BlockPickEntry, error) {
 	if len(entries) == 0 {
@@ -87,11 +84,22 @@ type displayBlockRow struct {
 
 func createDisplayBlockRows(entries BlockPickList) []*displayBlockRow {
 	rows := make([]*displayBlockRow, len(entries))
+	cols := colLen()
+	summaryLen := 30
+	if cols < summaryLen {
+		summaryLen = cols
+	}
+
+	summaryLongLen := cols - 20 //20 padding
+	if summaryLongLen < 0 {
+		summaryLongLen = 30
+	}
+
 	for i, e := range entries {
 		index := e.Index() + 1
 		content := tools.RemoveNewLines(e.Block().Content, " ")
-		displayTitle := tools.TrimLength(content, 30)
-		summary := tools.TrimLength(content, 100)
+		displayTitle := tools.TrimLength(content, summaryLen)
+		summary := tools.TrimLength(content, summaryLongLen)
 		contentType := tools.RemoveNewLines(e.Block().ContentType.String(), "")
 
 		rows[i] = &displayBlockRow{

@@ -80,9 +80,18 @@ type displayRow struct {
 }
 
 func newDisplayRows(nodes []graph.Node, serviceURL, style string) []displayRow {
+	cols := colLen()
+	summaryLen := 30
+	if cols < summaryLen {
+		summaryLen = cols
+	}
+
+	summaryLongLen := cols - 20 //20 padding
+	if summaryLongLen < 0 {
+		summaryLongLen = 30
+	}
+
 	rows := make([]displayRow, len(nodes))
-	const summaryLen = 40
-	const summaryLongLen = 200
 	for i, n := range nodes {
 		nodeID := common.GetNodeURL(serviceURL, n.ID)
 		summary := common.CreateNodeSummary(&nodes[i])
