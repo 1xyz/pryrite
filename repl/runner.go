@@ -1,6 +1,7 @@
 package repl
 
 import (
+	"github.com/aardlabs/terminal-poc/tools"
 	"os"
 	"strings"
 
@@ -41,5 +42,10 @@ func (r *Runner) Execute(cmd string) {
 	c := r.ctx.NewRootCmd()
 	c.SetArgs(args)
 	// Don't handle the error (kobra does it for you)
-	c.Execute()
+	if err := c.Execute(); err == nil {
+		// append to command history if there is no error
+		if err := r.ctx.history.Append(cmd); err != nil {
+			tools.Log.Err(err).Msgf("history.Append %s", cmd)
+		}
+	}
 }

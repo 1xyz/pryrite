@@ -5,6 +5,7 @@ import (
 	"github.com/aardlabs/terminal-poc/app"
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/internal/completer"
+	"github.com/aardlabs/terminal-poc/internal/history"
 	"github.com/aardlabs/terminal-poc/kmd"
 	"github.com/aardlabs/terminal-poc/snippet"
 	"github.com/c-bata/go-prompt"
@@ -14,6 +15,7 @@ import (
 type Context struct {
 	Cfg      *config.Config
 	GraphCtx *snippet.Context
+	history  history.History
 }
 
 func (ctx *Context) NewRootCmd() *cobra.Command {
@@ -28,12 +30,23 @@ type repl struct {
 }
 
 func newRepl(cfg *config.Config) (*repl, error) {
+	h, err := history.New(fmt.Sprintf("%s/repl.json", history.HistoryDir))
+	if err != nil {
+		return nil, err
+	}
+	histEntries, err := h.GetAll()
+	if err != nil {
+		return nil, err
+	}
+
 	ctx := &Context{
 		Cfg:      cfg,
 		GraphCtx: snippet.NewContext(cfg, app.Version),
+		history:  h,
 	}
 
-	c := completer.NewCobraCommandCompleter(ctx.NewRootCmd())
+	rootCmd := ctx.NewRootCmd()
+	c := completer.NewCobraCommandCompleter(rootCmd)
 	r := NewRunner(ctx)
 	fmt.Printf("%s %s (service: %s)\n", app.Name,
 		ctx.GraphCtx.Metadata.Agent,
@@ -47,6 +60,9 @@ func newRepl(cfg *config.Config) (*repl, error) {
 		prompt.OptionPrefix(fmt.Sprintf("%s >>> ", app.Name)),
 		prompt.OptionPrefixTextColor(prompt.White),
 		prompt.OptionInputTextColor(prompt.Yellow),
+		// Note: this option does not work well with history (bug) -
+		//prompt.OptionCompletionOnDown(),
+		prompt.OptionHistory(histEntries),
 		//prompt.OptionCompletionWordSeparator(completer.FilePathCompletionSeparator),
 	)
 
