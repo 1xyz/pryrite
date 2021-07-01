@@ -4,13 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
-	"os/signal"
 	"regexp"
 	"strconv"
 	"sync"
-	"syscall"
 
+	"github.com/aardlabs/terminal-poc/app"
 	"github.com/aardlabs/terminal-poc/tools"
 )
 
@@ -28,16 +26,8 @@ var (
 func NewRegister() (*Register, error) {
 	r := &Register{}
 
-	// do our best to kill/reap children when interrupted
-	shutdown := make(chan os.Signal, 1)
-	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		sig := <-shutdown
-		tools.Log.Info().Msgf("shutdown signal received %v", sig)
-		signal.Stop(shutdown)
-		r.Cleanup()
-		os.Exit(2)
-	}()
+	// do our best to kill/reap children before exiting
+	app.AtExit(r.Cleanup)
 
 	return r, nil
 }

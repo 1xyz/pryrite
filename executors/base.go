@@ -39,6 +39,7 @@ type BaseExecutor struct {
 	// callbacks for replacing parts of the base logic
 	prepareCmd func(stdout, stderr io.WriteCloser, usePty bool) (execReadyCh, error)
 	prepareIO  func(*ExecRequest, bool) (resultReadyCh, error)
+	cancel     func()
 	clearIO    func(bool)
 	cleanup    func(bool)
 }
@@ -97,6 +98,10 @@ func (be *BaseExecutor) Execute(ctx context.Context, req *ExecRequest) *ExecResp
 		}
 	}()
 
+	canceler := &Canceler{}
+	canceler.OnCancel(be.cancel)
+	defer canceler.Stop()
+
 	tools.Log.Debug().Str("name", be.Name()).Str("id", req.Hdr.ID).Str("command", string(req.Content)).
 		Str("contentType", req.ContentType.String()).Int("skip", int(be.skipCount)).Bool("pty", usePty).
 		Msg("Executing")
@@ -144,6 +149,7 @@ func (be *BaseExecutor) Cleanup() {
 func (be *BaseExecutor) setDefaults() {
 	be.prepareCmd = be.defaultPrepareCmd
 	be.prepareIO = be.defaultPrepareIO
+	be.cancel = be.defaultCancel
 	be.clearIO = be.defaultClearIO
 	be.cleanup = be.defaultCleanup
 }
@@ -301,6 +307,12 @@ func (be *BaseExecutor) defaultPrepareCmd(stdout, stderr io.WriteCloser, usePty 
 	execReady <- nil
 
 	return execReady, nil
+}
+
+func (be *BaseExecutor) defaultCancel() {
+	if be.isRunning {
+		stopKill(be.execCmd.Process)
+	}
 }
 
 func (be *BaseExecutor) defaultPrepareIO(req *ExecRequest, isExecCmd bool) (resultReadyCh, error) {

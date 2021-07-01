@@ -3,13 +3,13 @@ package main
 import (
 	_ "embed"
 	"fmt"
-	"github.com/aardlabs/terminal-poc/repl"
 	"os"
 	"strings"
 
 	"github.com/aardlabs/terminal-poc/app"
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/kmd"
+	"github.com/aardlabs/terminal-poc/repl"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/aardlabs/terminal-poc/update"
 )
@@ -24,6 +24,8 @@ var (
 )
 
 func main() {
+	defer app.BeforeExit()
+
 	app.Name = "aardy"
 	app.UsageName = app.Name
 	app.Version = strings.TrimSpace(version)
