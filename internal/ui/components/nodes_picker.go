@@ -48,6 +48,7 @@ func RenderNodesPicker(entry *config.Entry, nodes []graph.Node, header string, p
 		Templates: templates,
 		Size:      pageSize,
 		Searcher:  searcher,
+		Stdout:    newBellSkipper(),
 	}
 
 	if startIndex >= 0 {

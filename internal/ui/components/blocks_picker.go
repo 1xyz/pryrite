@@ -52,6 +52,7 @@ func RenderBlockPicker(entries BlockPickList, header string, pageSize, startInde
 		Templates: templates,
 		Size:      pageSize,
 		Searcher:  searcher,
+		Stdout:    &bellSkipper{},
 	}
 
 	if startIndex >= 0 {
