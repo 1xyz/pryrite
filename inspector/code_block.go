@@ -90,11 +90,7 @@ func (c *codeBlock) RunBlock() {
 	c.runner.SetExecutionUpdateFn(func(entry *log.ResultLogEntry) {
 		logResultLogEntry(entry)
 		switch entry.State {
-		case log.ExecStateCompleted, log.ExecStateCanceled:
-			doneCh <- true
-			close(doneCh)
-		case log.ExecStateFailed:
-			tools.LogStdError("\U0000274C Execution failed; %s\n", entry.Err)
+		case log.ExecStateCompleted, log.ExecStateFailed:
 			doneCh <- true
 			close(doneCh)
 		default:
@@ -165,4 +161,24 @@ func logResultLogEntry(entry *log.ResultLogEntry) {
 		entry.BlockID,
 		entry.State,
 		entry.Err)
+	displayResultLogEntry(entry)
+}
+
+func displayResultLogEntry(entry *log.ResultLogEntry) {
+	switch entry.State {
+	case log.ExecStateCompleted:
+		exitInfo := ""
+		if len(entry.ExitStatus) > 0 {
+			exitInfo = fmt.Sprintf("exit-status: [%s]", entry.ExitStatus)
+		}
+		tools.LogStdout("\U00002705 Execution completed; %s\n", exitInfo)
+	case log.ExecStateCanceled, log.ExecStateFailed:
+		exitInfo := ""
+		if len(entry.ExitStatus) > 0 {
+			exitInfo = fmt.Sprintf("exit-status: [%s]", entry.ExitStatus)
+		}
+		tools.LogStdError("\U0000274C Execution %s; %s %s\n", entry.State, entry.Err, exitInfo)
+	default:
+		// do nothing
+	}
 }
