@@ -2,7 +2,9 @@ package inspector
 
 import (
 	"fmt"
+
 	"github.com/aardlabs/terminal-poc/internal/history"
+	"github.com/aardlabs/terminal-poc/markdown"
 
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/internal/ui/components"
@@ -123,16 +125,18 @@ func (n *NodeInspector) populateCodeBlocks(p *graph.NodeView, prefix string) {
 	}
 }
 
-func md(content, style string) string {
-	mr, err := tools.NewMarkdownRenderer(style)
+func md(content, style string, cursor *markdown.Cursor) string {
+	mr, err := markdown.NewLinenumRenderer(style)
 	if err != nil {
 		tools.LogStderr(err, "md: NewTermRender:")
 		return content
 	}
-	out, err := mr.Render(content)
+
+	result, err := mr.Render(content, cursor)
 	if err != nil {
 		tools.LogStderr(err, "md: tr.Render(node.Markdown):")
 		return content
 	}
-	return out
+
+	return result
 }

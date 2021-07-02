@@ -2,10 +2,12 @@ package common
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/graph"
+	"github.com/aardlabs/terminal-poc/markdown"
 	"github.com/aardlabs/terminal-poc/tools"
-	"strings"
 )
 
 // CreateNodeSummary tries to pick the first available attribute as
@@ -27,7 +29,7 @@ func CreateNodeSummary(n *graph.Node) string {
 
 // GenerateNodeMarkdown uses the prescribed style to return a console ready markdown doc.
 func GenerateNodeMarkdown(n *graph.Node, style string) string {
-	mr, err := tools.NewMarkdownRenderer(style)
+	mr, err := markdown.NewTermRenderer(style)
 	if err != nil {
 		tools.LogStderr(err, "renderNodeView: NewTermRender:")
 		return n.Markdown

@@ -2,7 +2,6 @@ package inspector
 
 import (
 	"fmt"
-	"github.com/aardlabs/terminal-poc/internal/history"
 	"os"
 	"os/signal"
 	"strings"
@@ -11,8 +10,11 @@ import (
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/graph/log"
 	"github.com/aardlabs/terminal-poc/internal/completer"
+	"github.com/aardlabs/terminal-poc/internal/history"
+	"github.com/aardlabs/terminal-poc/markdown"
 	"github.com/aardlabs/terminal-poc/run"
 	"github.com/aardlabs/terminal-poc/tools"
+
 	"github.com/c-bata/go-prompt"
 )
 
@@ -146,14 +148,16 @@ func (c *codeBlock) RunBlock() {
 }
 
 func (c *codeBlock) WhereAmI() {
+	cursor := &markdown.Cursor{}
 	sb := strings.Builder{}
 	for _, block := range c.node.Blocks {
 		if block.ID == c.block.ID {
-			sb.WriteString("\U0001F449 \U0001F449 ")
+			cursor.Start = sb.Len()
+			cursor.Stop = cursor.Start + len(block.Content)
 		}
 		sb.WriteString(block.Content)
 	}
-	fmt.Println(md(sb.String(), ""))
+	fmt.Println(md(sb.String(), "", cursor))
 }
 
 func (c *codeBlock) String() string {

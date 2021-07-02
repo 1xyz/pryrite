@@ -2,14 +2,16 @@ package snippet
 
 import (
 	"fmt"
+	"io"
+	"os"
+
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/internal/common"
+	"github.com/aardlabs/terminal-poc/markdown"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/rs/zerolog/log"
-	"io"
-	"os"
 )
 
 const (
@@ -80,7 +82,7 @@ func (nr *nodeRender) renderNodeView(nv *graph.NodeView, w io.Writer) {
 	t.AppendSeparator()
 	t.Render()
 
-	mr, err := tools.NewMarkdownRenderer(nr.style)
+	mr, err := markdown.NewTermRenderer(nr.style)
 	if err != nil {
 		tools.LogStderr(err, "renderNodeView: NewTermRender:")
 		return

@@ -1,7 +1,6 @@
-package tools
+package markdown
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/charmbracelet/glamour"
@@ -14,11 +13,7 @@ import (
 	"github.com/yuin/goldmark/util"
 )
 
-type MarkdownRenderer struct {
-	ar *ansi.ANSIRenderer
-}
-
-func NewMarkdownRenderer(styleName string) (*MarkdownRenderer, error) {
+func NewAnsiRenderer(styleName string) (*ansi.ANSIRenderer, error) {
 	var style *ansi.StyleConfig
 
 	if styleName == "" {
@@ -30,22 +25,15 @@ func NewMarkdownRenderer(styleName string) (*MarkdownRenderer, error) {
 		}
 	}
 
-	return &MarkdownRenderer{
-		ar: ansi.NewRenderer(ansi.Options{
-			ColorProfile: termenv.TrueColor,
-			Styles:       *style,
-		}),
-	}, nil
+	return ansi.NewRenderer(ansi.Options{
+		ColorProfile: termenv.TrueColor,
+		Styles:       *style,
+	}), nil
 }
 
-func (mr *MarkdownRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
-	mr.ar.RegisterFuncs(reg)
-}
-
-func (mr *MarkdownRenderer) Render(content string) (string, error) {
-	rend := renderer.NewRenderer(renderer.WithNodeRenderers(util.Prioritized(mr, 1)))
-
-	md := goldmark.New(
+func NewMarkdown(r interface{}) goldmark.Markdown {
+	rend := renderer.NewRenderer(renderer.WithNodeRenderers(util.Prioritized(r, 1)))
+	return goldmark.New(
 		goldmark.WithExtensions(
 			extension.GFM,
 			extension.DefinitionList,
@@ -55,9 +43,4 @@ func (mr *MarkdownRenderer) Render(content string) (string, error) {
 		),
 		goldmark.WithRenderer(rend),
 	)
-
-	buf := &bytes.Buffer{}
-	err := md.Convert([]byte(content), buf)
-
-	return buf.String(), err
 }
