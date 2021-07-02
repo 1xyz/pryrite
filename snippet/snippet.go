@@ -36,6 +36,18 @@ func NewContext(cfg *config.Config, agent string) *Context {
 type Context struct {
 	ConfigEntry *config.Entry
 	Metadata    *graph.Metadata
+	store       graph.Store
+}
+
+func (c *Context) GetStore() (graph.Store, error) {
+	if c.store == nil {
+		s, err := NewStoreFromContext(c)
+		if err != nil {
+			return nil, err
+		}
+		c.store = s
+	}
+	return c.store, nil
 }
 
 func GetSnippetNode(ctx *Context, id string) (*graph.Node, error) {
@@ -44,7 +56,10 @@ func GetSnippetNode(ctx *Context, id string) (*graph.Node, error) {
 		return nil, err
 	}
 
-	store := graph.NewStore(ctx.ConfigEntry, ctx.Metadata)
+	store, err := ctx.GetStore()
+	if err != nil {
+		return nil, err
+	}
 	n, err := store.GetNode(id)
 	if err != nil {
 		ctxMsg := fmt.Sprintf("GetSnippetNode(%s) = %v", id, err)
@@ -60,8 +75,11 @@ func GetSnippetNode(ctx *Context, id string) (*graph.Node, error) {
 }
 
 func UpdateSnippetNode(ctx *Context, n *graph.Node) error {
-	store := graph.NewStore(ctx.ConfigEntry, ctx.Metadata)
-	err := store.UpdateNode(n)
+	store, err := ctx.GetStore()
+	if err != nil {
+		return err
+	}
+	err = store.UpdateNode(n)
 	if err != nil {
 		ctxMsg := fmt.Sprintf("UpdateSnippetNode(%s) = %v", n.ID, err)
 		var ghe *graph.HttpError
@@ -76,8 +94,11 @@ func UpdateSnippetNode(ctx *Context, n *graph.Node) error {
 }
 
 func UpdateNodeBlock(ctx *Context, n *graph.Node, b *graph.Block) error {
-	store := graph.NewStore(ctx.ConfigEntry, ctx.Metadata)
-	err := store.UpdateNodeBlock(n, b)
+	store, err := ctx.GetStore()
+	if err != nil {
+		return err
+	}
+	err = store.UpdateNodeBlock(n, b)
 	if err != nil {
 		ctxMsg := fmt.Sprintf("UpdateNodeBlock(%s) = %v", n.ID, err)
 		var ghe *graph.HttpError
@@ -92,8 +113,14 @@ func UpdateNodeBlock(ctx *Context, n *graph.Node, b *graph.Block) error {
 }
 
 func SearchSnippetNodes(ctx *Context, query string, limit int, kind graph.Kind) ([]graph.Node, error) {
-	ctxMsg := fmt.Sprintf("SearchSnippetNodes query=%s(limit=%d, kind=%v)", query, limit, kind)
-	store := graph.NewStore(ctx.ConfigEntry, ctx.Metadata)
+	ctxMsg := fmt.Sprintf("SearchSnippetNodes query=%s(limit=%d, kind=%v)",
+		query, limit, kind)
+
+	store, err := ctx.GetStore()
+	if err != nil {
+		return nil, err
+	}
+
 	n, err := store.SearchNodes(query, limit, kind)
 	if err != nil {
 		var ghe *graph.HttpError
@@ -110,7 +137,12 @@ func SearchSnippetNodes(ctx *Context, query string, limit int, kind graph.Kind) 
 
 func GetSnippetNodes(ctx *Context, limit int, kind graph.Kind) ([]graph.Node, error) {
 	ctxMsg := fmt.Sprintf("GetSnippetNodes(limit=%d, kind=%v)", limit, kind)
-	store := graph.NewStore(ctx.ConfigEntry, ctx.Metadata)
+
+	store, err := ctx.GetStore()
+	if err != nil {
+		return nil, err
+	}
+
 	n, err := store.GetNodes(limit, kind)
 	if err != nil {
 		var ghe *graph.HttpError
@@ -126,7 +158,11 @@ func GetSnippetNodes(ctx *Context, limit int, kind graph.Kind) ([]graph.Node, er
 }
 
 func AddSnippetNode(ctx *Context, content string, contentType string) (*graph.Node, error) {
-	store := graph.NewStore(ctx.ConfigEntry, ctx.Metadata)
+	store, err := ctx.GetStore()
+	if err != nil {
+		return nil, err
+	}
+
 	n, err := graph.NewNode(graph.Command, content, contentType, *ctx.Metadata)
 	if err != nil {
 		return nil, err
@@ -269,7 +305,11 @@ func GetSnippetNodeViewWithChildren(ctx *Context, id string) (*graph.NodeView, e
 		return nil, err
 	}
 
-	store := graph.NewStore(ctx.ConfigEntry, ctx.Metadata)
+	store, err := ctx.GetStore()
+	if err != nil {
+		return nil, err
+	}
+
 	nv, err := GetSnippetNodeView(store, id)
 	if err != nil {
 		return nil, err

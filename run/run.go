@@ -73,7 +73,7 @@ func NewRun(gCtx *snippet.Context, playbookIDOrURL string) (*Run, error) {
 		return nil, err
 	}
 
-	store, err := snippet.NewStoreFromContext(gCtx)
+	store, err := gCtx.GetStore()
 	if err != nil {
 		return nil, err
 	}
@@ -117,9 +117,11 @@ func NewRun(gCtx *snippet.Context, playbookIDOrURL string) (*Run, error) {
 		spin.Stop()
 	}()
 
+	start := time.Now()
 	if err := run.buildGraph(); err != nil {
 		return nil, err
 	}
+	tools.TimeTrack(start, "run.buildGraph")
 
 	return run, nil
 }
@@ -127,6 +129,7 @@ func NewRun(gCtx *snippet.Context, playbookIDOrURL string) (*Run, error) {
 func (r *Run) buildGraph() error {
 	// fetch the node
 	view, err := r.getNodeView(r.PlaybookID)
+
 	if err != nil {
 		return err
 	}
@@ -135,12 +138,18 @@ func (r *Run) buildGraph() error {
 	q := list.New()
 	q.PushBack(view)
 
+	var fetchDuration time.Duration
+	s1 := time.Now()
 	for q.Len() > 0 {
+
 		e := q.Front()
 		parentView := e.Value.(*graph.NodeView)
 		q.Remove(e)
 
+		s3 := time.Now()
 		children, err := r.Store.GetChildren(parentView.Node.ID)
+		tools.TimeTrack(s3, "r.Store.GetChildren"+parentView.Node.ID)
+		fetchDuration += time.Since(s3)
 		if err != nil {
 			return err
 		}
@@ -155,6 +164,8 @@ func (r *Run) buildGraph() error {
 			q.PushBack(&childView)
 		}
 	}
+	tools.TimeTrack(s1, "queue stuff")
+	tools.Log.Info().Msgf("FetchDuration for get children %v", fetchDuration)
 
 	return nil
 }

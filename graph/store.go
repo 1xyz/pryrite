@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -55,12 +57,34 @@ type ErrorResponse struct {
 type remoteStore struct {
 	configEntry *config.Entry
 	m           *Metadata
+	client      *http.Client
 }
 
 func NewStore(configEntry *config.Entry, metadata *Metadata) Store {
+	skipSSLCheck := configEntry.SkipSSLCheck
+	if skipSSLCheck {
+		tools.Log.Warn().Msg("Warning: SSL check is disabled")
+	}
+
+	client := &http.Client{
+		Transport: &http.Transport{
+			DialContext: (&net.Dialer{
+				Timeout:   dialTimeout,
+				KeepAlive: KeepAliveTimeout,
+			}).DialContext,
+			ForceAttemptHTTP2:     true,
+			MaxIdleConnsPerHost:   maxIdleConnsPerHost,
+			TLSClientConfig:       &tls.Config{InsecureSkipVerify: skipSSLCheck},
+			IdleConnTimeout:       idleConnTimeout,
+			TLSHandshakeTimeout:   tlsHandshakeTimeout,
+			ExpectContinueTimeout: expectContinueTimeout,
+		},
+		Timeout: clientTimeout,
+	}
 	return &remoteStore{
 		configEntry: configEntry,
 		m:           metadata,
+		client:      client,
 	}
 }
 
@@ -102,6 +126,7 @@ func (r *remoteStore) GetNode(id string) (*Node, error) {
 			"view":    "text",
 		})
 	resp, err := req.Get("/api/v1/nodes/{nodeId}")
+	defer resp.RawBody().Close()
 	if err != nil {
 		return nil, fmt.Errorf("http.get err: %v", err)
 	}
@@ -116,6 +141,8 @@ func (r *remoteStore) GetNode(id string) (*Node, error) {
 }
 
 func (r *remoteStore) GetNodeView(id string) (*NodeView, error) {
+	defer tools.TimeTrack(time.Now(), "GetNodeView")
+
 	node, err := r.GetNode(id)
 	if err != nil {
 		return nil, fmt.Errorf("http.get err: %v", err)
@@ -135,6 +162,7 @@ func (r *remoteStore) AddNode(n *Node) (*Node, error) {
 		SetBody(n).
 		SetResult(&result).
 		Post("/api/v1/nodes")
+	defer resp.RawBody().Close()
 	if err != nil {
 		return nil, fmt.Errorf("http.post err: %v", err)
 	}
@@ -150,6 +178,7 @@ func (r *remoteStore) UpdateNode(n *Node) error {
 		SetPathParam("nodeId", n.ID).
 		SetBody(n).
 		Put("/api/v1/nodes/{nodeId}")
+	defer resp.RawBody().Close()
 	if err != nil {
 		return fmt.Errorf("http.put err: %v", err)
 	}
@@ -167,6 +196,7 @@ func (r *remoteStore) GetChildren(parentID string) ([]Node, error) {
 			"include": "blocks",
 		})
 	resp, err := req.Get("/api/v1/nodes/{parentID}/children")
+	defer resp.RawBody().Close()
 	if err != nil {
 		return nil, fmt.Errorf("http.get err: %v", err)
 	}
@@ -233,15 +263,10 @@ func (r *remoteStore) UpdateNodeBlock(n *Node, b *Block) error {
 }
 
 func (r *remoteStore) newHTTPClient(parseResponse bool) *resty.Client {
-	skipSSLCheck := r.configEntry.SkipSSLCheck
-	if skipSSLCheck {
-		tools.Log.Warn().Msg("Warning: SSL check is disabled")
-	}
-	return resty.New().
-		SetTLSClientConfig(&tls.Config{InsecureSkipVerify: skipSSLCheck}).
+
+	return resty.NewWithClient(r.client).
 		SetDoNotParseResponse(!parseResponse).
 		SetHostURL(r.configEntry.ServiceUrl).
-		SetTimeout(clientTimeout).
 		SetHeaders(map[string]string{
 			"Authorization": fmt.Sprintf("%s %s", r.configEntry.AuthScheme, r.configEntry.User),
 			"Accept":        "application/json",

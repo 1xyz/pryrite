@@ -164,6 +164,11 @@ func LogStderrExit(err error, format string, v ...interface{}) {
 	os.Exit(1)
 }
 
+func TimeTrack(start time.Time, name string) {
+	elapsed := time.Since(start)
+	Log.Printf("%s took %s", name, elapsed)
+}
+
 var Trace = func(label string, msg string, vals ...interface{}) {}
 
 func traceLog(label, msg string, vals ...interface{}) {
