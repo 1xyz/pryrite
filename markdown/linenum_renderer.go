@@ -15,7 +15,8 @@ func NewLinenumRenderer(styleName string) (*LinenumRenderer, error) {
 
 func (lr *LinenumRenderer) Render(content string, cursor *Cursor) (string, error) {
 	cp := termenv.ColorProfile()
-	indicator := termenv.String("🡆 ").Foreground(cp.Color("#ff0000")).Bold()
+	arrow := "\U000025AC\U000025B6 " // BLACK RECTANGLE followed by BLACK RIGHT-POINTING TRIANGLE
+	indicator := termenv.String(arrow).Foreground(cp.Color("#ff0000")).Bold()
 	writer := NewLinenumWriter(1, 10, indicator.String(), cursor)
 	writer.SetIndicatorWidth(indicator.Width())
 	content = writer.MarkCursorLocation(content)
