@@ -2,6 +2,7 @@ package inspector
 
 import (
 	"fmt"
+	"github.com/aardlabs/terminal-poc/internal/history"
 	"os"
 	"os/signal"
 	"strings"
@@ -15,7 +16,7 @@ import (
 	"github.com/c-bata/go-prompt"
 )
 
-func newCodeBlock(index int, prefix string, b *graph.Block, n *graph.Node, r *run.Run) *codeBlock {
+func newCodeBlock(index int, prefix string, b *graph.Block, n *graph.Node, r *run.Run, h history.History) *codeBlock {
 	return &codeBlock{
 		index:      index,
 		block:      b,
@@ -23,6 +24,7 @@ func newCodeBlock(index int, prefix string, b *graph.Block, n *graph.Node, r *ru
 		exitAction: nil,
 		prefix:     prefix,
 		runner:     r,
+		hist:       h,
 	}
 }
 
@@ -44,10 +46,18 @@ type codeBlock struct {
 
 	// prefix is the prompt prefix string
 	prefix string
+
+	// history used when executing commands with this codeblock
+	hist history.History
 }
 
 func (c *codeBlock) OpenRepl() {
 	c.SetExitAction(nil)
+	histEntries, _ := c.hist.GetAll()
+	if histEntries == nil {
+		histEntries = []string{}
+	}
+
 	cc := completer.NewCobraCommandCompleter(newRootCmd(c))
 	prefix := fmt.Sprintf("[Step %d of %d]", c.index+1, c.nBlocks)
 	pt := prompt.New(
@@ -60,6 +70,7 @@ func (c *codeBlock) OpenRepl() {
 		prompt.OptionSetExitCheckerOnInput(func(in string, breakline bool) bool {
 			return c.exitAction != nil
 		}),
+		prompt.OptionHistory(histEntries),
 	)
 
 	c.WhereAmI()
@@ -75,7 +86,12 @@ func (c *codeBlock) handleCommand(s string) {
 	cmd := newRootCmd(c)
 	cmd.SetArgs(strings.Split(s, " "))
 	// allow cobra to handle this
-	cmd.Execute()
+	err := cmd.Execute()
+	if err == nil {
+		if err := c.hist.Append(s); err != nil {
+			tools.Log.Err(err).Msgf("handleCommand: appendHistory:")
+		}
+	}
 }
 
 func (c *codeBlock) SetNBlocks(nblocks int)            { c.nBlocks = nblocks }

@@ -2,6 +2,7 @@ package inspector
 
 import (
 	"fmt"
+	"github.com/aardlabs/terminal-poc/internal/history"
 
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/internal/ui/components"
@@ -75,9 +76,15 @@ func NewNodeInspector(graphCtx *snippet.Context, nodeID string) (*NodeInspector,
 		return nil, err
 	}
 
+	hist, err := history.New(fmt.Sprintf("%s/%s.json", history.HistoryDir, nodeID))
+	if err != nil {
+		return nil, err
+	}
+
 	ni := &NodeInspector{
 		runner:     r,
 		codeBlocks: []*codeBlock{},
+		hist:       hist,
 	}
 	ni.populateCodeBlocks(r.Root, "")
 	for _, b := range ni.codeBlocks {
@@ -89,6 +96,7 @@ func NewNodeInspector(graphCtx *snippet.Context, nodeID string) (*NodeInspector,
 type NodeInspector struct {
 	runner     *run.Run
 	codeBlocks []*codeBlock
+	hist       history.History
 }
 
 // populateCodeBlocks Flatten the tree into a list in a pre-order
@@ -104,7 +112,7 @@ func (n *NodeInspector) populateCodeBlocks(p *graph.NodeView, prefix string) {
 			}
 			curIndex := len(n.codeBlocks)
 			n.codeBlocks = append(n.codeBlocks,
-				newCodeBlock(curIndex, pfx, node.Blocks[i], node, n.runner))
+				newCodeBlock(curIndex, pfx, node.Blocks[i], node, n.runner, n.hist))
 		}
 	}
 
