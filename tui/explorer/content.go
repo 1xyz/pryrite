@@ -2,7 +2,7 @@ package explorer
 
 import (
 	"github.com/aardlabs/terminal-poc/graph"
-	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/aardlabs/terminal-poc/markdown"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -16,7 +16,7 @@ func (c *contentView) SetNode(n *graph.Node) {
 	c.Clear()
 
 	gCtx := c.rootUI.GetContext()
-	mr, err := tools.NewMarkdownRenderer(gCtx.ConfigEntry.Style)
+	mr, err := markdown.NewTermRenderer(gCtx.ConfigEntry.Style)
 	if err != nil {
 		c.rootUI.StatusErrorf("NewTermRenderer err =  %v", err)
 		return

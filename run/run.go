@@ -10,6 +10,7 @@ import (
 
 	"github.com/briandowns/spinner"
 	"github.com/google/uuid"
+	"github.com/muesli/termenv"
 	"github.com/pkg/errors"
 	"go.uber.org/atomic"
 
@@ -111,10 +112,13 @@ func NewRun(gCtx *snippet.Context, playbookIDOrURL string) (*Run, error) {
 	spin := spinner.New(spinner.CharSets[70], 100*time.Millisecond)
 	spin.Color("white")
 	spin.Start()
-	spin.Suffix = "Fetching node content from service..."
+	spin.Suffix = "Fetching content from service..."
 	defer func() {
-		spin.Suffix += "[Completed]"
+		spin.FinalMSG = "[Completed]"
 		spin.Stop()
+		time.Sleep(300 * time.Millisecond) // teeny wait to let them see the message
+		termenv.ClearLine()
+		fmt.Print("\r") // not sure why this is needed, but clearline leaves the cursor position untouched
 	}()
 
 	start := time.Now()

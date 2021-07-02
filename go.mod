@@ -18,7 +18,7 @@ require (
 	github.com/manifoldco/promptui v0.8.0
 	github.com/mattn/go-runewidth v0.0.12 // indirect
 	github.com/mattn/go-shellwords v1.0.12
-	github.com/muesli/reflow v0.2.1-0.20210115123740-9e1d0d53df68 // indirect
+	github.com/muesli/reflow v0.2.1-0.20210115123740-9e1d0d53df68
 	github.com/muesli/termenv v0.8.1
 	github.com/pkg/errors v0.9.1
 	github.com/rivo/tview v0.0.0-20210521091241-1fd4a5b7aab3
@@ -29,6 +29,7 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/yuin/goldmark v1.3.3
 	go.uber.org/atomic v1.8.0
+	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/term v0.0.0-20210503060354-a79de5458b56
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/yaml.v2 v2.4.0
