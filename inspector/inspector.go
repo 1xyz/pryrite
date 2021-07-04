@@ -3,14 +3,17 @@ package inspector
 import (
 	"fmt"
 
-	"github.com/aardlabs/terminal-poc/internal/history"
-	"github.com/aardlabs/terminal-poc/markdown"
-
 	"github.com/aardlabs/terminal-poc/graph"
+	"github.com/aardlabs/terminal-poc/internal/completer"
+	"github.com/aardlabs/terminal-poc/internal/history"
 	"github.com/aardlabs/terminal-poc/internal/ui/components"
+	"github.com/aardlabs/terminal-poc/markdown"
 	"github.com/aardlabs/terminal-poc/run"
 	"github.com/aardlabs/terminal-poc/snippet"
 	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/spf13/cobra"
+
+	"github.com/c-bata/go-prompt"
 )
 
 func InspectNode(gCtx *snippet.Context, nodeID string) error {
@@ -26,49 +29,8 @@ func InspectNode(gCtx *snippet.Context, nodeID string) error {
 	defer func() {
 		ni.runner.Shutdown()
 	}()
-	i := 0
-	for {
-		if i >= len(ni.codeBlocks) {
-			break
-		}
 
-		currentBlock := ni.codeBlocks[i]
-		currentBlock.OpenRepl()
-
-		nextAction, found := currentBlock.GetExitAction()
-		if !found {
-			break
-		}
-
-		if nextAction.Action == BlockActionQuit {
-			break
-		}
-
-		switch nextAction.Action {
-		case BlockActionNext:
-			i++
-		case BlockActionPrev:
-			i--
-			if i <= 0 {
-				i = 0
-			}
-		case BlockActionJump:
-			entries := components.BlockPickList{}
-			for j := range ni.codeBlocks {
-				entries = append(entries, ni.codeBlocks[j])
-			}
-
-			selEntry, err := components.RenderBlockPicker(entries, "Switch to code-block", 10, i)
-			if err != nil {
-				if err != components.ErrNoEntryPicked {
-					tools.LogStdError("RenderBlockPicker err = %v", err)
-					return err
-				}
-			} else {
-				i = selEntry.Index()
-			}
-		}
-	}
+	ni.openRepl()
 	return nil
 }
 
@@ -84,9 +46,10 @@ func NewNodeInspector(graphCtx *snippet.Context, nodeID string) (*NodeInspector,
 	}
 
 	ni := &NodeInspector{
-		runner:     r,
-		codeBlocks: []*codeBlock{},
-		hist:       hist,
+		runner:       r,
+		codeBlocks:   []*codeBlock{},
+		codeBlockPos: 0,
+		hist:         hist,
 	}
 	ni.populateCodeBlocks(r.Root, "")
 	for _, b := range ni.codeBlocks {
@@ -96,9 +59,85 @@ func NewNodeInspector(graphCtx *snippet.Context, nodeID string) (*NodeInspector,
 }
 
 type NodeInspector struct {
-	runner     *run.Run
-	codeBlocks []*codeBlock
-	hist       history.History
+	runner       *run.Run
+	codeBlocks   []*codeBlock
+	codeBlockPos int
+	hist         history.History
+}
+
+func (n *NodeInspector) NewRootCmd() *cobra.Command {
+	return newRootCmd(n)
+}
+
+func (n *NodeInspector) HistoryAppend(cmd string) error {
+	return n.hist.Append(cmd)
+}
+
+func (n *NodeInspector) openRepl() {
+	runner := tools.NewRunner(n)
+	cc := completer.NewCobraCommandCompleter(newRootCmd(n))
+	pt := prompt.New(
+		runner.Execute,
+		cc.Complete,
+		prompt.OptionTitle("interactive inspector"),
+		prompt.OptionLivePrefix(n.updatePromptPrefix),
+		prompt.OptionPrefixTextColor(prompt.Green),
+		prompt.OptionInputTextColor(prompt.Yellow),
+	)
+
+	n.currentBlock().WhereAmI()
+
+	pt.Run()
+}
+
+func (n *NodeInspector) updatePromptPrefix() (string, bool) {
+	prefix := fmt.Sprintf("[Step %d of %d] >>> ", n.codeBlockPos+1, len(n.codeBlocks))
+	return prefix, true
+}
+
+func (n *NodeInspector) currentBlock() *codeBlock {
+	return n.codeBlocks[n.codeBlockPos]
+}
+
+func (n *NodeInspector) processAction(nextAction *BlockAction) {
+	if nextAction.Action == BlockActionQuit {
+		// FIXME quit!
+		return
+	}
+
+	switch nextAction.Action {
+	case BlockActionNext:
+		if n.codeBlockPos < len(n.codeBlocks)-1 {
+			n.codeBlockPos++
+		} else {
+			tools.LogStderr(nil, "Already at end\n")
+			return
+		}
+	case BlockActionPrev:
+		if n.codeBlockPos > 0 {
+			n.codeBlockPos--
+		} else {
+			tools.LogStderr(nil, "Already at begining\n")
+			return
+		}
+	case BlockActionJump:
+		entries := components.BlockPickList{}
+		for j := range n.codeBlocks {
+			entries = append(entries, n.codeBlocks[j])
+		}
+
+		selEntry, err := components.RenderBlockPicker(entries, "Switch to code-block", 10, n.codeBlockPos)
+		if err != nil {
+			if err != components.ErrNoEntryPicked {
+				tools.LogStdError("RenderBlockPicker err = %v", err)
+				return
+			}
+		} else {
+			n.codeBlockPos = selEntry.Index()
+		}
+	}
+
+	n.currentBlock().WhereAmI()
 }
 
 // populateCodeBlocks Flatten the tree into a list in a pre-order

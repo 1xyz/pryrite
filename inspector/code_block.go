@@ -9,13 +9,10 @@ import (
 
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/graph/log"
-	"github.com/aardlabs/terminal-poc/internal/completer"
 	"github.com/aardlabs/terminal-poc/internal/history"
 	"github.com/aardlabs/terminal-poc/markdown"
 	"github.com/aardlabs/terminal-poc/run"
 	"github.com/aardlabs/terminal-poc/tools"
-
-	"github.com/c-bata/go-prompt"
 )
 
 func newCodeBlock(index int, prefix string, b *graph.Block, n *graph.Node, r *run.Run, h history.History) *codeBlock {
@@ -53,6 +50,7 @@ type codeBlock struct {
 	hist history.History
 }
 
+/*
 func (c *codeBlock) OpenRepl() {
 	c.SetExitAction(nil)
 	histEntries, _ := c.hist.GetAll()
@@ -95,6 +93,7 @@ func (c *codeBlock) handleCommand(s string) {
 		}
 	}
 }
+*/
 
 func (c *codeBlock) SetNBlocks(nblocks int)            { c.nBlocks = nblocks }
 func (c *codeBlock) SetExitAction(action *BlockAction) { c.exitAction = action }

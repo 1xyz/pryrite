@@ -11,52 +11,52 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newRootCmd(b *codeBlock) *cobra.Command {
+func newRootCmd(n *NodeInspector) *cobra.Command {
 	var rootCmd = &cobra.Command{
 		Version: app.Version,
 		Use:     "",
 	}
 	// NOTE: these are actually handled/processed over in codeBlock.handleExitCmd()
-	rootCmd.AddCommand(newActionCmd(b, "next", []string{"n"}, "Navigate to the next code block"))
-	rootCmd.AddCommand(newActionCmd(b, "prev", []string{"p"}, "Navigate to the previous code block"))
-	rootCmd.AddCommand(newActionCmd(b, "jump", []string{"j"}, "Switch to another code block"))
-	rootCmd.AddCommand(newRunCmd(b))
-	rootCmd.AddCommand(NewCmdExecutor(b.runner.Register))
-	rootCmd.AddCommand(newWhereAmICmd(b))
-	rootCmd.AddCommand(newActionCmd(b, "quit", []string{"q", "exit"}, "Quit this session"))
+	rootCmd.AddCommand(newActionCmd(n, "next", []string{"n"}, "Navigate to the next code block"))
+	rootCmd.AddCommand(newActionCmd(n, "prev", []string{"p"}, "Navigate to the previous code block"))
+	rootCmd.AddCommand(newActionCmd(n, "jump", []string{"j"}, "Switch to another code block"))
+	rootCmd.AddCommand(newRunCmd(n))
+	rootCmd.AddCommand(NewCmdExecutor(n.runner.Register))
+	rootCmd.AddCommand(newWhereAmICmd(n))
+	rootCmd.AddCommand(newActionCmd(n, "quit", []string{"q", "exit"}, "Quit this session"))
 	return rootCmd
 }
 
-func newRunCmd(b *codeBlock) *cobra.Command {
+func newRunCmd(n *NodeInspector) *cobra.Command {
 	return &cobra.Command{
 		Use:     "run",
 		Aliases: []string{"r"},
 		Short:   "Run this code block",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			b.RunBlock()
+			n.currentBlock().RunBlock()
 			return nil
 		},
 	}
 }
 
-func newWhereAmICmd(b *codeBlock) *cobra.Command {
+func newWhereAmICmd(n *NodeInspector) *cobra.Command {
 	return &cobra.Command{
 		Use:   "whereami",
 		Short: "Show content surrounding the current context",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			b.WhereAmI()
+			n.currentBlock().WhereAmI()
 			return nil
 		},
 	}
 }
 
-func newActionCmd(b *codeBlock, use string, aliases []string, short string) *cobra.Command {
+func newActionCmd(n *NodeInspector, use string, aliases []string, short string) *cobra.Command {
 	return &cobra.Command{
 		Use:     use,
 		Aliases: aliases,
 		Short:   short,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			b.SetExitAction(NewBlockAction(use))
+			n.processAction(NewBlockAction(use))
 			return nil
 		},
 	}

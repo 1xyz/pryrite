@@ -1,6 +1,8 @@
 package markdown
 
-import "github.com/muesli/termenv"
+import (
+	"github.com/muesli/termenv"
+)
 
 type LinenumRenderer struct {
 	TermRenderer

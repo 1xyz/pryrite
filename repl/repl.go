@@ -2,12 +2,15 @@ package repl
 
 import (
 	"fmt"
+
 	"github.com/aardlabs/terminal-poc/app"
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/internal/completer"
 	"github.com/aardlabs/terminal-poc/internal/history"
 	"github.com/aardlabs/terminal-poc/kmd"
 	"github.com/aardlabs/terminal-poc/snippet"
+	"github.com/aardlabs/terminal-poc/tools"
+
 	"github.com/c-bata/go-prompt"
 	"github.com/spf13/cobra"
 )
@@ -22,10 +25,14 @@ func (ctx *Context) NewRootCmd() *cobra.Command {
 	return kmd.NewCmdRoot(ctx.Cfg)
 }
 
+func (ctx *Context) HistoryAppend(cmd string) error {
+	return ctx.history.Append(cmd)
+}
+
 type repl struct {
 	ctx       *Context
 	completer *completer.CobraCommandCompleter
-	runner    *Runner
+	runner    *tools.Runner
 	prompt    *prompt.Prompt
 }
 
@@ -47,7 +54,7 @@ func newRepl(cfg *config.Config) (*repl, error) {
 
 	rootCmd := ctx.NewRootCmd()
 	c := completer.NewCobraCommandCompleter(rootCmd)
-	r := NewRunner(ctx)
+	r := tools.NewRunner(ctx)
 	fmt.Printf("%s %s (service: %s)\n", app.Name,
 		ctx.GraphCtx.Metadata.Agent,
 		ctx.GraphCtx.ConfigEntry.ServiceUrl)
