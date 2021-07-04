@@ -50,51 +50,6 @@ type codeBlock struct {
 	hist history.History
 }
 
-/*
-func (c *codeBlock) OpenRepl() {
-	c.SetExitAction(nil)
-	histEntries, _ := c.hist.GetAll()
-	if histEntries == nil {
-		histEntries = []string{}
-	}
-
-	cc := completer.NewCobraCommandCompleter(newRootCmd(c))
-	prefix := fmt.Sprintf("[Step %d of %d]", c.index+1, c.nBlocks)
-	pt := prompt.New(
-		c.handleCommand,
-		cc.Complete,
-		prompt.OptionTitle("interactive inspector"),
-		prompt.OptionPrefix(fmt.Sprintf("%s >>> ", prefix)),
-		prompt.OptionPrefixTextColor(prompt.Green),
-		prompt.OptionInputTextColor(prompt.Yellow),
-		prompt.OptionSetExitCheckerOnInput(func(in string, breakline bool) bool {
-			return c.exitAction != nil
-		}),
-		prompt.OptionHistory(histEntries),
-	)
-
-	c.WhereAmI()
-	pt.Run()
-}
-
-func (c *codeBlock) handleCommand(s string) {
-	s = strings.TrimSpace(s)
-	if len(s) == 0 {
-		return
-	}
-
-	cmd := newRootCmd(c)
-	cmd.SetArgs(strings.Split(s, " "))
-	// allow cobra to handle this
-	err := cmd.Execute()
-	if err == nil {
-		if err := c.hist.Append(s); err != nil {
-			tools.Log.Err(err).Msgf("handleCommand: appendHistory:")
-		}
-	}
-}
-*/
-
 func (c *codeBlock) SetNBlocks(nblocks int)            { c.nBlocks = nblocks }
 func (c *codeBlock) SetExitAction(action *BlockAction) { c.exitAction = action }
 func (c *codeBlock) GetExitAction() (*BlockAction, bool) {

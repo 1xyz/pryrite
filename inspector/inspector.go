@@ -11,9 +11,9 @@ import (
 	"github.com/aardlabs/terminal-poc/run"
 	"github.com/aardlabs/terminal-poc/snippet"
 	"github.com/aardlabs/terminal-poc/tools"
-	"github.com/spf13/cobra"
 
 	"github.com/c-bata/go-prompt"
+	"github.com/spf13/cobra"
 )
 
 func InspectNode(gCtx *snippet.Context, nodeID string) error {
