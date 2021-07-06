@@ -12,7 +12,6 @@ import (
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/snippet"
 	"github.com/aardlabs/terminal-poc/tools"
-	"github.com/aardlabs/terminal-poc/tui/explorer"
 )
 
 type SnippetListOpts struct {
@@ -141,7 +140,6 @@ func NewCmdSnippetList(gCtx *snippet.Context) *cobra.Command {
 }
 
 func NewCmdSnippetDesc(gCtx *snippet.Context) *cobra.Command {
-	interactive := false
 	cmd := &cobra.Command{
 		Use:   "describe <name>",
 		Short: "Describe the specified Snippet",
@@ -171,27 +169,9 @@ func NewCmdSnippetDesc(gCtx *snippet.Context) *cobra.Command {
 				return err
 			}
 
-			if interactive {
-				nodePtrs := make([]*graph.Node, 1)
-				nodePtrs[0] = view.Node
-
-				ui, err := explorer.NewUI(gCtx, "nodes", "Node listing", nodePtrs)
-				if err != nil {
-					return err
-				}
-				if err := ui.Run(); err != nil {
-					return err
-				}
-			} else {
-				if err := snippet.RenderSnippetNodeView(gCtx.ConfigEntry, view); err != nil {
-					return err
-				}
-			}
-			return nil
+			return snippet.RenderSnippetNodeView(gCtx.ConfigEntry, view)
 		},
 	}
-	cmd.Flags().BoolVarP(&interactive, "interactive", "i",
-		false, "show an interactive UI for the described node")
 	return cmd
 }
 
@@ -289,22 +269,22 @@ func NewCmdSnippetEdit(gCtx *snippet.Context) *cobra.Command {
 	return cmd
 }
 
-func NewCmdSnippetInspect(gCtx *snippet.Context) *cobra.Command {
+func NewCmdSnippetRun(gCtx *snippet.Context) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "inspect <name>",
-		Short: "Inspect the content of the specified snippet",
+		Use:   "run <name>",
+		Short: "Interactively run the content of the specified snippet",
 		Long: examplef(`
               {AppName} inspect <name>, inspects the content of the specified snippet.
 
               Here, <name> can be the identifier or the URL of the snippet.
 
-              The inspect command allows you to directly interact with the content of a snippet.
+              The run command allows you to interactively view & run the content of a snippet.
         `),
 		Example: examplef(`
-            To inspect a specific snippet by URL, run:
+            To run a specific snippet by URL, run:
               $ {AppName} inspect https://aardy.app/edy6819l
 
-            To inspect a specific snippet by ID, run:
+            To run a specific snippet by ID, run:
               $ {AppName} inspect edy6819l
 		`),
 		Args: MinimumArgs(1, "no name specified"),
