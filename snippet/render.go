@@ -29,9 +29,9 @@ const (
 	idColLen = 60 + padLen
 )
 
-func RenderSnippetNodeView(entry *config.Entry, nv *graph.NodeView) error {
+func RenderSnippetNodeView(entry *config.Entry, n *graph.Node) error {
 	nr := &nodeRender{
-		view:       nv,
+		node:       n,
 		serviceURL: common.GetServiceURL(entry),
 		style:      entry.Style,
 	}
@@ -50,35 +50,28 @@ func RenderSnippetNodes(entry *config.Entry, nodes []graph.Node, kind graph.Kind
 }
 
 type nodeRender struct {
-	view       *graph.NodeView
+	node       *graph.Node
 	serviceURL string
 	style      string
 }
 
 func (nr *nodeRender) Render() {
 	w := os.Stdout
-	nr.renderNodeView(nr.view, w)
-	if nr.view.Children != nil && len(nr.view.Children) > 0 {
-		for _, child := range nr.view.Children {
+	nr.renderNodeView(nr.node, w)
+	if nr.node.ChildNodes != nil {
+		for _, child := range nr.node.ChildNodes {
 			nr.renderNodeView(child, w)
 		}
 	}
 
-	tools.Log.Info().Msgf("Render complete for node %v", nr.view.Node.ID)
+	tools.Log.Info().Msgf("Render complete for node %v", nr.node.ID)
 }
 
-func (nr *nodeRender) renderNodeView(nv *graph.NodeView, w io.Writer) {
-	nBlocks := 0
-	if nv.Node.HasBlocks() {
-		nBlocks = len(nv.Node.Blocks)
-	}
-
+func (nr *nodeRender) renderNodeView(n *graph.Node, w io.Writer) {
 	t := table.NewWriter()
 	t.SetStyle(table.StyleBold)
 	t.SetOutputMirror(w)
-	t.AppendRow(table.Row{"URL", common.GetNodeURL(nr.serviceURL, nv.Node.ID)})
-	t.AppendRow(table.Row{"Total-Blocks", nBlocks})
-	t.AppendRow(table.Row{"Created-On", tools.FmtTime(nv.Node.CreatedAt)})
+	t.AppendRow(table.Row{"URL", common.GetNodeURL(nr.serviceURL, n.ID)})
 	t.AppendSeparator()
 	t.Render()
 
@@ -87,7 +80,7 @@ func (nr *nodeRender) renderNodeView(nv *graph.NodeView, w io.Writer) {
 		tools.LogStderr(err, "renderNodeView: NewTermRender:")
 		return
 	}
-	out, err := mr.Render(nv.Node.Markdown)
+	out, err := mr.Render(n.Markdown)
 	if err != nil {
 		tools.LogStderr(err, "renderNodeView: tr.Render(node.Markdown):")
 		return
@@ -97,7 +90,7 @@ func (nr *nodeRender) renderNodeView(nv *graph.NodeView, w io.Writer) {
 		return
 	}
 
-	tools.Log.Info().Msgf("renderNodeView: id=%v complete", nv.Node.ID)
+	tools.Log.Info().Msgf("renderNodeView: id=%v complete", n.ID)
 }
 
 func (nr *nodeRender) getColumnLen() int {

@@ -37,10 +37,10 @@ type Run struct {
 	PlaybookID string
 
 	// NodeView of the Root node of execution
-	Root *graph.NodeView
+	Root *graph.Node
 
 	// NodeViews indexed by NodeID
-	ViewIndex *NodeViewIndex
+	ViewIndex *NodeIndex
 
 	// NodeExecutionResult indexed by NodeID
 	ExecIndex log.ResultLogIndex
@@ -131,72 +131,64 @@ func NewRun(gCtx *snippet.Context, playbookIDOrURL string) (*Run, error) {
 }
 
 func (r *Run) buildGraph() error {
-	// fetch the node
-	view, err := r.getNodeView(r.PlaybookID)
-
+	n, err := r.getNode(r.PlaybookID)
 	if err != nil {
 		return err
 	}
-	r.Root = view
 
+	r.Root = n
 	q := list.New()
-	q.PushBack(view)
+	q.PushBack(n)
 
 	var fetchDuration time.Duration
 	s1 := time.Now()
 	for q.Len() > 0 {
 
 		e := q.Front()
-		parentView := e.Value.(*graph.NodeView)
+		parent := e.Value.(*graph.Node)
 		q.Remove(e)
 
 		s3 := time.Now()
-		children, err := r.Store.GetChildren(parentView.Node.ID)
-		tools.TimeTrack(s3, "r.Store.GetChildren"+parentView.Node.ID)
-		fetchDuration += time.Since(s3)
-		if err != nil {
+		if err := parent.LoadChildNodes(r.Store, false); err != nil {
 			return err
 		}
-		for i := range children {
-			child := &children[i]
-			childView := graph.NodeView{Node: child, View: child.View, Children: []*graph.NodeView{}}
-			if err := r.ViewIndex.Add(&childView); err != nil {
-				tools.Log.Err(err).Msgf("buildGraph: ViewIndex.Add(%s) failed", childView.Node.ID)
+		tools.TimeTrack(s3, "r.Store.GetChildren"+parent.ID)
+		fetchDuration += time.Since(s3)
+
+		for i := range parent.ChildNodes {
+			child := parent.ChildNodes[i]
+			if err := r.ViewIndex.Add(child); err != nil {
+				tools.Log.Err(err).Msgf("buildGraph: ViewIndex.Add(%s) failed", child.ID)
 				continue
 			}
-			parentView.Children = append(parentView.Children, &childView)
-			q.PushBack(&childView)
+			q.PushBack(parent.ChildNodes[i])
 		}
 	}
 	tools.TimeTrack(s1, "queue stuff")
 	tools.Log.Info().Msgf("FetchDuration for get children %v", fetchDuration)
-
 	return nil
 }
 
-func (r *Run) getNodeView(id string) (*graph.NodeView, error) {
+func (r *Run) getNode(id string) (*graph.Node, error) {
 	// fetch the node
-	view, err := r.Store.GetNodeView(id)
+	view, err := r.Store.GetNode(id)
 	if err != nil {
-		return nil, fmt.Errorf("getNodeView: id = %s err = %v", id, err)
+		return nil, fmt.Errorf("getNode: id = %s err = %v", id, err)
 	}
 	// check to see if this node is already found (not a tree, but can be a DAG)
 	if err := r.ViewIndex.Add(view); err != nil {
 		return nil, err
-	}
-	if view.Children == nil {
-		view.Children = []*graph.NodeView{}
 	}
 	return view, nil
 }
 
 // GetBlock returns the specified block from the local index
 func (r *Run) GetBlock(nodeID, blockID string) (*graph.Block, error) {
-	view, err := r.ViewIndex.Get(nodeID)
+	n, err := r.ViewIndex.Get(nodeID)
 	if err != nil {
 		return nil, err
 	}
-	block, found := view.Node.GetBlock(blockID)
+	block, found := n.GetBlock(blockID)
 	if !found {
 		return nil, fmt.Errorf("block [%s] not found in node[%s]", blockID, nodeID)
 	}
@@ -453,8 +445,8 @@ func (r *Run) executeBlock(req *graph.BlockExecutionRequest) *log.ResultLogEntry
 	return execResult
 }
 
-func (r *Run) EditSnippet(nodeID string) (*graph.NodeView, error) {
-	view, err := r.ViewIndex.Get(nodeID)
+func (r *Run) EditSnippet(nodeID string) (*graph.Node, error) {
+	n, err := r.ViewIndex.Get(nodeID)
 	if err != nil {
 		tools.Log.Err(err).Msgf("EditSnippet: err = %v", err)
 		return nil, err
@@ -466,34 +458,33 @@ func (r *Run) EditSnippet(nodeID string) (*graph.NodeView, error) {
 		return nil, err
 	}
 
-	updatedView, err := r.Store.GetNodeView(nodeID)
+	updatedNode, err := r.Store.GetNode(nodeID)
 	if err != nil {
 		tools.Log.Err(err).Msgf("EditSnippet: store.GetNodeView (%s) err = %v", nodeID, err)
 	}
 
-	view.Node = updatedView.Node
-	view.View = updatedView.View
-	return view, nil
+	n = updatedNode
+	return n, nil
 }
 
-func (r *Run) EditBlock(nodeID, blockID string, save bool) (*graph.NodeView, *graph.Block, error) {
-	view, err := r.ViewIndex.Get(nodeID)
+func (r *Run) EditBlock(nodeID, blockID string, save bool) (*graph.Node, *graph.Block, error) {
+	n, err := r.ViewIndex.Get(nodeID)
 	if err != nil {
 		tools.Log.Err(err).Msgf("EditBlock: err = %v", err)
 		return nil, nil, err
 	}
 
-	block, found := view.Node.GetBlock(blockID)
+	block, found := n.GetBlock(blockID)
 	if !found {
 		return nil, nil, fmt.Errorf("block [%s] not found in node [%s]", blockID, nodeID)
 	}
 
-	newBlock, err := snippet.EditNodeBlock(r.gCtx, view.Node, block, save)
+	newBlock, err := snippet.EditNodeBlock(r.gCtx, n, block, save)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return view, newBlock, nil
+	return n, newBlock, nil
 }
 
 func (r Run) String() string {

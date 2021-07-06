@@ -38,9 +38,6 @@ type Store interface {
 	// UpdateNode updates the content of an existing node
 	UpdateNode(node *Node) error
 
-	// GetNodeView asks the server for a terminal render-able view.
-	GetNodeView(id string) (*NodeView, error)
-
 	// UpdateNodeBlock updates the block of an existing node at the server
 	UpdateNodeBlock(node *Node, block *Block) error
 }
@@ -136,20 +133,6 @@ func (r *remoteStore) GetNode(id string) (*Node, error) {
 	result := Node{}
 	if err := json.NewDecoder(resp.RawBody()).Decode(&result); err != nil {
 		return nil, &Error{"GetNode", err}
-	}
-	return &result, nil
-}
-
-func (r *remoteStore) GetNodeView(id string) (*NodeView, error) {
-	defer tools.TimeTrack(time.Now(), "GetNodeView")
-
-	node, err := r.GetNode(id)
-	if err != nil {
-		return nil, fmt.Errorf("http.get err: %v", err)
-	}
-	result := NodeView{
-		Node: node,
-		View: node.View,
 	}
 	return &result, nil
 }

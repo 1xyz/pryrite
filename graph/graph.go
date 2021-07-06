@@ -39,6 +39,11 @@ type Node struct {
 	IsShared       bool       `json:"is_shared"`
 	LastExecutedAt *time.Time `json:"last_executed_at"`
 	LastExecutedBy string     `json:"last_executed_by"`
+
+	// ChildNodes is the actual reference to the node(s)
+	// Note: currently, this relation is not persisted in the remote store
+	//       so skip this from json encoding..
+	ChildNodes []*Node `json:"-"`
 }
 
 func (n *Node) GetBlock(blockID string) (*Block, bool) {
@@ -78,6 +83,22 @@ func (n *Node) GetChildIDs() []string {
 	return result
 }
 
+func (n *Node) LoadChildNodes(store Store, force bool) error {
+	if n.ChildNodes != nil && !force {
+		// the childNodes are already loaded and we are not forcing it
+		return nil
+	}
+	children, err := store.GetChildren(n.ID)
+	if err != nil {
+		return err
+	}
+	n.ChildNodes = make([]*Node, len(children))
+	for i := range children {
+		n.ChildNodes[i] = &children[i]
+	}
+	return nil
+}
+
 func (n *Node) HasBlocks() bool {
 	return n.Blocks != nil && len(n.Blocks) > 0
 }
@@ -107,24 +128,8 @@ func NewNode(kind Kind, content, contentType string, metadata Metadata) (*Node, 
 		Kind:       kind,
 		Markdown:   markdown,
 		Metadata:   metadata,
+		ChildNodes: nil,
 	}, nil
-}
-
-type NodeView struct {
-	Node     *Node  `json:"node"`
-	View     string `json:"view"`
-	Children []*NodeView
-}
-
-func (n NodeView) String() string {
-	sb := strings.Builder{}
-	sb.WriteString(fmt.Sprintf("Node: %v\n", n.Node))
-	if n.Children != nil && len(n.Children) > 0 {
-		for i, c := range n.Children {
-			sb.WriteString(fmt.Sprintf("Child[%d] = %v\n", i, c))
-		}
-	}
-	return sb.String()
 }
 
 type BlockExecutionRequest struct {

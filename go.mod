@@ -11,7 +11,6 @@ require (
 	github.com/creack/pty v1.1.13
 	github.com/cristalhq/jwt/v3 v3.0.14
 	github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815
-	github.com/gdamore/tcell/v2 v2.3.3
 	github.com/go-resty/resty/v2 v2.5.0
 	github.com/google/uuid v1.2.0
 	github.com/jedib0t/go-pretty/v6 v6.1.0
@@ -21,7 +20,6 @@ require (
 	github.com/muesli/reflow v0.2.1-0.20210115123740-9e1d0d53df68
 	github.com/muesli/termenv v0.8.1
 	github.com/pkg/errors v0.9.1
-	github.com/rivo/tview v0.0.0-20210521091241-1fd4a5b7aab3
 	github.com/rs/zerolog v1.21.0
 	github.com/sanbornm/go-selfupdate v0.0.0-20210106163404-c9b625feac49
 	github.com/spf13/cobra v1.1.3
