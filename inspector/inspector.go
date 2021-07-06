@@ -143,8 +143,7 @@ func (n *NodeInspector) processAction(nextAction *BlockAction) {
 // populateCodeBlocks Flatten the tree into a list in a pre-order
 // depth traversal first a node's code blocks are added;
 // followed by a traversal for the first child and so on...
-func (n *NodeInspector) populateCodeBlocks(p *graph.NodeView, prefix string) {
-	node := p.Node
+func (n *NodeInspector) populateCodeBlocks(node *graph.Node, prefix string) {
 	pfx := fmt.Sprintf("%s/%s", prefix, node.ID)
 	if node.HasBlocks() {
 		for i := range node.Blocks {
@@ -157,9 +156,9 @@ func (n *NodeInspector) populateCodeBlocks(p *graph.NodeView, prefix string) {
 		}
 	}
 
-	if p.Children != nil && len(p.Children) > 0 {
-		for i := range p.Children {
-			n.populateCodeBlocks(p.Children[i], pfx)
+	if node.ChildNodes != nil {
+		for i := range node.ChildNodes {
+			n.populateCodeBlocks(node.ChildNodes[i], pfx)
 		}
 	}
 }

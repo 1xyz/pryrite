@@ -7,32 +7,32 @@ import (
 	"github.com/aardlabs/terminal-poc/graph"
 )
 
-type NodeViewIndex struct {
+type NodeIndex struct {
 	sync.Map
 }
 
-func NewNodeViewIndex() *NodeViewIndex {
-	return &NodeViewIndex{}
+func NewNodeViewIndex() *NodeIndex {
+	return &NodeIndex{}
 }
 
-func (ni *NodeViewIndex) Add(view *graph.NodeView) error {
-	id := view.Node.ID
-	_, loaded := ni.LoadOrStore(id, view)
+func (ni *NodeIndex) Add(n *graph.Node) error {
+	id := n.ID
+	_, loaded := ni.LoadOrStore(id, n)
 	if loaded {
 		return fmt.Errorf("an entry with id=%s exists", id)
 	}
 	return nil
 }
 
-func (ni *NodeViewIndex) ContainsID(id string) bool {
+func (ni *NodeIndex) ContainsID(id string) bool {
 	_, found := ni.Load(id)
 	return found
 }
 
-func (ni *NodeViewIndex) Get(id string) (*graph.NodeView, error) {
+func (ni *NodeIndex) Get(id string) (*graph.Node, error) {
 	e, found := ni.Load(id)
 	if !found {
 		return nil, fmt.Errorf("nodeIndex.Get(id=%s) not found", id)
 	}
-	return e.(*graph.NodeView), nil
+	return e.(*graph.Node), nil
 }

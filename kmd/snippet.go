@@ -164,7 +164,8 @@ func NewCmdSnippetDesc(gCtx *snippet.Context) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 			tools.Log.Info().Msgf("describe name=%s", name)
-			view, err := snippet.GetSnippetNodeViewWithChildren(gCtx, name)
+
+			view, err := snippet.GetSnippetNodeWithChildren(gCtx, name)
 			if err != nil {
 				return err
 			}
@@ -217,7 +218,7 @@ func NewCmdSnippetSave(gCtx *snippet.Context) *cobra.Command {
 			}
 
 			tools.Log.Info().Msgf("AddSnippetNode n.ID = %s", n.ID)
-			fmt.Printf("Added a new node with id = %s\n", snippet.GetNodeViewURL(gCtx, n))
+			fmt.Printf("Added a new node with id = %s\n", snippet.GetNodeURL(gCtx, n))
 			return nil
 		},
 	}

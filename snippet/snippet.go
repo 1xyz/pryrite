@@ -5,6 +5,9 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"github.com/aardlabs/terminal-poc/config"
+	"github.com/aardlabs/terminal-poc/graph"
+	"github.com/aardlabs/terminal-poc/tools"
 	"hash"
 	"io"
 	"io/ioutil"
@@ -13,11 +16,6 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"time"
-
-	"github.com/aardlabs/terminal-poc/config"
-	"github.com/aardlabs/terminal-poc/graph"
-	"github.com/aardlabs/terminal-poc/tools"
 )
 
 func NewContext(cfg *config.Config, agent string) *Context {
@@ -71,6 +69,22 @@ func GetSnippetNode(ctx *Context, id string) (*graph.Node, error) {
 		return nil, err
 	}
 
+	return n, nil
+}
+
+func GetSnippetNodeWithChildren(ctx *Context, id string) (*graph.Node, error) {
+	n, err := GetSnippetNode(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	s, err := ctx.GetStore()
+	if err != nil {
+		return nil, err
+	}
+
+	if err := n.LoadChildNodes(s, false /*force */); err != nil {
+		return nil, err
+	}
 	return n, nil
 }
 
@@ -299,34 +313,7 @@ func EditNodeBlock(ctx *Context, n *graph.Node, b *graph.Block, save bool) (*gra
 	return b, err
 }
 
-func GetSnippetNodeViewWithChildren(ctx *Context, id string) (*graph.NodeView, error) {
-	id, err := GetID(id)
-	if err != nil {
-		return nil, err
-	}
-
-	store, err := ctx.GetStore()
-	if err != nil {
-		return nil, err
-	}
-
-	nv, err := GetSnippetNodeView(store, id)
-	if err != nil {
-		return nil, err
-	}
-
-	nv.Children = []*graph.NodeView{}
-	childNodes, err := store.GetChildren(id)
-	if err != nil {
-		return nil, err
-	}
-	for i := range childNodes {
-		nv.Children = append(nv.Children, &graph.NodeView{Node: &childNodes[i], View: childNodes[i].View})
-	}
-	return nv, nil
-}
-
-func GetNodeViewURL(ctx *Context, node *graph.Node) *url.URL {
+func GetNodeURL(ctx *Context, node *graph.Node) *url.URL {
 	u, err := url.Parse(ctx.ConfigEntry.ServiceUrl)
 	if err != nil {
 		return nil
@@ -334,23 +321,6 @@ func GetNodeViewURL(ctx *Context, node *graph.Node) *url.URL {
 
 	u.Path = "nodes/" + node.ID
 	return u
-}
-
-func GetSnippetNodeView(store graph.Store, id string) (*graph.NodeView, error) {
-	startAt := time.Now()
-	n, err := store.GetNodeView(id)
-	if err != nil {
-		ctxMsg := fmt.Sprintf("GetSnippetNodeView(%s) = %v", id, err)
-		var ghe *graph.HttpError
-		if errors.As(err, &ghe) {
-			return nil, handleGraphHTTPErr(ghe, ctxMsg)
-		}
-		tools.Log.Err(err).Msg(ctxMsg)
-		return nil, err
-	}
-	duration := time.Since(startAt)
-	tools.Log.Info().Msgf("GetSnippetNodeView: took %v", duration)
-	return n, nil
 }
 
 func handleGraphHTTPErr(ghe *graph.HttpError, ctxMessage string) error {
