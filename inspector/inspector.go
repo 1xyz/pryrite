@@ -1,8 +1,9 @@
 package inspector
 
 import (
+	_ "embed"
 	"fmt"
-
+	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/internal/completer"
 	"github.com/aardlabs/terminal-poc/internal/history"
@@ -11,7 +12,6 @@ import (
 	"github.com/aardlabs/terminal-poc/run"
 	"github.com/aardlabs/terminal-poc/snippet"
 	"github.com/aardlabs/terminal-poc/tools"
-
 	"github.com/c-bata/go-prompt"
 	"github.com/spf13/cobra"
 )
@@ -29,6 +29,10 @@ func InspectNode(gCtx *snippet.Context, nodeID string) error {
 	defer func() {
 		ni.runner.Shutdown()
 	}()
+
+	if err := introMsg(gCtx.ConfigEntry); err != nil {
+		tools.Log.Err(err).Msgf("introMsg")
+	}
 
 	ni.openRepl()
 	return nil
@@ -161,6 +165,28 @@ func (n *NodeInspector) populateCodeBlocks(node *graph.Node, prefix string) {
 			n.populateCodeBlocks(node.ChildNodes[i], pfx)
 		}
 	}
+}
+
+var (
+	//go:embed intro.md
+	intro string
+)
+
+func introMsg(entry *config.Entry) error {
+	if entry.HideInspectIntro {
+		return nil
+	}
+	tr, err := markdown.NewTermRenderer("")
+	if err != nil {
+		return err
+	}
+	content, err := tr.Render(intro)
+	if err != nil {
+		return err
+	}
+	fmt.Println(content)
+	entry.HideInspectIntro = !components.ShowYNQuestionPrompt("Show this message again?")
+	return config.SetEntry(entry)
 }
 
 func md(content, style string, cursor *markdown.Cursor) string {
