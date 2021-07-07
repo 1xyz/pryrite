@@ -378,9 +378,9 @@ func (r *Run) ExecuteBlock(n *graph.Node, b *graph.Block, stdout, stderr io.Writ
 		return "", fmt.Errorf("run system is not started")
 	}
 
-	timeout := r.gCtx.ConfigEntry.ExecutionTimeout.Duration()
+	timeout := r.gCtx.ConfigEntry.ExecutionTimeout.GetDuration()
 	if timeout == 0 {
-		timeout = time.Hour
+		timeout = time.Hour * 48
 	}
 
 	req := graph.NewBlockExecutionRequest(n, b, stdout, stderr, r.ID, r.gCtx.ConfigEntry.Email, timeout)

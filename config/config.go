@@ -30,6 +30,7 @@ type Entry struct {
 	SkipSSLCheck     bool                     `yaml:"skip_ssl_check"`
 	Style            string                   `yaml:"style"`
 	ExecutionTimeout tools.MarshalledDuration `yaml:"execution_timeout"`
+	HideInspectIntro bool                     `yaml:"hide_inspect_intro"`
 }
 
 type Config struct {
