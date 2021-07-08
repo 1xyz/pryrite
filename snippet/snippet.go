@@ -205,13 +205,13 @@ func GetSnippetNodes(ctx *Context, limit int, kind graph.Kind) ([]graph.Node, er
 	return n, nil
 }
 
-func AddSnippetNode(ctx *Context, content string, contentType string) (*graph.Node, error) {
+func AddSnippetNode(ctx *Context, title, content string, contentType string) (*graph.Node, error) {
 	store, err := ctx.GetStore()
 	if err != nil {
 		return nil, err
 	}
 
-	n, err := graph.NewNode(graph.Command, content, contentType, *ctx.Metadata)
+	n, err := graph.NewNode(graph.Command, title, content, contentType, *ctx.Metadata)
 	if err != nil {
 		return nil, err
 	}

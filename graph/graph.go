@@ -115,15 +115,22 @@ func (n Node) String() string {
 	return sb.String()
 }
 
-func NewNode(kind Kind, content, contentType string, metadata Metadata) (*Node, error) {
+func NewNode(kind Kind, title, content, contentType string, metadata Metadata) (*Node, error) {
 	now := time.Now().UTC()
 	var language string
 	vals := strings.Split(contentType, "/")
 	if len(vals) > 1 {
 		language = vals[1]
 	}
-	markdown := fmt.Sprintf("```%s\n%s\n```\n", language, content)
+	var markdown string
+	if len(title) == 0 {
+		markdown = fmt.Sprintf("```%s\n%s\n```\n", language, content)
+	} else {
+		markdown = fmt.Sprintf("# %s\n```%s\n%s\n```\n", title, language, content)
+	}
+
 	return &Node{
+		Title:      title,
 		CreatedAt:  &now,
 		OccurredAt: &now,
 		Kind:       kind,

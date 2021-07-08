@@ -1,6 +1,7 @@
 package kmd
 
 import (
+	"errors"
 	"fmt"
 	"github.com/aardlabs/terminal-poc/inspector"
 	"github.com/aardlabs/terminal-poc/internal/ui/components"
@@ -177,34 +178,55 @@ func NewCmdSnippetDesc(gCtx *snippet.Context) *cobra.Command {
 }
 
 func NewCmdSnippetSave(gCtx *snippet.Context) *cobra.Command {
+	showHelp := func(cmd *cobra.Command) {
+		fmt.Println(cmd.Long)
+		fmt.Println("Examples:\n")
+		fmt.Println(cmd.Example)
+	}
+
 	cmd := &cobra.Command{
 		DisableFlagParsing:    true,
 		DisableFlagsInUseLine: true,
 
-		Use:   "save <content>...",
+		Use:   "save [flags] <content>...",
 		Short: "Save a new snippet with the specified content",
 		Long: examplef(`
               {AppName} save <content>, save content to the remote service.
 
               Here, <content> can be any content (typically a shell commend) that you want to be saved.
+
+              Flags:
+
+                -h, --help     help for save
+                -m, --message  Include an optional message
         `),
 		Aliases: []string{"add", "stash"},
 		Example: examplef(`
             To save a specified docker command, run:
 
               $ {AppName} save docker-compose run --rm --service-ports development bash
+
+            To save a specified command with a message, run:
+
+              $ {AppName} save -m "list files" ls -l
 		`),
 		Args: MinimumArgs(1, "no content specified"),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			return IsUserLoggedIn(gCtx.ConfigEntry)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if args[0] == "-h" || args[0] == "--help" {
-				return cmd.Help()
+			saveArgs, err := ParseSaveArgs(args)
+			if err != nil {
+				switch err {
+				case ErrShowHelp:
+					showHelp(cmd)
+					return nil
+				default:
+					showHelp(cmd)
+					return err
+				}
 			}
 
-			content := strings.Join(args, " ")
-			tools.Log.Info().Msgf("add content=%s", content)
 			shell := os.Getenv("SHELL")
 			contentType := "text/"
 			if strings.HasSuffix(shell, "/bash") {
@@ -212,7 +234,10 @@ func NewCmdSnippetSave(gCtx *snippet.Context) *cobra.Command {
 			} else {
 				contentType += "shell"
 			}
-			n, err := snippet.AddSnippetNode(gCtx, content, contentType)
+
+			tools.Log.Info().Msgf("AddSnippetNode: message = %s, command = %s, content-type = %s",
+				saveArgs.Message, saveArgs.Command, contentType)
+			n, err := snippet.AddSnippetNode(gCtx, saveArgs.Message, saveArgs.Command, contentType)
 			if err != nil {
 				return err
 			}
@@ -303,4 +328,64 @@ func NewCmdSnippetRun(gCtx *snippet.Context) *cobra.Command {
 		},
 	}
 	return cmd
+}
+
+type SaveArgs struct {
+	Message string
+	Command string
+}
+
+var (
+	ErrEOL        = errors.New("parse incomplete: encountered end of line")
+	ErrCmdMissing = errors.New("command missing")
+	ErrShowHelp   = errors.New("show help")
+)
+
+func ParseSaveArgs(args []string) (*SaveArgs, error) {
+	if len(args) == 0 || args[0] == "-h" || args[0] == "--help" {
+		return nil, ErrShowHelp
+	}
+
+	var s SaveArgs
+	index := 0
+	if args[0] == "-m" || args[0] == "--message" {
+		message, i, err := getMessage(args[1:])
+		if err != nil {
+			return nil, err
+		}
+
+		s.Message = message
+		index = i + 1
+	}
+
+	if len(args) <= index {
+		return nil, ErrCmdMissing
+	}
+	s.Command = strings.Join(args[index:], " ")
+	return &s, nil
+}
+
+func getMessage(args []string) (string, int, error) {
+	if len(args) == 0 {
+		return "", 0, fmt.Errorf("EOF")
+	}
+	if args[0][0] != '"' {
+		message := args[0]
+		return message, 1, nil
+	}
+
+	var messages []string
+	for i, arg := range args {
+		if i == 0 {
+			// strip the prefix quote
+			arg = arg[1:]
+		}
+		if strings.HasSuffix(arg, "\"") && !strings.HasSuffix(arg, "\\\"") {
+			// strip the suffix quote
+			messages = append(messages, arg[0:len(arg)-1])
+			return strings.Join(messages, " "), i + 1, nil
+		}
+		messages = append(messages, arg)
+	}
+	return "", 0, ErrEOL
 }
