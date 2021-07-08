@@ -110,18 +110,24 @@ func (n *NodeInspector) processAction(nextAction *BlockAction) {
 	}
 
 	switch nextAction.Action {
+	case BlockActionExecutionDone:
+		// This indicates the step is done, so lets move ahead
+		// but unlike next; don't show an error message
+		if n.codeBlockPos < len(n.codeBlocks)-1 {
+			n.codeBlockPos++
+		}
 	case BlockActionNext:
 		if n.codeBlockPos < len(n.codeBlocks)-1 {
 			n.codeBlockPos++
 		} else {
-			tools.LogStderr(nil, "Already at end\n")
+			tools.LogStderr(nil, "You are at the last step\n")
 			return
 		}
 	case BlockActionPrev:
 		if n.codeBlockPos > 0 {
 			n.codeBlockPos--
 		} else {
-			tools.LogStderr(nil, "Already at begining\n")
+			tools.LogStderr(nil, "You are at the first step\n")
 			return
 		}
 	case BlockActionJump:

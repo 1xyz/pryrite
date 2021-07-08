@@ -56,14 +56,18 @@ func (c *codeBlock) GetExitAction() (*BlockAction, bool) {
 	return c.exitAction, c.exitAction != nil
 }
 
-func (c *codeBlock) RunBlock() {
+// RunBlock runs the current block and returns a boolean value whether it was successful
+func (c *codeBlock) RunBlock() bool {
 	tools.LogStdout("Running (%s): %s\n", c.block.ContentType, c.block.Content)
 	doneCh := make(chan bool)
 	c.runner.SetExecutionUpdateFn(func(entry *log.ResultLogEntry) {
 		logResultLogEntry(entry)
 		switch entry.State {
-		case log.ExecStateCompleted, log.ExecStateFailed:
+		case log.ExecStateCompleted:
 			doneCh <- true
+			close(doneCh)
+		case log.ExecStateFailed:
+			doneCh <- false
 			close(doneCh)
 		default:
 			// do nothing
@@ -85,9 +89,10 @@ func (c *codeBlock) RunBlock() {
 	reqID, err := c.runner.ExecuteBlock(c.node, c.block, os.Stdout, os.Stderr)
 	if err != nil {
 		tools.LogStdError("\U0000274C  Execution failed: %s", err)
-		return
+		return false
 	}
 
+	next := false
 	sigCh := make(chan os.Signal, 1)
 	// ToDo: the Ctrl+C is not captured because the go-prompt's run
 	// is on the main go-routine.
@@ -96,9 +101,10 @@ func (c *codeBlock) RunBlock() {
 	case sig := <-sigCh:
 		tools.LogStdout("signal %v received", sig)
 		c.runner.CancelBlock(c.node.ID, reqID)
-	case <-doneCh:
-		return
+	case success := <-doneCh:
+		next = success
 	}
+	return next
 }
 
 func (c *codeBlock) WhereAmI() {

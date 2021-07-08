@@ -8,6 +8,7 @@ const (
 	BlockActionPrev
 	BlockActionJump
 	BlockActionQuit
+	BlockActionExecutionDone
 )
 
 type BlockAction struct {
@@ -15,13 +16,16 @@ type BlockAction struct {
 	Args   []string
 }
 
-func NewBlockAction(name string) *BlockAction {
-	action := map[string]BlockActionType{
+var (
+	action = map[string]BlockActionType{
 		"next": BlockActionNext,
 		"prev": BlockActionPrev,
 		"jump": BlockActionJump,
 		"quit": BlockActionQuit,
 	}
+)
+
+func NewBlockAction(name string) *BlockAction {
 	if a, ok := action[name]; ok {
 		return &BlockAction{Action: a}
 	}

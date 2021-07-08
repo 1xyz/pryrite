@@ -33,7 +33,13 @@ func newRunCmd(n *NodeInspector) *cobra.Command {
 		Aliases: []string{"r"},
 		Short:   "Run this code block",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			n.currentBlock().RunBlock()
+			if n.currentBlock().RunBlock() {
+				// Move to the next step if RunBlock signals a success
+				n.processAction(&BlockAction{
+					Action: BlockActionExecutionDone,
+					Args:   []string{},
+				})
+			}
 			return nil
 		},
 	}
