@@ -104,6 +104,7 @@ func (r *remoteStore) GetNodes(limit int, kind Kind) ([]Node, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer closeRespBody(resp)
 	if err := checkHTTP2XX("getNodes(%s)", resp); err != nil {
 		return nil, err
 	}
@@ -123,10 +124,10 @@ func (r *remoteStore) GetNode(id string) (*Node, error) {
 			"view":    "text",
 		})
 	resp, err := req.Get("/api/v1/nodes/{nodeId}")
-	defer resp.RawBody().Close()
 	if err != nil {
 		return nil, fmt.Errorf("http.get err: %v", err)
 	}
+	defer closeRespBody(resp)
 	if err := checkHTTP2XX(fmt.Sprintf("getNode(%s)", id), resp); err != nil {
 		return nil, err
 	}
@@ -145,10 +146,10 @@ func (r *remoteStore) AddNode(n *Node) (*Node, error) {
 		SetBody(n).
 		SetResult(&result).
 		Post("/api/v1/nodes")
-	defer resp.RawBody().Close()
 	if err != nil {
 		return nil, fmt.Errorf("http.post err: %v", err)
 	}
+	defer closeRespBody(resp)
 	if err := checkHTTP2XX(fmt.Sprintf("addNode(%v)", n), resp); err != nil {
 		return nil, err
 	}
@@ -161,10 +162,10 @@ func (r *remoteStore) UpdateNode(n *Node) error {
 		SetPathParam("nodeId", n.ID).
 		SetBody(n).
 		Put("/api/v1/nodes/{nodeId}")
-	defer resp.RawBody().Close()
 	if err != nil {
 		return fmt.Errorf("http.put err: %v", err)
 	}
+	defer closeRespBody(resp)
 	if err := checkHTTP2XX(fmt.Sprintf("UpdateNode(%v)", n), resp); err != nil {
 		return err
 	}
@@ -179,10 +180,10 @@ func (r *remoteStore) GetChildren(parentID string) ([]Node, error) {
 			"include": "blocks",
 		})
 	resp, err := req.Get("/api/v1/nodes/{parentID}/children")
-	defer resp.RawBody().Close()
 	if err != nil {
 		return nil, fmt.Errorf("http.get err: %v", err)
 	}
+	defer closeRespBody(resp)
 	if err := checkHTTP2XX(fmt.Sprintf("GetChildren(%s)", parentID), resp); err != nil {
 		return nil, err
 	}
@@ -213,6 +214,7 @@ func (r *remoteStore) SearchNodes(query string, limit int, kind Kind) ([]Node, e
 	if err != nil {
 		return nil, fmt.Errorf("http.get err: %v req: %s", err, req.URL)
 	}
+	defer closeRespBody(resp)
 	if err := checkHTTP2XX(fmt.Sprintf("searchNodes(%s, %d, %v)", query, limit, kind), resp); err != nil {
 		return nil, err
 	}
@@ -239,6 +241,7 @@ func (r *remoteStore) UpdateNodeBlock(n *Node, b *Block) error {
 	if err != nil {
 		return fmt.Errorf("http.put err: %v", err)
 	}
+	defer closeRespBody(resp)
 	if err := checkHTTP2XX(fmt.Sprintf("UpdateNodeBlock(%v)", n), resp); err != nil {
 		return err
 	}
@@ -290,4 +293,13 @@ func checkHTTP2XX(message string, resp *resty.Response) error {
 		}
 	}
 	return nil
+}
+
+func closeRespBody(resp *resty.Response) {
+	if resp == nil || resp.RawBody() == nil {
+		return
+	}
+	if err := resp.RawBody().Close(); err != nil {
+		tools.Log.Err(err).Msg("closeRespBody")
+	}
 }
