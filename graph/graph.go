@@ -1,15 +1,11 @@
 package graph
 
 import (
-	"context"
 	"fmt"
-	"github.com/aardlabs/terminal-poc/graph/log"
-	"io"
 	"strings"
 	"time"
 
 	executor "github.com/aardlabs/terminal-poc/executors"
-	"github.com/aardlabs/terminal-poc/tools"
 )
 
 type Metadata struct {
@@ -64,6 +60,11 @@ type Block struct {
 	Content     string                `json:"content"`
 	ContentType *executor.ContentType `json:"content_type"`
 	MD5         string                `json:"md5"`
+
+	LastExecutedAt    *time.Time `json:"last_executed_at,omitempty"`
+	LastExecutedBy    string     `json:"last_executed_by,omitempty"`
+	LastExitStatus    string     `json:"last_exit_status,omitempty"`
+	LastExecutionInfo string     `json:"last_execution_info,omitempty"`
 }
 
 func (block *Block) IsCode() bool {
@@ -130,65 +131,4 @@ func NewNode(kind Kind, content, contentType string, metadata Metadata) (*Node, 
 		Metadata:   metadata,
 		ChildNodes: nil,
 	}, nil
-}
-
-type BlockExecutionRequest struct {
-	// CancelFn - can be called by multiple go routines, and is idempotent
-	CancelFn    context.CancelFunc
-	Ctx         context.Context
-	ID          string
-	Node        *Node
-	Block       *Block
-	Stdout      io.Writer
-	Stderr      io.Writer
-	ExecutionID string
-	ExecutedBy  string
-}
-
-func (b *BlockExecutionRequest) String() string {
-	return fmt.Sprintf("BlockExecutionRequest ID:%s NodeID:%s BlockID:%s ExecutionID:%s ExecutedBy:%s",
-		b.ID, b.Node.ID, b.Block.ID, b.ExecutionID, b.ExecutedBy)
-}
-
-func NewBlockExecutionRequest(n *Node, b *Block, stdout, stderr io.Writer,
-	executionID, executedBy string, executionTimeout time.Duration) *BlockExecutionRequest {
-	tools.Log.Info().Msgf("NewBlockExecutionRequest executionTimeout = %v", executionTimeout)
-	ctx, cancelFn := context.WithTimeout(context.Background(), executionTimeout)
-
-	req := &BlockExecutionRequest{
-		Ctx:         ctx,
-		CancelFn:    cancelFn,
-		ID:          tools.RandAlphaNumericStr(8),
-		Node:        n,
-		Block:       b,
-		Stdout:      stdout,
-		Stderr:      stderr,
-		ExecutionID: executionID,
-		ExecutedBy:  executedBy,
-	}
-
-	return req
-}
-
-func NewResultLogEntryFromRequest(req *BlockExecutionRequest) *log.ResultLogEntry {
-	res := log.NewResultLogEntry(
-		req.ExecutionID,
-		req.Node.ID,
-		req.Block.ID,
-		req.ID,
-		req.ExecutedBy,
-		req.Block.Content)
-	return res
-}
-
-type BlockCancelRequest struct {
-	NodeID    string
-	RequestID string
-}
-
-func NewBlockCancelRequest(nodeID, requestID string) *BlockCancelRequest {
-	return &BlockCancelRequest{
-		NodeID:    nodeID,
-		RequestID: requestID,
-	}
 }

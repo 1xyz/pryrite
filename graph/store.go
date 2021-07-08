@@ -40,6 +40,9 @@ type Store interface {
 
 	// UpdateNodeBlock updates the block of an existing node at the server
 	UpdateNodeBlock(node *Node, block *Block) error
+
+	// UpdateNodeBlockExecution updates the block's execution info
+	UpdateNodeBlockExecution(node *Node, block *Block) error
 }
 
 type ErrorResponse struct {
@@ -248,8 +251,41 @@ func (r *remoteStore) UpdateNodeBlock(n *Node, b *Block) error {
 	return nil
 }
 
-func (r *remoteStore) newHTTPClient(parseResponse bool) *resty.Client {
+type UpdateBlockExecutionReq struct {
+	ExecutedAt *time.Time `json:"executed_at"`
+	ExecutedBy string     `json:"executed_by"`
+	ExitStatus string     `json:"exit_status"`
+	Info       string     `json:"info"`
+}
 
+func (r *remoteStore) UpdateNodeBlockExecution(n *Node, b *Block) error {
+	if !b.IsCode() {
+		return fmt.Errorf("currently only code-blocks can be updated")
+	}
+
+	tools.Log.Info().Msgf("UpdateNodeBlockExecution block %v %s %s %s",
+		b.LastExecutedAt, b.LastExecutedBy, b.LastExitStatus, b.LastExecutionInfo)
+	req := UpdateBlockExecutionReq{
+		ExecutedAt: b.LastExecutedAt,
+		ExecutedBy: b.LastExecutedBy,
+		ExitStatus: b.LastExitStatus,
+		Info:       b.LastExecutionInfo,
+	}
+
+	client := r.newHTTPClient(true)
+	resp, err := client.R().
+		SetPathParam("nodeId", n.ID).
+		SetPathParam("blockId", b.ID).
+		SetBody(&req).
+		Put("/api/v1/nodes/{nodeId}/blocks/{blockId}/execution")
+	if err != nil {
+		return fmt.Errorf("http.put err: %v", err)
+	}
+	defer resp.RawBody().Close()
+	return checkHTTP2XX(fmt.Sprintf("UpdateNodeBlockExecution(%v)", n), resp)
+}
+
+func (r *remoteStore) newHTTPClient(parseResponse bool) *resty.Client {
 	return resty.NewWithClient(r.client).
 		SetDoNotParseResponse(!parseResponse).
 		SetHostURL(r.configEntry.ServiceUrl).

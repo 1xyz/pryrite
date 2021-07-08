@@ -32,9 +32,15 @@ func RenderBlockPicker(entries BlockPickList, header string, pageSize, startInde
 		Inactive: "\U00002026   [{{.Index | red | bold }}/{{ .RowLen | red | bold }}] {{ .DisplayTitle | yellow  }} - {{ .Date | white }}",
 		Selected: "\U0001F449  [{{.Index | red | bold }}/{{ .RowLen | red | bold }}] {{ .DisplayTitle | cyan | bold }} - {{ .Date | white }}",
 		Details: `
- • Reference-ID  {{.DisplayID | white }}
- • Content-Type  {{.ContentType | yellow | bold }}
- • Summary       {{.Summary | yellow | bold }}
+ • Reference-ID :{{.DisplayID | white }}
+ • Content-Type :{{.ContentType | yellow | bold }}
+ • Summary      :{{.Summary | yellow | bold }}
+
+ • Last known Execution Info
+   • Executed By :{{.LastExecutedBy | yellow  }}
+   • Executed At :{{.LastExecutedAt | yellow  }}
+   • Exit-Status :{{.LastExitStatus | yellow  }}
+   • Addon-Info  :{{.ExecInfo | yellow }}
 `,
 	}
 
@@ -73,14 +79,18 @@ func RenderBlockPicker(entries BlockPickList, header string, pageSize, startInde
 }
 
 type displayBlockRow struct {
-	Index        int
-	RowLen       int
-	DisplayTitle string
-	DisplayID    string
-	ContentType  string
-	Summary      string
-	Date         string
-	entry        BlockPickEntry
+	Index          int
+	RowLen         int
+	DisplayTitle   string
+	DisplayID      string
+	ContentType    string
+	Summary        string
+	Date           string
+	LastExecutedBy string
+	LastExitStatus string
+	LastExecutedAt string
+	ExecInfo       string
+	entry          BlockPickEntry
 }
 
 func createDisplayBlockRows(entries BlockPickList) []*displayBlockRow {
@@ -102,16 +112,31 @@ func createDisplayBlockRows(entries BlockPickList) []*displayBlockRow {
 		displayTitle := tools.TrimLength(content, summaryLen)
 		summary := tools.TrimLength(content, summaryLongLen)
 		contentType := tools.RemoveNewLines(e.Block().ContentType.String(), "")
+		execInfo := tools.RemoveNewLines(e.Block().LastExecutionInfo, "")
+		execInfo = tools.TrimLength(execInfo, summaryLongLen)
+
+		lastExecutedBy := e.Block().LastExecutedBy
+		if lastExecutedBy == "" {
+			lastExecutedBy = "N/A"
+		}
+		lastExecutedAt := "N/A"
+		if e.Block().LastExecutedAt != nil {
+			lastExecutedAt = tools.FormatTime(e.Block().LastExecutedAt)
+		}
 
 		rows[i] = &displayBlockRow{
-			Index:        index,
-			RowLen:       e.Len(),
-			DisplayTitle: displayTitle,
-			DisplayID:    e.QualifiedID(),
-			ContentType:  contentType,
-			Summary:      summary,
-			Date:         tools.FmtTime(e.Block().CreatedAt),
-			entry:        entries[i],
+			Index:          index,
+			RowLen:         e.Len(),
+			DisplayTitle:   displayTitle,
+			DisplayID:      e.QualifiedID(),
+			ContentType:    contentType,
+			Summary:        summary,
+			Date:           tools.FmtTime(e.Block().CreatedAt),
+			entry:          entries[i],
+			LastExecutedBy: lastExecutedBy,
+			LastExecutedAt: lastExecutedAt,
+			LastExitStatus: e.Block().LastExitStatus,
+			ExecInfo:       execInfo,
 		}
 	}
 	return rows

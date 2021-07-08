@@ -16,6 +16,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 )
 
 func NewContext(cfg *config.Config, agent string) *Context {
@@ -115,6 +116,39 @@ func UpdateNodeBlock(ctx *Context, n *graph.Node, b *graph.Block) error {
 	err = store.UpdateNodeBlock(n, b)
 	if err != nil {
 		ctxMsg := fmt.Sprintf("UpdateNodeBlock(%s) = %v", n.ID, err)
+		var ghe *graph.HttpError
+		if errors.As(err, &ghe) {
+			return handleGraphHTTPErr(ghe, ctxMsg)
+		}
+		tools.Log.Err(err).Msg(ctxMsg)
+		return err
+	}
+
+	return nil
+}
+
+type ExecutionInfo struct {
+	ExecutedAt    *time.Time
+	ExecutedBy    string
+	ExitStatus    string
+	ExecutionInfo string
+}
+
+func UpdateNodeBlockExecution(ctx *Context, n *graph.Node, b *graph.Block, e *ExecutionInfo) error {
+	store, err := ctx.GetStore()
+	if err != nil {
+		return err
+	}
+
+	b.LastExecutedAt = e.ExecutedAt
+	b.LastExecutionInfo = e.ExecutionInfo
+	b.LastExitStatus = e.ExitStatus
+	b.LastExecutedBy = e.ExecutedBy
+
+	tools.Log.Info().Msgf("UpdateNodeBlockExecution node %s block %s", n.ID, b.ID)
+	err = store.UpdateNodeBlockExecution(n, b)
+	if err != nil {
+		ctxMsg := fmt.Sprintf("UpdateNodeBlockExecution(%s) = %v", n.ID, err)
 		var ghe *graph.HttpError
 		if errors.As(err, &ghe) {
 			return handleGraphHTTPErr(ghe, ctxMsg)
