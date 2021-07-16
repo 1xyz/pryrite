@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	pio "github.com/aardlabs/terminal-poc/internal/io"
+	"golang.org/x/term"
 	"io"
 	"os"
 	"os/exec"
@@ -36,12 +38,16 @@ type BaseExecutor struct {
 	stdout *readWriterProxy
 	stderr *readWriterProxy
 
+	inFile *os.File
+
 	// callbacks for replacing parts of the base logic
 	prepareCmd func(stdout, stderr io.WriteCloser, usePty bool) (execReadyCh, error)
 	prepareIO  func(*ExecRequest, bool) (resultReadyCh, error)
 	cancel     func()
 	clearIO    func(bool)
 	cleanup    func(bool)
+
+	inputRdr *pio.CancelableReadCloser
 }
 
 type execReadyCh chan error
@@ -102,8 +108,14 @@ func (be *BaseExecutor) Execute(ctx context.Context, req *ExecRequest) *ExecResp
 	canceler.OnCancel(be.cancel)
 	defer canceler.Stop()
 
-	tools.Log.Debug().Str("name", be.Name()).Str("id", req.Hdr.ID).Str("command", string(req.Content)).
-		Str("contentType", req.ContentType.String()).Int("skip", int(be.skipCount)).Bool("pty", usePty).
+	tools.Log.Debug().
+		Str("name", be.Name()).
+		Str("id", req.Hdr.ID).
+		Str("command", string(req.Content)).
+		Str("contentType", req.ContentType.String()).
+		Int("skip", int(be.skipCount)).
+		Bool("pty", usePty).
+		Int("In-fd", int(req.In.Fd())).
 		Msg("Executing")
 
 	var resultReady resultReadyCh
@@ -112,26 +124,37 @@ func (be *BaseExecutor) Execute(ctx context.Context, req *ExecRequest) *ExecResp
 		return resp
 	}
 
+	be.inputRdr = pio.NewCancelableReadCloser(ctx)
+	if err := be.inputRdr.Start(be.inFile); err != nil {
+		resp.Err = fmt.Errorf("cancelableReaderCloser.Start err = %v", err)
+		return resp
+	}
+
+	go be.startInputReading(req.In)
+
 	select {
 	case result := <-resultReady: // got a result
+		tools.Log.Info().Msgf("Execute: Received a result %+v", result)
 		resp.ExitStatus = result.exitStatus
 		resp.Err = result.err
+		be.stopInputReading()
 	case <-ctx.Done(): // interrupted by the context
 		resp.Err = ctx.Err()
 		// it's difficult to kill the current command and its children so we have to error out and reset ourselves
 		// TODO: have our REPL above run every command in its own process group and report that back to us
 		alreadyDone := false
+		be.stopInputReading()
 		be.cleanup(alreadyDone)
 	case resp.Err = <-be.execDone: // the underlying process exited!
 		resp.ExitStatus = be.execCmd.ProcessState.ExitCode()
 		alreadyDone := true
+		be.stopInputReading()
 		be.cleanup(alreadyDone)
 		if resp.Err == nil && resultReady != expectExitResultReady {
 			resp.Err = fmt.Errorf("%s terminated unexpectedly (status:%d)",
 				be.execCmd.Path, resp.ExitStatus)
 		}
 	}
-
 	be.clearIO(be.skipCount > 0)
 
 	tools.Log.Debug().Str("name", be.Name()).Interface("response", resp).Msg("Execution complete")
@@ -142,6 +165,41 @@ func (be *BaseExecutor) Execute(ctx context.Context, req *ExecRequest) *ExecResp
 func (be *BaseExecutor) Cleanup() {
 	alreadyDone := false
 	be.cleanup(alreadyDone)
+}
+
+// startInputReading starts reading from the input file descriptor (typically os.stdin)
+// and copies the bytes to upstream writer.
+func (be *BaseExecutor) startInputReading(in *os.File) {
+	fd := int(in.Fd())
+	oldState, err := term.MakeRaw(fd)
+	if err != nil {
+		tools.Log.Err(err).Msgf("startInputReading: term.MakeRaw(fd=%d)", fd)
+		return
+	}
+	defer func() {
+		if err := term.Restore(fd, oldState); err != nil {
+			tools.Log.Err(err).Msgf("startInputReading: term.Restore(fd=%d)", fd)
+		}
+	}()
+
+	for {
+		_, err := io.Copy(be.stdin, be.inputRdr)
+		if err != nil {
+			if err != io.EOF {
+				tools.Log.Err(err).Msgf("startInputReading: io.Copy(be.stdin <- be.inputRdr)")
+			}
+			break
+		}
+	}
+	tools.Log.Info().Msg("startInputReading: io-loop done")
+}
+
+// stopInputReading stops reading from the input file descriptor
+func (be *BaseExecutor) stopInputReading() {
+	if err := be.inputRdr.Close(); err != nil {
+		tools.Log.Warn().Msgf("stopInputReading: inputrdr.close err = %v", err)
+	}
+	be.inputRdr = nil
 }
 
 //--------------------------------------------------------------------------------
@@ -223,9 +281,11 @@ func (be *BaseExecutor) ensureRunning(stdout, stderr io.WriteCloser, usePty bool
 	}
 
 	tools.Trace("exec", "command ready to run")
-
+	if err := be.execCmd.Start(); err != nil {
+		return err
+	}
 	go func() {
-		err := be.execCmd.Run() // this calls `Wait()` for us
+		err := be.execCmd.Wait()
 		tools.Trace("exec", "command stopped", err)
 		be.execDone <- err
 	}()
@@ -328,7 +388,9 @@ func (be *BaseExecutor) defaultPrepareIO(req *ExecRequest, isExecCmd bool) (resu
 		be.stdin.Put(command)
 
 		// for now we can only support one command per execution for the basic input feeder executors
-		be.stdin.Close()
+		if err := be.stdin.Close(); err != nil {
+			tools.Log.Err(err).Msgf("defaultPrepareIO: be.stdin.close()")
+		}
 	}
 
 	// this will never "fire"--instead, we expect the command to exit once done processing
@@ -359,9 +421,15 @@ func stopKill(proc *os.Process) {
 	if proc == nil {
 		return
 	}
-	syscall.Kill(-proc.Pid, syscall.SIGINT)
+
+	// Refer WAR-295
+	if err := syscall.Kill(proc.Pid, syscall.SIGINT); err != nil {
+		tools.Log.Warn().Msgf("stopKill: syscall.Kill(SIGINT) err = %v", err)
+	}
 	go func() {
 		time.Sleep(500 * time.Millisecond)
-		syscall.Kill(-proc.Pid, syscall.SIGKILL)
+		if err := syscall.Kill(proc.Pid, syscall.SIGKILL); err != nil {
+			tools.Log.Warn().Msgf("stopKill: syscall.Kill(SIGKILL) err = %v", err)
+		}
 	}()
 }

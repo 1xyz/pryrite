@@ -3,11 +3,11 @@ package executor
 import (
 	"bufio"
 	"errors"
+	"github.com/aardlabs/terminal-poc/tools"
 	"io"
 	"os"
 	"strconv"
 	"strings"
-	"syscall"
 )
 
 type BashExecutor struct {
@@ -78,11 +78,8 @@ func (b *BashExecutor) prepareBashCmd(stdout, stderr io.WriteCloser, usePty bool
 		return nil, err
 	}
 
-	// TODO: leverage CommandFeeder to trigger a UI prompt when a read is requested from STDIN
-	// b.execCmd.Stdin = nil
-
-	// make sure bash is in its own process group so we can terminate itself _and_ any children
-	b.execCmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	// Refer WAR-295
+	// b.execCmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
 	// these are passed off to the bash session
 	var cmdReader, resultWriter *os.File
@@ -114,6 +111,8 @@ func (b *BashExecutor) prepareBashIO(req *ExecRequest, isExecCmd bool) (resultRe
 		return nil, errors.New("unexpected call with execute command set")
 	}
 
+	// temporarily redirect inFile into caller's specified input file (Fd)
+	b.inFile = req.In
 	// temporarily redirect out/err into caller's writers
 	b.stdout.SetWriter(req.Stdout)
 	b.stderr.SetWriter(req.Stderr)
@@ -126,6 +125,9 @@ func (b *BashExecutor) prepareBashIO(req *ExecRequest, isExecCmd bool) (resultRe
 		return nil, err
 	}
 
+	tools.Log.Debug().
+		Str("command", string(command)).
+		Msgf("prepareBashIO: writing command")
 	b.cmdWriter.Write(command)
 	b.cmdWriter.Write([]byte{0}) // null terminated for the repl's read to handle multiline snippets
 
@@ -152,6 +154,8 @@ func (b *BashExecutor) collectStatus(ready resultReadyCh) {
 }
 
 func (b *BashExecutor) cleanupBash(alreadyDone bool) {
+	tools.Log.Info().Msgf("cleanupBash alreadyDone=%v", alreadyDone)
+
 	if b.isRunning {
 		b.cmdWriter.Close()
 		b.resultReader.Close()

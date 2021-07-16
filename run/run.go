@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"fmt"
 	"io"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -387,8 +388,12 @@ func (r *Run) ExecuteBlock(n *graph.Node, b *graph.Block, stdout, stderr io.Writ
 	}
 
 	req := NewBlockExecutionRequest(n, b, stdout, stderr, r.ID, r.gCtx.ConfigEntry.Email, timeout)
-	tools.Log.Info().Msgf("ExecuteBlock: node:%s block:%s req:%s content:%s",
-		n.ID, b.ID, req.ID, tools.TrimLength(b.Content, 6))
+	tools.Log.Info().
+		Str("nodeID", n.ID).
+		Str("requestID", req.ID).
+		Str("blockID", b.ID).
+		Str("ContentTrimmed", tools.TrimLength(b.Content, 6)).
+		Msg("ExecuteBlock")
 	r.blockReqCh <- req
 	return req.ID, nil
 }
@@ -416,14 +421,13 @@ func (r *Run) executeBlock(req *BlockExecutionRequest) *log.ResultLogEntry {
 	outWriter := tools.NewBufferedWriteCloser(io.MultiWriter(stdoutWriter, req.Stdout))
 	errWriter := tools.NewBufferedWriteCloser(io.MultiWriter(stderrWriter, req.Stderr))
 
-	startMarker := fmt.Sprintf("\n>> executing node:%s req-id:%s \n", req.Node.ID, req.ID)
-	outWriter.Write([]byte(startMarker))
-	cmdInfo := fmt.Sprintf(">> %s\n", req.Block.Content)
-	outWriter.Write([]byte(cmdInfo))
+	tools.Log.Info().Msgf("executeBlock node:%s req-id:%s content:%s",
+		req.Node.ID, req.ID, req.Block.Content)
 	execReq := &executor.ExecRequest{
 		Hdr:         &executor.RequestHdr{ID: req.ID, ExecutionID: req.ExecutionID, NodeID: req.Node.ID},
 		Content:     []byte(req.Block.Content),
 		ContentType: req.Block.ContentType,
+		In:          os.Stdin,
 		Stdout:      outWriter,
 		Stderr:      errWriter,
 	}

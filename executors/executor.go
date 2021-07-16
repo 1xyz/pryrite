@@ -28,6 +28,13 @@ type ExecRequest struct {
 	// ContentType refers to the MIME type of the content
 	ContentType *ContentType
 
+	// In represents the additional input provided by the requester,
+	// a side-effect. This is in-addition to the regular input provided
+	// by the Content byte array.
+	// Example: In a shell command execution (i.e ContentType=text/bash).
+	// Content can be process command line, while In could represents the stdin.
+	In *os.File
+
 	// the executor publishes all side effects (Stdout, Stderr, debugging events etc.)
 	Stdout io.WriteCloser
 	Stderr io.WriteCloser
@@ -57,7 +64,7 @@ type Executor interface {
 	// Execute requests the Executor to execute the provided request
 	Execute(context.Context, *ExecRequest) *ExecResponse
 
-	// Internal cleanup function invoked when the Register is torn down
+	// Cleanup is the Internal function invoked when the Register is torn down
 	Cleanup()
 }
 
@@ -66,6 +73,7 @@ func DefaultRequest() *ExecRequest {
 		Hdr: &RequestHdr{
 			ID: uuid.NewString(),
 		},
+		In:     os.Stdin,
 		Stdout: &IgnoreCloseWriter{os.Stdout},
 		Stderr: &IgnoreCloseWriter{os.Stderr},
 	}
