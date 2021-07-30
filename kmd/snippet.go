@@ -3,10 +3,11 @@ package kmd
 import (
 	"errors"
 	"fmt"
-	"github.com/aardlabs/terminal-poc/inspector"
-	"github.com/aardlabs/terminal-poc/internal/ui/components"
 	"os"
 	"strings"
+
+	"github.com/aardlabs/terminal-poc/inspector"
+	"github.com/aardlabs/terminal-poc/internal/ui/components"
 
 	"github.com/spf13/cobra"
 

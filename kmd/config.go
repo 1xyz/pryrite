@@ -20,7 +20,7 @@ func NewCmdConfigAdd(cfg *config.Config) *cobra.Command {
 		Example: examplef(`
 			To add a new named configuration, run:
 
-			   $ {AppName} config add my-config --service-url https://aardy.app
+			   $ {AppName} config add my-config --service-url https://tail.aardy.app
 		`),
 		Args: MinimumArgs(1, "could not add configuration: no name provided"),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -38,7 +38,7 @@ func NewCmdConfigAdd(cfg *config.Config) *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&opts.ServiceURL,
-		"service-url", "https://aardy.app",
+		"service-url", "https://tail.aardy.app",
 		"URL for the aard service")
 	return cmd
 }

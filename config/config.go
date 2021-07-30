@@ -15,7 +15,7 @@ var (
 )
 
 const (
-	DefaultServiceURL = "https://aardy.app/"
+	DefaultServiceURL = "https://tail.aardy.app/"
 )
 
 type Entry struct {
@@ -43,7 +43,14 @@ func (c *Config) Get(name string) (*Entry, bool) {
 	if !found {
 		return nil, found
 	}
-	return &c.Entries[index], found
+	config := &c.Entries[index]
+	// check if a migration is necessary
+	if config.ServiceUrl == "https://aardy.app" {
+		config.ServiceUrl = DefaultServiceURL
+		c.Set(config)
+		c.SaveFile(DefaultConfigFile)
+	}
+	return config, found
 }
 
 func (c *Config) GetDefaultEntry() (*Entry, bool) {
