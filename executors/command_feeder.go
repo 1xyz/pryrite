@@ -24,6 +24,15 @@ func NewCommandFeeder(inputWriter io.WriteCloser) *CommandFeeder {
 	return &CommandFeeder{writer: inputWriter}
 }
 
+func (cf *CommandFeeder) Write(p []byte) (int, error) {
+	if cf.writer == nil {
+		cf.input <- p
+		return len(p), nil
+	}
+
+	return cf.writer.Write(p)
+}
+
 func (cf *CommandFeeder) Put(content []byte) {
 	if content != nil && content[len(content)-1] != '\n' {
 		content = append(content, '\n')

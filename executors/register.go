@@ -99,6 +99,7 @@ func (r *Register) Get(content []byte, contentType *ContentType) (Executor, erro
 		for _, nf := range []func([]byte, *ContentType) (Executor, error){
 			NewBashExecutor,
 			NewPSQLExecutor,
+			NewMySQLExecutor,
 		} {
 			var err error
 			executor, err = nf(content, contentType)

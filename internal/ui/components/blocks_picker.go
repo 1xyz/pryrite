@@ -61,7 +61,8 @@ func RenderBlockPicker(entries BlockPickList, header string, pageSize, startInde
 		Stdout:    &bellSkipper{},
 	}
 
-	i, _, err := prompt.RunCursorAt(startIndex, startIndex)
+	scrollSize := len(rows) - pageSize
+	i, _, err := prompt.RunCursorAt(startIndex, scrollSize)
 	if err != nil {
 		if err == promptui.ErrExit {
 			return nil, ErrNoEntryPicked
