@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"time"
 
@@ -45,7 +46,8 @@ func (c *Config) Get(name string) (*Entry, bool) {
 	}
 	config := &c.Entries[index]
 	// check if a migration is necessary
-	if config.ServiceUrl == "https://aardy.app" {
+	u, err := url.Parse(config.ServiceUrl)
+	if err == nil && u.Host == "aardy.app" {
 		config.ServiceUrl = DefaultServiceURL
 		c.Set(config)
 		c.SaveFile(DefaultConfigFile)
