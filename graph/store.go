@@ -15,6 +15,7 @@ import (
 	"github.com/go-resty/resty/v2"
 
 	"github.com/aardlabs/terminal-poc/app"
+	"github.com/aardlabs/terminal-poc/auth"
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/tools"
 )
@@ -58,9 +59,12 @@ type remoteStore struct {
 	configEntry *config.Entry
 	m           *Metadata
 	client      *http.Client
+	token       string
 }
 
 func NewStore(configEntry *config.Entry, metadata *Metadata) Store {
+	token, _ := auth.GetLoggedInUser(configEntry)
+
 	skipSSLCheck := configEntry.SkipSSLCheck
 	if skipSSLCheck {
 		tools.Log.Warn().Msg("Warning: SSL check is disabled")
@@ -85,6 +89,7 @@ func NewStore(configEntry *config.Entry, metadata *Metadata) Store {
 		configEntry: configEntry,
 		m:           metadata,
 		client:      client,
+		token:       token,
 	}
 }
 
@@ -290,7 +295,7 @@ func (r *remoteStore) newHTTPClient(parseResponse bool) *resty.Client {
 		SetDoNotParseResponse(!parseResponse).
 		SetHostURL(r.configEntry.ServiceUrl).
 		SetHeaders(map[string]string{
-			"Authorization": fmt.Sprintf("%s %s", r.configEntry.AuthScheme, r.configEntry.User),
+			"Authorization": fmt.Sprintf("%s %s", r.configEntry.AuthScheme, r.token),
 			"Accept":        "application/json",
 			"Content-Type":  "application/json",
 			"User-Agent":    fmt.Sprintf("%s/%s (%s)", app.Name, app.Version, app.CommitHash),

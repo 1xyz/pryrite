@@ -24,7 +24,7 @@ func MinimumArgs(n int, msg string) cobra.PositionalArgs {
 func IsUserLoggedIn(entry *config.Entry) error {
 	_, found := auth.GetLoggedInUser(entry)
 	if !found {
-		return auth.AuthUser(entry, "")
+		return auth.AuthUser(entry)
 	}
 	return nil
 }

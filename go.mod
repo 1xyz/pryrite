@@ -3,7 +3,6 @@ module github.com/aardlabs/terminal-poc
 go 1.16
 
 require (
-	github.com/1xyz/sseclient v0.0.0-20210510204826-9b958fd4e77e
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/briandowns/spinner v1.16.0
 	github.com/c-bata/go-prompt v0.2.5
@@ -26,6 +25,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.0
 	github.com/yuin/goldmark v1.3.3
+	github.com/zalando/go-keyring v0.1.1
 	go.uber.org/atomic v1.8.0
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/term v0.0.0-20210503060354-a79de5458b56

@@ -1,111 +1,131 @@
 package auth
 
 import (
-	"crypto/tls"
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"math"
-	"net"
-	"net/http"
-	"net/url"
+	"os"
 	"strings"
 	"time"
 
-	"github.com/1xyz/sseclient"
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/tools"
+
 	"github.com/cristalhq/jwt/v3"
+	"github.com/pkg/errors"
 )
 
-const ClientTimeout = 30 * time.Second
+const keyringInUseMarker = "-"
 
-func AuthUser(entry *config.Entry, serviceUrl string) error {
-	tools.Log.Info().Msgf("AuthUser entry=%v, serviceUR=%s", entry, serviceUrl)
-	if serviceUrl == "" {
-		serviceUrl = entry.ServiceUrl
+func AuthUser(entry *config.Entry) error {
+	auth0 := NewAuth0(entry)
+
+	if auth0 == nil {
+		reader := bufio.NewReader(os.Stdin)
+		fmt.Print("email? ")
+		email, _ := reader.ReadString('\n')
+		entry.Mode = "silly"
+		entry.User = strings.TrimSpace(email)
+		return config.SetEntry(entry)
 	}
 
-	loginUrl, err := url.Parse(serviceUrl)
+	url, err := auth0.GetAuthUrl()
 	if err != nil {
 		return err
 	}
 
-	loginUrl.Path = "/api/v1/login"
-	tools.Log.Info().Msgf("AuthUser serviceURL=%s loginURL=%s", serviceUrl, loginUrl)
+	fmt.Println("Please open this link to authorize this app:", url)
 
-	if entry.SkipSSLCheck {
-		tools.Log.Warn().Msg("Warning: SSL check is disabled")
-	}
-	client := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: entry.SkipSSLCheck},
-			Dial: (&net.Dialer{
-				Timeout:   10 * time.Second,
-				KeepAlive: 25 * time.Second,
-			}).Dial,
-			TLSHandshakeTimeout:   10 * time.Second,
-			ResponseHeaderTimeout: 10 * time.Second,
-			ExpectContinueTimeout: 1 * time.Second,
-		}}
-
-	events, err := sseclient.HttpClientOpenURL(client, loginUrl.String())
-	//events, err := sseclient.OpenURL(loginUrl.String())
+	tokens, err := auth0.GetTokens()
 	if err != nil {
-		return fmt.Errorf("authUser err = %v", err)
+		return err
 	}
 
-	var tokenString string
-	for event := range events {
-		if url, ok := event.Data["authorize_url"]; ok {
-			fmt.Println("Please open this link to authorize this app:", url)
-		} else if t, ok := event.Data["bearer_token"]; ok {
-			fmt.Println("Authorization is complete!")
-			tokenString = strings.TrimSpace(t.(string))
-			break
-		} else {
-			fmt.Println("Unknown event", event.Name, event.Data)
-		}
-	}
-
-	entry.UserExpiresAt = nil
-
-	// NOTE: this does _NOT_ verify since we don't download the issuer's key
-	//       this is purely to snag the user info out of the jwt
-	token, err := jwt.ParseString(tokenString)
-	if err == nil {
-		var claims map[string]interface{}
-		err = json.Unmarshal(token.RawClaims(), &claims)
-		if err != nil {
-			return err
-		}
-		entry.Email = claims["email"].(string)
-		exp := claims["exp"].(float64)
-		expTime := time.Unix(int64(math.Floor(exp)), 0)
-		entry.UserExpiresAt = &expTime
-	} else {
-		// FIXME: remove this when we stop supporting Silly auth
-		entry.Email = tokenString
-	}
-
-	entry.ServiceUrl = serviceUrl
-	entry.User = tokenString
-	entry.AuthScheme = "Bearer"
-	return config.SetEntry(entry)
+	return processTokens(entry, tokens)
 }
 
 func LogoutUser(entry *config.Entry) error {
+	if entry.User == keyringInUseMarker {
+		RemoveTokens(entry.ServiceUrl)
+	}
+
+	entry.Email = ""
 	entry.User = ""
 	entry.AuthScheme = ""
+
 	return config.SetEntry(entry)
 }
 
 func GetLoggedInUser(entry *config.Entry) (string, bool) {
+	var tokens *Tokens
+
+	if entry.User == keyringInUseMarker {
+		var err error
+		tokens, err = GetTokens(entry.ServiceUrl)
+		if err != nil {
+			return "", false
+		}
+	} else {
+		tokens = &Tokens{Id: entry.User}
+	}
+
 	isExpired := false
 	if entry.UserExpiresAt != nil {
 		isExpired = time.Now().After(*entry.UserExpiresAt)
 		if isExpired {
-			tools.Log.Info().Time("exp", *entry.UserExpiresAt).Msg("credentials have expired")
+			if tokens.Refresh == "" {
+				tools.Log.Info().Time("exp", *entry.UserExpiresAt).Msg("credentials have expired")
+			} else {
+				tools.Log.Info().Time("exp", *entry.UserExpiresAt).Msg("credentials have expired--refreshing")
+				auth0 := NewAuth0(entry)
+				if auth0 != nil {
+					err := auth0.Refresh(tokens)
+					if err == nil {
+						err = processTokens(entry, tokens)
+						if err != nil {
+							tools.Log.Err(err).Msg("processing refresh tokens failed")
+						}
+						isExpired = time.Now().After(*entry.UserExpiresAt)
+					} else {
+						tools.LogStderr(err, "refresh attempt failed--will need to re-authorize this device")
+					}
+				}
+			}
 		}
 	}
-	return entry.User, entry.User != "" && !isExpired
+
+	return tokens.Id, tokens.Id != "" && !isExpired
+}
+
+func processTokens(entry *config.Entry, tokens *Tokens) error {
+	// NOTE: this does _NOT_ verify since we don't download the issuer's key
+	//       this is purely to snag the user info out of the jwt
+	token, err := jwt.ParseString(tokens.Id)
+	if err != nil {
+		return errors.Wrap(err, "unable to parse the ID token")
+	}
+
+	var claims map[string]interface{}
+	err = json.Unmarshal(token.RawClaims(), &claims)
+	if err != nil {
+		return errors.Wrap(err, "unable to get claims from the ID token")
+	}
+
+	entry.AuthScheme = "Bearer"
+	entry.Email = claims["email"].(string)
+
+	exp := claims["exp"].(float64)
+	expTime := time.Unix(int64(math.Floor(exp)), 0)
+	entry.UserExpiresAt = &expTime
+
+	err = SaveTokens(entry.ServiceUrl, tokens)
+	if err == nil {
+		entry.User = keyringInUseMarker
+	} else {
+		println("Warning: no keyring manager found--storing your identity token insecurely")
+		entry.User = tokens.Id
+	}
+
+	return config.SetEntry(entry)
 }

@@ -32,16 +32,13 @@ func NewCmdAuthLogin(cfg *config.Config) *cobra.Command {
 			if !found {
 				return fmt.Errorf("a active configuration is not found")
 			}
-			if err := auth.AuthUser(entry, serviceURL); err != nil {
+			if err := auth.AuthUser(entry); err != nil {
 				return err
 			}
 			tools.LogStdout(fmt.Sprintf("User logged in as %s", entry.Email))
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&serviceURL,
-		"service-url", "",
-		"URL for the aard service")
 	return cmd
 }
 

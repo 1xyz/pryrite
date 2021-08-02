@@ -21,6 +21,7 @@ const (
 
 type Entry struct {
 	Name             string                   `yaml:"name"`
+	Mode             string                   `yaml:"mode"`
 	ServiceUrl       string                   `yaml:"service_url"`
 	LastUpdateCheck  time.Time                `yaml:"last_update_check"`
 	AuthScheme       string                   `yaml:"auth_scheme"`
@@ -44,14 +45,27 @@ func (c *Config) Get(name string) (*Entry, bool) {
 	if !found {
 		return nil, found
 	}
+
 	config := &c.Entries[index]
+
 	// check if a migration is necessary
+	set := false
+
 	u, err := url.Parse(config.ServiceUrl)
-	if err == nil && u.Host == "aardy.app" {
+	if err != nil || u.Host == "aardy.app" {
 		config.ServiceUrl = DefaultServiceURL
-		c.Set(config)
-		c.SaveFile(DefaultConfigFile)
+		set = true
 	}
+
+	if config.Mode == "" {
+		config.Mode = "production"
+		set = true
+	}
+
+	if set {
+		SetEntry(config)
+	}
+
 	return config, found
 }
 
