@@ -31,9 +31,8 @@ const (
 
 func RenderSnippetNodeView(entry *config.Entry, n *graph.Node) error {
 	nr := &nodeRender{
-		node:       n,
-		serviceURL: common.GetServiceURL(entry),
-		style:      entry.Style,
+		node:        n,
+		configEntry: entry,
 	}
 	nr.Render()
 	return nil
@@ -44,15 +43,14 @@ func RenderSnippetNodes(entry *config.Entry, nodes []graph.Node, kind graph.Kind
 		tools.LogStdout("No results found!")
 		return nil
 	}
-	nr := &nodesRender{Nodes: nodes, kind: kind, serviceURL: common.GetServiceURL(entry)}
+	nr := &nodesRender{Nodes: nodes, kind: kind, configEntry: entry}
 	nr.Render()
 	return nil
 }
 
 type nodeRender struct {
-	node       *graph.Node
-	serviceURL string
-	style      string
+	node        *graph.Node
+	configEntry *config.Entry
 }
 
 func (nr *nodeRender) Render() {
@@ -71,11 +69,11 @@ func (nr *nodeRender) renderNodeView(n *graph.Node, w io.Writer) {
 	t := table.NewWriter()
 	t.SetStyle(table.StyleBold)
 	t.SetOutputMirror(w)
-	t.AppendRow(table.Row{"URL", common.GetNodeURL(nr.serviceURL, n.ID)})
+	t.AppendRow(table.Row{"URL", common.GetNodeURL(nr.configEntry, n.ID)})
 	t.AppendSeparator()
 	t.Render()
 
-	mr, err := markdown.NewTermRenderer(nr.style)
+	mr, err := markdown.NewTermRenderer(nr.configEntry.Style)
 	if err != nil {
 		tools.LogStderr(err, "renderNodeView: NewTermRender:")
 		return
@@ -112,9 +110,9 @@ func (nr *nodeRender) getColumnLen() int {
 }
 
 type nodesRender struct {
-	Nodes      []graph.Node
-	kind       graph.Kind
-	serviceURL string
+	Nodes       []graph.Node
+	kind        graph.Kind
+	configEntry *config.Entry
 }
 
 func (nr *nodesRender) Render() {
@@ -124,7 +122,7 @@ func (nr *nodesRender) Render() {
 	t.SetOutputMirror(w)
 	for _, e := range nr.Nodes {
 		summary := nr.getSummary(&e)
-		idURL := common.GetNodeURL(nr.serviceURL, e.ID)
+		idURL := common.GetNodeURL(nr.configEntry, e.ID)
 		if nr.kind == graph.Unknown {
 			t.AppendRow(table.Row{
 				idURL,

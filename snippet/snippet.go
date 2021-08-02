@@ -5,9 +5,6 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
-	"github.com/aardlabs/terminal-poc/config"
-	"github.com/aardlabs/terminal-poc/graph"
-	"github.com/aardlabs/terminal-poc/tools"
 	"hash"
 	"io"
 	"io/ioutil"
@@ -17,6 +14,10 @@ import (
 	"os/exec"
 	"strings"
 	"time"
+
+	"github.com/aardlabs/terminal-poc/config"
+	"github.com/aardlabs/terminal-poc/graph"
+	"github.com/aardlabs/terminal-poc/tools"
 )
 
 func NewContext(cfg *config.Config, agent string) *Context {
@@ -345,16 +346,6 @@ func EditNodeBlock(ctx *Context, n *graph.Node, b *graph.Block, save bool) (*gra
 		}
 	}
 	return b, err
-}
-
-func GetNodeURL(ctx *Context, node *graph.Node) *url.URL {
-	u, err := url.Parse(ctx.ConfigEntry.ServiceUrl)
-	if err != nil {
-		return nil
-	}
-
-	u.Path = "nodes/" + node.ID
-	return u
 }
 
 func handleGraphHTTPErr(ghe *graph.HttpError, ctxMessage string) error {

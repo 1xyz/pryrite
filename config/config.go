@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/aardlabs/terminal-poc/tools"
@@ -16,12 +17,14 @@ var (
 )
 
 const (
-	DefaultServiceURL = "https://tail.aardy.app/"
+	DefaultDashboardURL = "https://aardy.app/"
+	DefaultServiceURL   = "https://tail.aardy.app/"
 )
 
 type Entry struct {
 	Name             string                   `yaml:"name"`
 	Mode             string                   `yaml:"mode"`
+	DashboardUrl     string                   `yaml:"dashboard_url"`
 	ServiceUrl       string                   `yaml:"service_url"`
 	LastUpdateCheck  time.Time                `yaml:"last_update_check"`
 	AuthScheme       string                   `yaml:"auth_scheme"`
@@ -51,15 +54,34 @@ func (c *Config) Get(name string) (*Entry, bool) {
 	// check if a migration is necessary
 	set := false
 
-	u, err := url.Parse(config.ServiceUrl)
-	if err != nil || u.Host == "aardy.app" {
-		config.ServiceUrl = DefaultServiceURL
+	serviceURL, err := url.Parse(config.ServiceUrl)
+	if err != nil || serviceURL.Host == "aardy.app" {
 		set = true
+		config.ServiceUrl = DefaultServiceURL
+		serviceURL, _ = url.Parse(config.ServiceUrl)
 	}
 
 	if config.Mode == "" {
-		config.Mode = "production"
 		set = true
+		if strings.HasPrefix(serviceURL.Host, "localhost") {
+			config.Mode = "development"
+		} else if strings.Contains(serviceURL.Host, "staging") {
+			config.Mode = "staging"
+		} else {
+			config.Mode = "production"
+		}
+	}
+
+	if config.DashboardUrl == "" {
+		set = true
+		switch config.Mode {
+		case "development", "silly":
+			config.DashboardUrl = "http://localhost:3000/"
+		case "staging":
+			config.DashboardUrl = "https://sweetie-deathtaco-staging.herokuapp.com/"
+		default:
+			config.DashboardUrl = DefaultDashboardURL
+		}
 	}
 
 	if set {

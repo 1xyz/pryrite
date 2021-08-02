@@ -1,7 +1,7 @@
 package common
 
 import (
-	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/aardlabs/terminal-poc/config"
@@ -52,9 +52,12 @@ func GetServiceURL(entry *config.Entry) string {
 }
 
 // GetNodeURL returns the URL representation of this node ID
-func GetNodeURL(serviceURL, nodeID string) string {
-	if !strings.HasSuffix(serviceURL, "/") {
-		serviceURL += "/"
+func GetNodeURL(entry *config.Entry, nodeID string) *url.URL {
+	u, err := url.Parse(entry.DashboardUrl)
+	if err != nil {
+		return nil
 	}
-	return fmt.Sprintf("%snodes/%s", serviceURL, nodeID)
+
+	u.Path = "nodes/" + nodeID
+	return u
 }

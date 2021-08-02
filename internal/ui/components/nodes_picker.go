@@ -2,12 +2,13 @@ package components
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/internal/common"
 	"github.com/aardlabs/terminal-poc/tools"
 	"github.com/manifoldco/promptui"
-	"strings"
 )
 
 type NodePickResult struct {
@@ -19,8 +20,7 @@ func RenderNodesPicker(entry *config.Entry, nodes []graph.Node, header string, p
 		return nil, fmt.Errorf("an empty node list provided")
 	}
 
-	serviceUrl := common.GetServiceURL(entry)
-	rows := newDisplayRows(nodes, serviceUrl, entry.Style)
+	rows := newDisplayRows(nodes, entry)
 
 	templates := &promptui.SelectTemplates{
 		Label:    "{{ . }}?",
@@ -80,7 +80,7 @@ type displayRow struct {
 	node        *graph.Node
 }
 
-func newDisplayRows(nodes []graph.Node, serviceURL, style string) []displayRow {
+func newDisplayRows(nodes []graph.Node, entry *config.Entry) []displayRow {
 	cols := colLen()
 	summaryLen := 30
 	if cols < summaryLen {
@@ -94,7 +94,7 @@ func newDisplayRows(nodes []graph.Node, serviceURL, style string) []displayRow {
 
 	rows := make([]displayRow, len(nodes))
 	for i, n := range nodes {
-		nodeID := common.GetNodeURL(serviceURL, n.ID)
+		nodeID := common.GetNodeURL(entry, n.ID).String()
 		summary := common.CreateNodeSummary(&nodes[i])
 		summary = tools.RemoveNewLines(summary, " ")
 		date := tools.FmtTime(n.OccurredAt)
@@ -105,7 +105,7 @@ func newDisplayRows(nodes []graph.Node, serviceURL, style string) []displayRow {
 			NodeID:      nodeID,
 			Summary:     tools.TrimLength(summary, summaryLen),
 			SummaryLong: tools.TrimLength(summary, summaryLongLen),
-			Markdown:    common.GenerateNodeMarkdown(&nodes[i], style),
+			Markdown:    common.GenerateNodeMarkdown(&nodes[i], entry.Style),
 			Date:        date,
 			DateLong:    dateLong,
 			KindGlyph:   kindGlyph(&nodes[i]),

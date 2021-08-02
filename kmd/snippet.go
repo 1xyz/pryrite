@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/aardlabs/terminal-poc/inspector"
+	"github.com/aardlabs/terminal-poc/internal/common"
 	"github.com/aardlabs/terminal-poc/internal/ui/components"
 
 	"github.com/spf13/cobra"
@@ -181,7 +182,7 @@ func NewCmdSnippetDesc(gCtx *snippet.Context) *cobra.Command {
 func NewCmdSnippetSave(gCtx *snippet.Context) *cobra.Command {
 	showHelp := func(cmd *cobra.Command) {
 		fmt.Println(cmd.Long)
-		fmt.Println("Examples:\n")
+		fmt.Println("Examples:")
 		fmt.Println(cmd.Example)
 	}
 
@@ -244,7 +245,7 @@ func NewCmdSnippetSave(gCtx *snippet.Context) *cobra.Command {
 			}
 
 			tools.Log.Info().Msgf("AddSnippetNode n.ID = %s", n.ID)
-			fmt.Printf("Added a new node with id = %s\n", snippet.GetNodeURL(gCtx, n))
+			fmt.Printf("Added a new node with id = %s\n", common.GetNodeURL(gCtx.ConfigEntry, n.ID))
 			return nil
 		},
 	}
