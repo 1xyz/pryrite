@@ -2,11 +2,10 @@ package executor
 
 import (
 	"encoding/json"
-	"fmt"
 	"mime"
 	"strings"
 
-	"github.com/pkg/errors"
+	"github.com/aardlabs/terminal-poc/tools"
 )
 
 type ContentType struct {
@@ -16,15 +15,23 @@ type ContentType struct {
 }
 
 func Parse(val string) (*ContentType, error) {
+	// Be liberal with what we accept, here, as users can enter anything they
+	// want and we don't want to prevent normal things like listing.
+
 	name, params, err := mime.ParseMediaType(val)
 	if err != nil {
-		return nil, errors.Wrap(err, val)
+		tools.Log.Warn().Str("contentType", val).Msg("Ignoring failure to parse content-type value")
+		name = val
+		params = map[string]string{}
 	}
 
 	vals := strings.SplitN(name, "/", 2)
 	if len(vals) != 2 {
-		return nil, fmt.Errorf("failed to parse %s", name)
+		tools.Log.Warn().Str("name", name).Msg("Ignoring failure to parse name from content-type")
+		vals = []string{name, ""}
 	}
+
+	vals[1] = strings.ReplaceAll(vals[1], "/", "-")
 
 	return &ContentType{
 		Type:    vals[0],

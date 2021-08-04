@@ -57,7 +57,7 @@ func newRepl(cfg *config.Config) (*repl, error) {
 	r := tools.NewRunner(ctx)
 	fmt.Printf("%s %s (service: %s)\n", app.Name,
 		ctx.GraphCtx.Metadata.Agent,
-		ctx.GraphCtx.ConfigEntry.ServiceUrl)
+		ctx.GraphCtx.ConfigEntry.DashboardUrl)
 	fmt.Println("Type `quit` or `Ctrl-D` to exit.")
 	fmt.Println("Type `help <command>` to get help on a specific command")
 	pt := prompt.New(
