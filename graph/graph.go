@@ -131,11 +131,20 @@ func NewNode(kind Kind, title, content, contentType string, metadata Metadata) (
 
 	return &Node{
 		Title:      title,
-		CreatedAt:  &now,
 		OccurredAt: &now,
 		Kind:       kind,
 		Markdown:   markdown,
 		Metadata:   metadata,
 		ChildNodes: nil,
+	}, nil
+}
+
+func NewNodeFromBlocks(kind Kind, blocks []*Block, metadata Metadata) (*Node, error) {
+	now := time.Now().UTC()
+	return &Node{
+		OccurredAt: &now,
+		Kind:       kind,
+		Metadata:   metadata,
+		Blocks:     blocks,
 	}, nil
 }

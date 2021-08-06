@@ -12,10 +12,12 @@ require (
 	github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815
 	github.com/go-resty/resty/v2 v2.5.0
 	github.com/google/uuid v1.2.0
+	github.com/itchyny/timefmt-go v0.1.3
 	github.com/jedib0t/go-pretty/v6 v6.1.0
 	github.com/manifoldco/promptui v0.8.0
 	github.com/mattn/go-runewidth v0.0.12 // indirect
 	github.com/mattn/go-shellwords v1.0.12
+	github.com/mitchellh/go-ps v1.0.0
 	github.com/muesli/reflow v0.2.1-0.20210115123740-9e1d0d53df68
 	github.com/muesli/termenv v0.8.1
 	github.com/pkg/errors v0.9.1

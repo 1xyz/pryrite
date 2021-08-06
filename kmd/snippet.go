@@ -3,11 +3,13 @@ package kmd
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 
 	"github.com/aardlabs/terminal-poc/inspector"
 	"github.com/aardlabs/terminal-poc/internal/common"
+	"github.com/aardlabs/terminal-poc/internal/slurp"
 	"github.com/aardlabs/terminal-poc/internal/ui/components"
 
 	"github.com/spf13/cobra"
@@ -247,6 +249,46 @@ func NewCmdSnippetSave(gCtx *snippet.Context) *cobra.Command {
 			tools.Log.Info().Msgf("AddSnippetNode n.ID = %s", n.ID)
 			fmt.Printf("Added a new node with id = %s\n", common.GetNodeURL(gCtx.ConfigEntry, n.ID))
 			return nil
+		},
+	}
+	return cmd
+}
+
+func NewCmdSnippetSlurp(gCtx *snippet.Context) *cobra.Command {
+	cmd := &cobra.Command{
+		Hidden: true,
+		Use:    "slurp",
+		Args:   cobra.RangeArgs(0, 1),
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			return IsUserLoggedIn(gCtx.ConfigEntry)
+		},
+		// TODO: add --shell argument to handle cases like ssh XXX | slurp --shell zsh
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 || args[0] == "-" {
+				cnt := 0
+				var slurper slurp.Slurper = &slurp.HistorySlurper{}
+				slurper.Slurp("", os.Stdin, func(slurp *slurp.Slurp) error {
+					tools.Log.Info().Interface("slurp", slurp).Msg("AddSnippetNodeFromSlurp")
+					n, err := snippet.AddSnippetNodeFromSlurp(gCtx, slurp)
+					if err != nil {
+						return err
+					}
+
+					tools.Log.Info().Msgf("AddSnippetNodeFromSlurp n.ID = %s", n.ID)
+					cnt++
+					return nil
+				})
+				u, _ := url.Parse(gCtx.ConfigEntry.DashboardUrl)
+				u.Path += "slurps"
+				cmd.Printf("\nSaved %d snippets available at %s\n\n", cnt, u)
+				return nil
+			}
+
+			if args[0] == "-h" || args[0] == "--help" {
+				return cmd.Help()
+			}
+
+			return fmt.Errorf("unknown slurp argument: %s", args[0])
 		},
 	}
 	return cmd

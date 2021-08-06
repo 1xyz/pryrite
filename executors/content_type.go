@@ -14,6 +14,17 @@ type ContentType struct {
 	Params  map[string]string
 }
 
+func NewContentType(language string, params map[string]string) *ContentType {
+	if params == nil {
+		params = map[string]string{}
+	}
+	return &ContentType{
+		Type:    "text",
+		Subtype: language,
+		Params:  params,
+	}
+}
+
 func Parse(val string) (*ContentType, error) {
 	// Be liberal with what we accept, here, as users can enter anything they
 	// want and we don't want to prevent normal things like listing.

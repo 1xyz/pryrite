@@ -26,7 +26,8 @@ func AuthUser(entry *config.Entry) error {
 		fmt.Print("email? ")
 		email, _ := reader.ReadString('\n')
 		entry.Mode = "silly"
-		entry.User = strings.TrimSpace(email)
+		entry.Email = strings.TrimSpace(email)
+		entry.User = entry.Email
 		return config.SetEntry(entry)
 	}
 

@@ -16,7 +16,9 @@ import (
 	"time"
 
 	"github.com/aardlabs/terminal-poc/config"
+	executor "github.com/aardlabs/terminal-poc/executors"
 	"github.com/aardlabs/terminal-poc/graph"
+	"github.com/aardlabs/terminal-poc/internal/slurp"
 	"github.com/aardlabs/terminal-poc/tools"
 )
 
@@ -216,6 +218,53 @@ func AddSnippetNode(ctx *Context, title, content string, contentType string) (*g
 	if err != nil {
 		return nil, err
 	}
+
+	result, err := store.AddNode(n)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func AddSnippetNodeFromSlurp(ctx *Context, slurp *slurp.Slurp) (*graph.Node, error) {
+	store, err := ctx.GetStore()
+	if err != nil {
+		return nil, err
+	}
+
+	// FIXME: this logic probably belongs in the service since that's where block segmentation is handled
+
+	codeStart := &graph.Block{
+		Content:     "```" + slurp.Language + "\n",
+		ContentType: executor.NewContentType("markdown", nil),
+	}
+
+	params := map[string]string{
+		"location": slurp.Location.String(),
+	}
+
+	block := &graph.Block{
+		Content:        slurp.Commandline,
+		ContentType:    executor.NewContentType(slurp.Location.Scheme, params),
+		LastExecutedAt: slurp.ExecutedAt,
+		LastExitStatus: slurp.ExitStatus,
+		LastExecutedBy: ctx.ConfigEntry.Email,
+	}
+
+	codeStop := &graph.Block{
+		Content:     "\n```",
+		ContentType: executor.NewContentType("markdown", nil),
+	}
+
+	n, err := graph.NewNodeFromBlocks(graph.Slurp, []*graph.Block{codeStart, block, codeStop}, *ctx.Metadata)
+	if err != nil {
+		return nil, err
+	}
+
+	// FIXME: remove this when we update the webui to show this info on a per-code-block basis and not at the node level
+	n.LastExecutedAt = block.LastExecutedAt
+	n.LastExecutedBy = block.LastExecutedBy
 
 	result, err := store.AddNode(n)
 	if err != nil {
