@@ -289,14 +289,25 @@ func EditSnippetNode(ctx *Context, id string, save bool) (*graph.Node, error) {
 
 	// Write the content to temporary file
 	if len(n.Blocks) > 0 {
-		if len(n.Blocks) > 1 {
-			tools.Log.Error().Msgf("EditSnippetNode (%s). TODO: handle more than one snippet", n.ID)
-		}
-		if err := ioutil.WriteFile(filename, []byte(n.Blocks[0].Content), 0600); err != nil {
+		file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0600)
+		if err != nil {
 			return nil, err
 		}
-		tools.Log.Info().Msgf("EditSnippetNode (%s). wrote n=%d bytes to %s",
-			n.ID, len(n.Blocks), filename)
+
+		bytes := 0
+		for _, block := range n.Blocks {
+			n, err := file.WriteString(block.Content)
+			if err != nil {
+				file.Close()
+				return nil, err
+			}
+
+			bytes += n
+		}
+
+		file.Close()
+		tools.Log.Info().Msgf("EditSnippetNode (%s). wrote %d bytes to %s",
+			n.ID, bytes, filename)
 	} else {
 		tools.Log.Info().Msgf("EditSnippetNode (%s). no content to write to file", n.ID)
 	}
@@ -328,7 +339,9 @@ func EditSnippetNode(ctx *Context, id string, save bool) (*graph.Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	n.Blocks[0].Content = string(newContent)
+
+	n.Blocks = nil
+	n.Markdown = string(newContent)
 
 	if save {
 		tools.Log.Info().Msgf("EditSnippetNode: Save %s to remote service.", n.ID)
@@ -336,6 +349,7 @@ func EditSnippetNode(ctx *Context, id string, save bool) (*graph.Node, error) {
 			return nil, err
 		}
 	}
+
 	return n, nil
 }
 
