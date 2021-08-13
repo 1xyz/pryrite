@@ -8,12 +8,13 @@ import (
 	"time"
 
 	"github.com/aardlabs/terminal-poc/tools"
+
 	"github.com/google/uuid"
 	"gopkg.in/yaml.v2"
 )
 
 var (
-	DefaultConfigFile = os.ExpandEnv("$HOME/.aardvark/aard.yaml")
+	DefaultConfigFile = tools.MyPathTo("aard.yaml")
 )
 
 const (

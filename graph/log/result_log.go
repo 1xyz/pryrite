@@ -3,9 +3,9 @@ package log
 import (
 	"errors"
 	"fmt"
-	"github.com/aardlabs/terminal-poc/tools"
-	"os"
 	"time"
+
+	"github.com/aardlabs/terminal-poc/tools"
 )
 
 type ExecState string
@@ -105,7 +105,7 @@ const (
 	IndexFileSystem LogIndexType = 2
 )
 
-var ResultLogDir = os.ExpandEnv("$HOME/.aardvark/result_log")
+var ResultLogDir = tools.MyPathTo("result_log")
 
 func NewResultLogIndex(typ LogIndexType) (ResultLogIndex, error) {
 	switch typ {

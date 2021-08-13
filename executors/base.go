@@ -2,22 +2,21 @@ package executor
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	pio "github.com/aardlabs/terminal-poc/internal/io"
-	"golang.org/x/term"
 	"io"
 	"os"
 	"os/exec"
 	"strings"
-	"syscall"
 	"time"
 
+	pio "github.com/aardlabs/terminal-poc/internal/io"
 	"github.com/aardlabs/terminal-poc/tools"
 
 	pseudoTY "github.com/creack/pty"
 	"github.com/mattn/go-shellwords"
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
+	"golang.org/x/term"
 )
 
 type BaseExecutor struct {
@@ -242,8 +241,7 @@ func (be *BaseExecutor) processContentType(content []byte, myContentType, wantCo
 			return err
 		}
 
-		be.command = args[0]
-		be.commandArgs = args[1:]
+		be.setExecCommand(args[0], args[1:])
 
 		// since we use this command for the executor itself, we need to skip it when requested
 		be.skipCount = 1
@@ -252,7 +250,22 @@ func (be *BaseExecutor) processContentType(content []byte, myContentType, wantCo
 	return nil
 }
 
-func (be *BaseExecutor) getCommand(content []byte, contentType *ContentType) ([]byte, error) {
+func (be *BaseExecutor) setExecCommand(cmd string, args []string) {
+	// allow folks to specify exactly which binary to run for a given command type
+	overrideCommand := os.Getenv("AARDY_" + strings.ToUpper(cmd) + "_PATH")
+	if overrideCommand == "" {
+		be.command = cmd
+	} else {
+		tools.Trace("exec", "overriding command", cmd, "=>", overrideCommand)
+		be.command = overrideCommand
+	}
+
+	if args != nil {
+		be.commandArgs = args
+	}
+}
+
+func (be *BaseExecutor) getCommandFrom(content []byte, contentType *ContentType) ([]byte, error) {
 	if _, ok := contentType.Params["prompt"]; ok {
 		var start, stop int
 		n, _ := fmt.Sscanf(contentType.Params["command"], "%d:%d", &start, &stop)
@@ -275,12 +288,13 @@ func (be *BaseExecutor) ensureRunning(stdout, stderr io.WriteCloser, usePty bool
 		return nil
 	}
 
+	tools.Trace("exec", "command is not running: about to start")
 	execReady, err := be.prepareCmd(stdout, stderr, usePty)
 	if err != nil {
 		return err
 	}
 
-	tools.Trace("exec", "command ready to run")
+	tools.Trace("exec", "command ready to run", be.execCmd.Args)
 	if err := be.execCmd.Start(); err != nil {
 		return err
 	}
@@ -335,17 +349,16 @@ func (be *BaseExecutor) defaultPrepareCmd(stdout, stderr io.WriteCloser, usePty 
 		var outTTY, errTTY *os.File
 		outPTY, outTTY, err = pseudoTY.Open()
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "Unable to open a Pseudo terminal (PTY) for stdin/out")
 		}
 
 		errPTY, errTTY, err = pseudoTY.Open()
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "Unable to open a Pseudo terminal (PTY) for stderr")
 		}
 
-		be.execCmd.SysProcAttr = &syscall.SysProcAttr{}
-		be.execCmd.SysProcAttr.Setsid = true
-		be.execCmd.SysProcAttr.Setctty = true
+		tools.Trace("exec", "PTYs are open")
+		be.setProcAttr()
 
 		be.execCmd.Stdin = outTTY
 		be.execCmd.Stdout = outTTY
@@ -380,7 +393,7 @@ func (be *BaseExecutor) defaultPrepareIO(req *ExecRequest, isExecCmd bool) (resu
 		// just a test connection so provide EOF to the input to have the command exit
 		be.stdin.Put(nil)
 	} else {
-		command, err := be.getCommand(req.Content, req.ContentType)
+		command, err := be.getCommandFrom(req.Content, req.ContentType)
 		if err != nil {
 			return nil, err
 		}
@@ -415,21 +428,13 @@ func (be *BaseExecutor) defaultCleanup(alreadyDone bool) {
 	}
 }
 
-// attempt an interrupt immediately and then in the background try a full kill if still running
-// FIXME: this won't work on windows!!
 func stopKill(proc *os.Process) {
 	if proc == nil {
 		return
 	}
 
 	// Refer WAR-295
-	if err := syscall.Kill(proc.Pid, syscall.SIGINT); err != nil {
-		tools.Log.Warn().Msgf("stopKill: syscall.Kill(SIGINT) err = %v", err)
+	if err := proc.Kill(); err != nil {
+		tools.Log.Warn().Msgf("stopKill: syscall.Kill(SIGKILL) err = %v", err)
 	}
-	go func() {
-		time.Sleep(500 * time.Millisecond)
-		if err := syscall.Kill(proc.Pid, syscall.SIGKILL); err != nil {
-			tools.Log.Warn().Msgf("stopKill: syscall.Kill(SIGKILL) err = %v", err)
-		}
-	}()
 }

@@ -82,6 +82,10 @@ func NewCmdExecutor(register *executor.Register) *cobra.Command {
 			UnknownFlags: true,
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if disablePTY {
+				executor.DisablePTY()
+			}
+
 			// Try to use the current register being run, otherwise, use our own local one.
 			// This is important for finding prompts.
 			if register == nil {

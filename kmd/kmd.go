@@ -63,6 +63,7 @@ func NewCmdRoot(cfg *config.Config) *cobra.Command {
 	rootCmd.AddCommand(NewCmdAuth(cfg))
 	rootCmd.AddCommand(NewCmdConfig(cfg))
 	rootCmd.AddCommand(NewCmdCompletion())
+	rootCmd.AddCommand(NewCmdRawExecutor())
 	rootCmd.AddCommand(inspector.NewCmdExecutor(nil))
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(updateCmd)

@@ -17,7 +17,7 @@ func NewMySQLExecutor(content []byte, contentType *ContentType) (Executor, error
 	}
 
 	if me.command == "" {
-		me.command = "mysql"
+		me.setExecCommand("mysql", nil)
 	}
 
 	return me, nil

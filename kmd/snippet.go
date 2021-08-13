@@ -367,8 +367,13 @@ func NewCmdSnippetRun(gCtx *snippet.Context) *cobra.Command {
 			}
 
 			name := args[0]
-			tools.Log.Info().Msgf("edit name=%s", name)
-			return inspector.InspectNode(gCtx, name)
+			tools.Log.Info().Msgf("run name=%s", name)
+			nodeId, err := snippet.GetID(name)
+			if err != nil {
+				return err
+			}
+
+			return inspector.InspectNode(gCtx, nodeId)
 		},
 	}
 	return cmd

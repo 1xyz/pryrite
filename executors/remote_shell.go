@@ -79,7 +79,7 @@ func (se *RemoteShellExecutor) prepareShellIO(req *ExecRequest, isExecCmd bool) 
 		return resultReady, nil
 	}
 
-	command, err := se.getCommand(req.Content, req.ContentType)
+	command, err := se.getCommandFrom(req.Content, req.ContentType)
 	if err != nil {
 		return nil, err
 	}

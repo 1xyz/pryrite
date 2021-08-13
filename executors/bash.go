@@ -3,11 +3,12 @@ package executor
 import (
 	"bufio"
 	"errors"
-	"github.com/aardlabs/terminal-poc/tools"
 	"io"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/aardlabs/terminal-poc/tools"
 )
 
 type BashExecutor struct {
@@ -64,8 +65,7 @@ func NewBashExecutor(content []byte, contentType *ContentType) (Executor, error)
 		}
 	}
 
-	b.command = "bash"
-	b.commandArgs = append(b.commandArgs, "-c", repl)
+	b.setExecCommand("bash", append(b.commandArgs, "-c", repl))
 
 	return b, nil
 }
@@ -120,7 +120,7 @@ func (b *BashExecutor) prepareBashIO(req *ExecRequest, isExecCmd bool) (resultRe
 	resultReady := make(resultReadyCh, 1)
 	go b.collectStatus(resultReady)
 
-	command, err := b.getCommand(req.Content, req.ContentType)
+	command, err := b.getCommandFrom(req.Content, req.ContentType)
 	if err != nil {
 		return nil, err
 	}

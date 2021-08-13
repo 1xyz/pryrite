@@ -17,8 +17,8 @@ import (
 
 var (
 	Log           = zlog.Logger
-	logConfigFile = os.ExpandEnv("$HOME/.aardvark/logging.yaml")
-	logFile       = os.ExpandEnv("$HOME/.aardvark/aard.log")
+	logConfigFile = MyPathTo("logging.yaml")
+	logFile       = MyPathTo("aard.log")
 	traceLabels   = map[string]string{}
 )
 
@@ -108,12 +108,14 @@ func OpenLogger(verbose bool) (io.Closer, error) {
 	// set standard logger up to use zlog (for 3rd parties that use it, like selfupdate)
 	log.SetFlags(0) // remove timestamps, etc., since zlog handles that for us
 	log.SetOutput(&dumbLogWriter{})
-	labels := strings.Split(strings.ToLower(strings.TrimSpace(os.Getenv("AARDY_TRACE"))), ",")
+	labelsStr := strings.ToLower(strings.TrimSpace(os.Getenv("AARDY_TRACE")))
+	labels := strings.Split(labelsStr, ",")
 	for _, label := range labels {
 		traceLabels[label] = fmt.Sprintf("TRACE(%s): ", label)
 	}
 	if len(traceLabels) > 0 {
 		Trace = traceLog
+		Log.Debug().Str("labels", labelsStr).Msg("TRACE logs enabled")
 	}
 	return w, nil
 }

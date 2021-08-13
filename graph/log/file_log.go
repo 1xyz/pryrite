@@ -6,7 +6,7 @@ import (
 	"io/fs"
 	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -29,7 +29,7 @@ func (l *fsLog) Len() (int, error) {
 
 func (l *fsLog) Append(entry *ResultLogEntry) error {
 	filename := getfilename(entry.ID)
-	fileWithPath := path.Join(l.dir, filename)
+	fileWithPath := filepath.Join(l.dir, filename)
 
 	// Create one file per log. if an entry exists, then overwrite it
 	// a logID is expected be  unique within the context of a node
@@ -89,7 +89,7 @@ func (l *fsLog) Find(id string) (*ResultLogEntry, error) {
 }
 
 func (l *fsLog) decode(filename string) (*ResultLogEntry, error) {
-	fileWithPath := path.Join(l.dir, filename)
+	fileWithPath := filepath.Join(l.dir, filename)
 	fr, err := tools.OpenFile(fileWithPath, os.O_RDONLY)
 	if err != nil {
 		return nil, err
@@ -147,7 +147,7 @@ func (i *fsLogIndex) Append(entry *ResultLogEntry) error {
 }
 
 func (i *fsLogIndex) Get(nodeID string) (ResultLog, error) {
-	dir := path.Join(i.dir, nodeID)
+	dir := filepath.Join(i.dir, nodeID)
 	if exists, err := tools.StatExists(dir); err != nil {
 		return nil, err
 	} else if !exists {
@@ -157,7 +157,7 @@ func (i *fsLogIndex) Get(nodeID string) (ResultLog, error) {
 }
 
 func (i *fsLogIndex) getOrCreateLog(nodeID string) (*fsLog, error) {
-	dir := path.Join(i.dir, nodeID)
+	dir := filepath.Join(i.dir, nodeID)
 	if err := tools.EnsureDir(dir); err != nil {
 		return nil, err
 	}

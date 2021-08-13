@@ -3,7 +3,7 @@ package update
 import (
 	"errors"
 	"net/url"
-	"path"
+	"path/filepath"
 	"time"
 
 	"github.com/sanbornm/go-selfupdate/selfupdate"
@@ -80,7 +80,7 @@ func getUpdater(entry *config.Entry, currentVersion string) *selfupdate.Updater 
 		ApiURL:         updateURL.String(),
 		BinURL:         updateURL.String(),
 		DiffURL:        updateURL.String(),
-		Dir:            path.Dir(config.DefaultConfigFile),
+		Dir:            filepath.Dir(config.DefaultConfigFile),
 		CmdName:        "aardy",
 	}
 }

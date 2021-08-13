@@ -3,6 +3,7 @@ GOARCH ?= amd64
 GOFMT=gofmt
 DELETE=rm
 BINARY=aardy
+OS_BINARY=$(BINARY)
 BIN_DIR=bin
 BUILD_BINARY=$(BIN_DIR)/$(BINARY)
 # go source files, ignore vendor directory
@@ -10,6 +11,11 @@ SRC := $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 # current git version short-hash
 VER := $(shell git rev-parse --short HEAD)
 WATCH := (.go$$)
+
+ifeq ($(GOOS),windows)
+  OS_BINARY := $(OS_BINARY).exe
+  BUILD_BINARY := $(BUILD_BINARY).exe
+endif
 
 word-dot = $(word $2,$(subst ., ,$1))
 MAJMINPATVER := $(shell cat version.txt)
@@ -41,7 +47,7 @@ build: fmt verinfo
 	cp misc/**/*.sh $(BIN_DIR)/
 
 watch: $(BIN_DIR)/.reflex-installed
-	reflex -r "$(WATCH)" -s -- make build
+	reflex -r "$(WATCH)" -s -- make build GOOS=$(GOOS) GOARCH=$(GOARCH)
 .PHONY: watch
 
 .PHONY: clean
@@ -80,9 +86,9 @@ endif
 bindir = bin/$(subst release/,,$1)-$(GOARCH)
 release/%: fmt verinfo $(BIN_DIR)/.selfupdate-installed
 	@echo "build GOOS: $(subst release/,,$@) & GOARCH: $(GOARCH)"
-	GOOS=$(subst release/,,$@) GOARCH=$(GOARCH) $(GO) build -ldflags="-s -w" -o $(call bindir,$@)/$(BINARY) -v main.go
+	GOOS=$(subst release/,,$@) GOARCH=$(GOARCH) $(GO) build -ldflags="-s -w" -o $(call bindir,$@)/$(OS_BINARY) -v main.go
 	cp misc/**/*.sh $(call bindir,$@)
-	GOOS=$(subst release/,,$@) GOARCH=$(GOARCH) go-selfupdate $(call bindir,$@)/$(BINARY) $(MAJMINPATVER)
+	GOOS=$(subst release/,,$@) GOARCH=$(GOARCH) go-selfupdate $(call bindir,$@)/$(OS_BINARY) $(MAJMINPATVER)
 	mkdir -p zips
 	zip -j zips/$(BINARY)-$(subst release/,,$@)-$(GOARCH).zip README.md $(call bindir,$@)/*
 

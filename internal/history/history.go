@@ -10,7 +10,7 @@ import (
 	"github.com/aardlabs/terminal-poc/tools"
 )
 
-var HistoryDir = os.ExpandEnv("$HOME/.aardvark/history")
+var HistoryDir = tools.MyPathTo("history")
 
 type History interface {
 	// GetAll retrieves all the items and returns only the commands as a string slice
@@ -58,7 +58,7 @@ func (h *localHistory) Append(command string) error {
 func newLocalHistory(filename string) (*localHistory, error) {
 	fp, err := tools.OpenFile(filename, os.O_WRONLY|os.O_CREATE)
 	if err != nil {
-		return nil, fmt.Errorf("filename = %s, err = %v", filename, err)
+		return nil, fmt.Errorf("unable to open/create history: filename = %s, err = %v", filename, err)
 	}
 	defer tools.CloseFile(fp)
 	return &localHistory{historyFile: filename}, nil
@@ -67,7 +67,7 @@ func newLocalHistory(filename string) (*localHistory, error) {
 func (h *localHistory) append(item *item) error {
 	fp, err := tools.OpenFile(h.historyFile, os.O_APPEND|os.O_WRONLY)
 	if err != nil {
-		return fmt.Errorf("filename = %s, err = %v", h.historyFile, err)
+		return fmt.Errorf("unable to open history for append: filename = %s, err = %v", h.historyFile, err)
 	}
 	defer tools.CloseFile(fp)
 	return json.NewEncoder(fp).Encode(item)
@@ -76,7 +76,7 @@ func (h *localHistory) append(item *item) error {
 func (h *localHistory) getAll() ([]item, error) {
 	fp, err := tools.OpenFile(h.historyFile, os.O_RDONLY)
 	if err != nil {
-		return nil, fmt.Errorf("filename = %s, err = %v", h.historyFile, err)
+		return nil, fmt.Errorf("unable to open history for get: filename = %s, err = %v", h.historyFile, err)
 	}
 	defer tools.CloseFile(fp)
 
@@ -86,7 +86,7 @@ func (h *localHistory) getAll() ([]item, error) {
 		l := sc.Text()
 		var item item
 		if err := json.Unmarshal([]byte(l), &item); err != nil {
-			return nil, fmt.Errorf("json.Unmarshal line = %s err = %v", l, err)
+			return nil, fmt.Errorf("history json.Unmarshal line = %s err = %v", l, err)
 		}
 		result = append(result, item)
 	}

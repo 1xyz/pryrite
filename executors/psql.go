@@ -16,7 +16,7 @@ func NewPSQLExecutor(content []byte, contentType *ContentType) (Executor, error)
 	}
 
 	if pe.command == "" {
-		pe.command = "psql"
+		pe.setExecCommand("psql", nil)
 	}
 
 	return pe, nil

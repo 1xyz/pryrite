@@ -97,6 +97,7 @@ func (r *Register) Get(content []byte, contentType *ContentType) (Executor, erro
 	if !ok {
 		// attempt to create a new one if one of our executors supports this type...
 		for _, nf := range []func([]byte, *ContentType) (Executor, error){
+			NewWinBashExecutor,
 			NewBashExecutor,
 			NewPSQLExecutor,
 			NewMySQLExecutor,
@@ -126,6 +127,7 @@ func (r *Register) Get(content []byte, contentType *ContentType) (Executor, erro
 }
 
 func (r *Register) Execute(ctx context.Context, req *ExecRequest) *ExecResponse {
+	tools.Trace("register", "execute requested", req.ContentType.String(), string(req.Content))
 	executor, err := r.Get(req.Content, req.ContentType)
 	if err != nil {
 		return &ExecResponse{
