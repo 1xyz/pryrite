@@ -1,6 +1,13 @@
 #!/bin/zsh
 
-function {{ AppName }}_hist_start() { {{ AppExe }} history start "$1"; }
+function {{ AppName }}_hist_start() {
+    local cmd=${1%% *}
+    # attempt to "expand" a command if it's an alias...0
+    cmd=$(type $cmd | sed -n 's/.* is an alias for \(.*\)/\1/p')
+    # so we can ignore anything aliased as an aardy history command...
+    [[ "$cmd" = 'aardy h'* ]] || {{ AppExe }} history start "$1"
+}
+
 function {{ AppName }}_hist_stop() { {{ AppExe }} history stop $?; }
 
 autoload -Uz add-zsh-hook
@@ -12,7 +19,6 @@ EXE_DIR="$(dirname "{{ AppExe }}")"
 unset EXE_DIR
 
 # wrapper to help with expansion of history lookups
-# FIXME: share the wrapper between zsh and bash!!
 function aardy() {
     local args ch
 

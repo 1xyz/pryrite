@@ -10,7 +10,14 @@ fi
 THIS_DIR="$(dirname "$(realpath "$SCRIPT_SOURCE")")"
 unset SCRIPT_SOURCE
 
-{{ AppName }}_hist_start() { {{ AppExe }} history start "$1"; }
+{{ AppName }}_hist_start() {
+    local cmd=${1%% *}
+    # attempt to "expand" a command if it's an alias...0
+    cmd=$(type $cmd | sed -n 's/.*`\([^'\'']*\).*/\1/p')
+    # so we can ignore anything aliased as an aardy history command...
+    [[ "$cmd" = 'aardy h'* ]] || {{ AppExe }} history start "$1"
+}
+
 {{ AppName }}_hist_stop() { {{ AppExe }} history stop $?; }
 
 source "${THIS_DIR}/bash-preexec.sh"
@@ -30,7 +37,7 @@ unset EXE_DIR
 aardy() {
     local args ch
 
-    if [[ " $* " =~ " exec " ]]; then
+    if [[ " $* " =~ ' exec ' ]]; then
         args=()
         for arg in "$@"; do
             ch=${arg:0:1}
