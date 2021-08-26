@@ -109,13 +109,15 @@ func OpenLogger(verbose bool) (io.Closer, error) {
 	log.SetFlags(0) // remove timestamps, etc., since zlog handles that for us
 	log.SetOutput(&dumbLogWriter{})
 	labelsStr := strings.ToLower(strings.TrimSpace(os.Getenv("AARDY_TRACE")))
-	labels := strings.Split(labelsStr, ",")
-	for _, label := range labels {
-		traceLabels[label] = fmt.Sprintf("TRACE(%s): ", label)
-	}
-	if len(traceLabels) > 0 {
-		Trace = traceLog
-		Log.Debug().Str("labels", labelsStr).Msg("TRACE logs enabled")
+	if labelsStr != "" {
+		labels := strings.Split(labelsStr, ",")
+		for _, label := range labels {
+			traceLabels[label] = fmt.Sprintf("TRACE(%s): ", label)
+		}
+		if len(labels) > 0 {
+			Trace = traceLog
+			Log.Debug().Str("labels", labelsStr).Msg("TRACE logs enabled")
+		}
 	}
 	return w, nil
 }

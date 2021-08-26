@@ -1,12 +1,7 @@
 package history
 
 import (
-	"bufio"
-	"encoding/json"
-	"fmt"
-	"os"
-	"time"
-
+	"github.com/aardlabs/terminal-poc/historian"
 	"github.com/aardlabs/terminal-poc/tools"
 )
 
@@ -24,71 +19,28 @@ func New(file string) (History, error) {
 	return newLocalHistory(file)
 }
 
-type item struct {
-	CreatedAt *time.Time `json:"createdAt"`
-	Command   string     `json:"command"`
-}
-
 type localHistory struct {
-	historyFile string
+	historian.Historian
 }
 
 func (h *localHistory) GetAll() ([]string, error) {
-	items, err := h.getAll()
+	items := []string{}
+	err := h.Each(nil, func(item *historian.Item) error {
+		items = append(items, item.CommandLine)
+		return nil
+	})
+	return items, err
+}
+
+func (h *localHistory) Append(command string) error {
+	return h.Put(&historian.Item{CommandLine: command})
+}
+
+func newLocalHistory(filename string) (*localHistory, error) {
+	hist, err := historian.Open(filename+".db", false)
 	if err != nil {
 		return nil, err
 	}
 
-	result := make([]string, len(items))
-	for i := range items {
-		result[i] = items[i].Command
-	}
-	return result, nil
-}
-
-func (h *localHistory) Append(command string) error {
-	now := time.Now().UTC()
-	h.append(&item{
-		CreatedAt: &now,
-		Command:   command,
-	})
-	return nil
-}
-
-func newLocalHistory(filename string) (*localHistory, error) {
-	fp, err := tools.OpenFile(filename, os.O_WRONLY|os.O_CREATE)
-	if err != nil {
-		return nil, fmt.Errorf("unable to open/create history: filename = %s, err = %v", filename, err)
-	}
-	defer tools.CloseFile(fp)
-	return &localHistory{historyFile: filename}, nil
-}
-
-func (h *localHistory) append(item *item) error {
-	fp, err := tools.OpenFile(h.historyFile, os.O_APPEND|os.O_WRONLY)
-	if err != nil {
-		return fmt.Errorf("unable to open history for append: filename = %s, err = %v", h.historyFile, err)
-	}
-	defer tools.CloseFile(fp)
-	return json.NewEncoder(fp).Encode(item)
-}
-
-func (h *localHistory) getAll() ([]item, error) {
-	fp, err := tools.OpenFile(h.historyFile, os.O_RDONLY)
-	if err != nil {
-		return nil, fmt.Errorf("unable to open history for get: filename = %s, err = %v", h.historyFile, err)
-	}
-	defer tools.CloseFile(fp)
-
-	result := make([]item, 0)
-	sc := bufio.NewScanner(fp)
-	for sc.Scan() {
-		l := sc.Text()
-		var item item
-		if err := json.Unmarshal([]byte(l), &item); err != nil {
-			return nil, fmt.Errorf("history json.Unmarshal line = %s err = %v", l, err)
-		}
-		result = append(result, item)
-	}
-	return result, nil
+	return &localHistory{*hist}, nil
 }

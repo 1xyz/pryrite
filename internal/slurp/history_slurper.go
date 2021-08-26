@@ -8,29 +8,19 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aardlabs/terminal-poc/shells"
 	"github.com/aardlabs/terminal-poc/tools"
 
 	"github.com/itchyny/timefmt-go"
-	"github.com/mitchellh/go-ps"
 )
 
 type HistorySlurper struct{}
 
 func (bhs *HistorySlurper) Slurp(shell string, reader io.Reader, digester Digester) error {
 	if shell == "" {
-		parentPID := os.Getppid()
-		parent, err := ps.FindProcess(parentPID)
+		parent, err := shells.GetParent()
 		if err != nil {
 			return err
-		}
-
-		if parent.Executable() == "go" {
-			// this is only during development when letting go compile-and-run...
-			parentPID = parent.PPid()
-			parent, err = ps.FindProcess(parentPID)
-			if err != nil {
-				return err
-			}
 		}
 
 		shell = parent.Executable()

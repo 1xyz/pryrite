@@ -6,11 +6,14 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
+	"github.com/aardlabs/terminal-poc/historian"
 	"github.com/aardlabs/terminal-poc/inspector"
 	"github.com/aardlabs/terminal-poc/internal/common"
 	"github.com/aardlabs/terminal-poc/internal/slurp"
 	"github.com/aardlabs/terminal-poc/internal/ui/components"
+	"github.com/aardlabs/terminal-poc/shells"
 
 	"github.com/spf13/cobra"
 
@@ -198,6 +201,7 @@ func NewCmdSnippetSave(gCtx *snippet.Context) *cobra.Command {
               {AppName} save <content>, save content to the remote service.
 
               Here, <content> can be any content (typically a shell commend) that you want to be saved.
+              Or, use caret notation to save an item from the history log.
 
               Flags:
 
@@ -264,31 +268,86 @@ func NewCmdSnippetSlurp(gCtx *snippet.Context) *cobra.Command {
 		},
 		// TODO: add --shell argument to handle cases like ssh XXX | slurp --shell zsh
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) == 0 || args[0] == "-" {
-				cnt := 0
-				var slurper slurp.Slurper = &slurp.HistorySlurper{}
-				slurper.Slurp("", os.Stdin, func(slurp *slurp.Slurp) error {
-					tools.Log.Info().Interface("slurp", slurp).Msg("AddSnippetNodeFromSlurp")
-					n, err := snippet.AddSnippetNodeFromSlurp(gCtx, slurp)
-					if err != nil {
-						return err
+			slurpAll := false
+
+			if len(args) == 0 {
+				len := shells.GetHistoryLen()
+				if len > 10 {
+					fmt.Printf("\nSlurp all %d entries? (y|N)  ", len)
+					var resp string
+					fmt.Scanln(&resp)
+					resp = strings.ToLower(resp)
+					if resp == "" || resp[0] != "y"[0] {
+						return nil
 					}
+				}
 
-					tools.Log.Info().Msgf("AddSnippetNodeFromSlurp n.ID = %s", n.ID)
-					cnt++
-					return nil
-				})
-				u, _ := url.Parse(gCtx.ConfigEntry.DashboardUrl)
-				u.Path += "slurps"
-				cmd.Printf("\nSaved %d snippets available at %s\n\n", cnt, u)
+				slurpAll = true
+			}
+
+			var generator func(slurp.Digester) error
+
+			if !slurpAll && args[0] == "-" {
+				var slurper slurp.Slurper = &slurp.HistorySlurper{}
+				generator = func(cb slurp.Digester) error {
+					return slurper.Slurp("", os.Stdin, cb)
+				}
+			}
+
+			var duration time.Duration
+			var err error
+			if !slurpAll {
+				duration, err = time.ParseDuration(args[0])
+			}
+			if err == nil {
+				generator = func(cb slurp.Digester) error {
+					return shells.EachHistoryEntry(false, duration, true, func(item *historian.Item) error {
+						// FIXME: get proper location (expose some of newSlurpFactory)
+						slurp := &slurp.Slurp{
+							ExecutedAt: &item.RecordedAt,
+							Location: &url.URL{
+								Scheme: "bash",
+								Host:   "localhost",
+							},
+							Language:    "bash",
+							Commandline: item.CommandLine,
+						}
+
+						if item.ExitStatus != nil {
+							slurp.ExitStatus = fmt.Sprint(*item.ExitStatus)
+						}
+
+						return cb(slurp)
+					})
+				}
+			}
+
+			if generator == nil {
+				return fmt.Errorf("unknown slurp argument: %s", args[0])
+			}
+
+			cnt := 0
+			err = generator(func(slurp *slurp.Slurp) error {
+				tools.Log.Info().Interface("slurp", slurp).Msg("AddSnippetNodeFromSlurp")
+				n, err := snippet.AddSnippetNodeFromSlurp(gCtx, slurp)
+				if err != nil {
+					return err
+				}
+
+				tools.Log.Info().Msgf("AddSnippetNodeFromSlurp n.ID = %s", n.ID)
+				cnt++
 				return nil
+			})
+
+			if err != nil {
+				return err
 			}
 
-			if args[0] == "-h" || args[0] == "--help" {
-				return cmd.Help()
-			}
+			u, _ := url.Parse(gCtx.ConfigEntry.DashboardUrl)
+			u.Path += "slurps"
+			cmd.Printf("\nSaved %d snippets available at %s\n\n", cnt, u)
 
-			return fmt.Errorf("unknown slurp argument: %s", args[0])
+			return nil
 		},
 	}
 	return cmd
@@ -410,7 +469,21 @@ func ParseSaveArgs(args []string) (*SaveArgs, error) {
 	if len(args) <= index {
 		return nil, ErrCmdMissing
 	}
-	s.Command = strings.Join(args[index:], " ")
+
+	remainArgs := args[index:]
+	cmd := remainArgs[0]
+
+	if len(remainArgs) == 1 && cmd[0] == shells.ExpandChar {
+		item, err := shells.GetHistoryEntry(cmd)
+		if err != nil {
+			return nil, err
+		}
+
+		s.Command = item.CommandLine
+	} else {
+		s.Command = strings.Join(remainArgs, " ")
+	}
+
 	return &s, nil
 }
 

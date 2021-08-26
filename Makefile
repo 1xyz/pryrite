@@ -44,7 +44,6 @@ rebuild: clean build
 
 build: fmt verinfo
 	$(GO) build -o $(BUILD_BINARY) -v main.go
-	cp misc/**/*.sh $(BIN_DIR)/
 
 watch: $(BIN_DIR)/.reflex-installed
 	reflex -r "$(WATCH)" -s -- make build GOOS=$(GOOS) GOARCH=$(GOARCH)
@@ -87,7 +86,6 @@ bindir = bin/$(subst release/,,$1)-$(GOARCH)
 release/%: fmt verinfo $(BIN_DIR)/.selfupdate-installed
 	@echo "build GOOS: $(subst release/,,$@) & GOARCH: $(GOARCH)"
 	GOOS=$(subst release/,,$@) GOARCH=$(GOARCH) $(GO) build -ldflags="-s -w" -o $(call bindir,$@)/$(OS_BINARY) -v main.go
-	cp misc/**/*.sh $(call bindir,$@)
 	GOOS=$(subst release/,,$@) GOARCH=$(GOARCH) go-selfupdate $(call bindir,$@)/$(OS_BINARY) $(MAJMINPATVER)
 	mkdir -p zips
 	zip -j zips/$(BINARY)-$(subst release/,,$@)-$(GOARCH).zip README.md $(call bindir,$@)/*

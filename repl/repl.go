@@ -37,7 +37,7 @@ type repl struct {
 }
 
 func newRepl(cfg *config.Config) (*repl, error) {
-	h, err := history.New(fmt.Sprintf("%s/repl.json", history.HistoryDir))
+	h, err := history.New(fmt.Sprintf("%s/repl", history.HistoryDir))
 	if err != nil {
 		return nil, err
 	}

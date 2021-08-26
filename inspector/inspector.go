@@ -3,6 +3,7 @@ package inspector
 import (
 	_ "embed"
 	"fmt"
+
 	"github.com/aardlabs/terminal-poc/config"
 	"github.com/aardlabs/terminal-poc/graph"
 	"github.com/aardlabs/terminal-poc/internal/completer"
@@ -44,7 +45,7 @@ func NewNodeInspector(graphCtx *snippet.Context, nodeID string) (*NodeInspector,
 		return nil, err
 	}
 
-	hist, err := history.New(fmt.Sprintf("%s/%s.json", history.HistoryDir, nodeID))
+	hist, err := history.New(fmt.Sprintf("%s/%s", history.HistoryDir, nodeID))
 	if err != nil {
 		return nil, err
 	}
