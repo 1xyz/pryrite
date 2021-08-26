@@ -104,8 +104,6 @@ var historyDir = tools.MyPathTo("history")
 //go:embed **/*
 var thisDir embed.FS
 
-var appExe = getAppExe(os.Args[0])
-
 func getMostRecentEntry(parent ps.Process, hist *historian.Historian, currentSession bool, allowIncomplete bool) (*historian.Item, error) {
 	var parentPID *int
 	if currentSession {
@@ -190,10 +188,17 @@ func openHistorian(shell string, readOnly bool) *historian.Historian {
 		panic(err)
 	}
 
+	if os.Getenv("AARDY_INTEGRATED") != "true" {
+		tools.LogStdError("\nWARNING: History integration is not enabled from this shell.\n\n"+
+			"Use the following to enable it:\n"+
+			"  eval `%s init`\n\n", getAppExe())
+	}
+
 	return hist
 }
 
 func syncThisDir(root string) error {
+	appExe := getAppExe()
 	replacer := strings.NewReplacer("{{ AppName }}", app.Name, "{{ AppExe }}", appExe)
 
 	return fs.WalkDir(thisDir, root, func(path string, d fs.DirEntry, err error) error {
@@ -245,11 +250,11 @@ func syncThisDir(root string) error {
 	})
 }
 
-func getAppExe(exe string) string {
-	self, err := filepath.Abs(exe)
+func getAppExe() string {
+	exe, err := os.Executable()
 	if err != nil {
 		panic(err)
 	}
 
-	return self
+	return exe
 }

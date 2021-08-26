@@ -260,9 +260,9 @@ func NewCmdSnippetSave(gCtx *snippet.Context) *cobra.Command {
 
 func NewCmdSnippetSlurp(gCtx *snippet.Context) *cobra.Command {
 	cmd := &cobra.Command{
-		Hidden: true,
-		Use:    "slurp",
-		Args:   cobra.RangeArgs(0, 1),
+		Use:   "slurp",
+		Short: "Reports a batch of commands to curate into snippets",
+		Args:  cobra.RangeArgs(0, 1),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			return IsUserLoggedIn(gCtx.ConfigEntry)
 		},

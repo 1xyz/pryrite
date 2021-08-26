@@ -1,6 +1,7 @@
 package shells
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strconv"
@@ -16,7 +17,8 @@ import (
 
 func NewCmdInit() *cobra.Command {
 	cmd := &cobra.Command{
-		Use: "init",
+		Use:   "init",
+		Short: "Provides an eval string to integrate history logging from your shell",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			parent, err := GetParent()
 			if err != nil {
@@ -95,9 +97,8 @@ func newCmdStart() *cobra.Command {
 
 			cmdArgs, err := shellwords.Parse(args[0])
 			if err == nil {
-				exe := getAppExe(cmdArgs[0])
-				if (exe == appExe || filepath.Base(exe) == app.Name) &&
-					len(cmdArgs) > 1 && cmdArgs[1][0] == "h"[0] {
+				exe := cmdArgs[0]
+				if filepath.Base(exe) == app.Name && len(cmdArgs) > 1 && cmdArgs[1][0] == "h"[0] {
 					// ignore our own history command lines...
 					// NOTE: this will _not_ catch aliased aardy history calls
 					return nil
@@ -177,6 +178,10 @@ func newCmdGet() *cobra.Command {
 				item, err := GetHistoryEntry(args[0])
 				if err != nil {
 					return err
+				}
+
+				if item == nil {
+					return errors.New("item not found")
 				}
 
 				fmt.Print(item.CommandLine)

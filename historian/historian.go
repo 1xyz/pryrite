@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"os"
 	"reflect"
 	"time"
 
@@ -36,9 +37,20 @@ func Open(path string, readOnly bool) (*Historian, error) {
 		ReadOnly: readOnly,
 	}
 
+	reopenReadOnly := false
+
+	if readOnly {
+		// bolt can't create a new DB in read-only mode...
+		_, err := os.Stat(path)
+		if err != nil && os.IsNotExist(err) {
+			opts.ReadOnly = false
+			reopenReadOnly = true
+		}
+	}
+
 	db, err := bbolt.Open(path, 0600, opts)
 	if err != nil {
-		return nil, err
+		return nil, wrap(err, "open the database")
 	}
 
 	h := &Historian{
@@ -70,6 +82,11 @@ func Open(path string, readOnly bool) (*Historian, error) {
 
 			return h.removeOldItems(tx)
 		})
+	}
+
+	if reopenReadOnly {
+		h.Close()
+		return Open(h.Path, true)
 	}
 
 	return h, err
@@ -179,6 +196,10 @@ var itemsBucketKey = []byte("items")
 
 func (h *Historian) loadState(tx *bbolt.Tx) error {
 	bucket := tx.Bucket(stateBucketKey)
+	if bucket == nil {
+		return nil
+	}
+
 	data := bucket.Get(stateKey)
 	if data != nil {
 		err := json.Unmarshal(data, &h.state)

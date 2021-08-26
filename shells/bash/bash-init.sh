@@ -48,4 +48,4 @@ aardy() {
     {{ AppExe }} "${args[@]}"
 }
 
-AARDY_INTEGRATED=true
+export AARDY_INTEGRATED=true
