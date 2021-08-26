@@ -2,11 +2,13 @@ package inspector
 
 import (
 	"context"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/aardlabs/terminal-poc/app"
 	executor "github.com/aardlabs/terminal-poc/executors"
+	"github.com/aardlabs/terminal-poc/shells"
 
 	"github.com/spf13/cobra"
 )
@@ -73,6 +75,7 @@ var localRegister *executor.Register
 func NewCmdExecutor(register *executor.Register) *cobra.Command {
 	var timeout time.Duration
 	var disablePTY bool
+	var ignoreWorkingDir bool
 	var startPrompt string
 	var usePrompt string
 	cmd := &cobra.Command{
@@ -104,7 +107,25 @@ func NewCmdExecutor(register *executor.Register) *cobra.Command {
 			// FIXME: use a shared/common register between these and runs
 			req := executor.DefaultRequest()
 
-			content := strings.Join(args, " ")
+			var content string
+			if !ignoreWorkingDir && len(args) == 1 && args[0][0] == shells.ExpandChar {
+				item, err := shells.GetHistoryEntry(args[0])
+				if err != nil {
+					return err
+				}
+
+				if item.WorkingDir != "" {
+					err = os.Chdir(item.WorkingDir)
+					if err != nil {
+						return err
+					}
+				}
+
+				content = item.CommandLine
+			} else {
+				content = strings.Join(args, " ")
+			}
+
 			req.Content = []byte(content)
 			var err error
 			req.ContentType, err = executor.Parse("text/bash")
@@ -141,6 +162,8 @@ func NewCmdExecutor(register *executor.Register) *cobra.Command {
 		"Wait some amount of time before giving up on a command to return")
 	cmd.Flags().BoolVarP(&disablePTY, "disable-pty", "T", false,
 		"Disable psuedo-terminal allocation")
+	cmd.Flags().BoolVarP(&disablePTY, "ignore-workdir", "i", false,
+		"Do not change to an item's saved working directory")
 	cmd.Flags().StringVarP(&startPrompt, "start", "s", "",
 		"Start this command as the named prompt")
 	cmd.Flags().StringVarP(&usePrompt, "use", "u", "",

@@ -177,6 +177,10 @@ func getItem(hist *historian.Historian, id uint64) (*historian.Item, error) {
 		return nil
 	})
 
+	if found == nil && err == nil {
+		return nil, errors.New("item not found")
+	}
+
 	return found, err
 }
 

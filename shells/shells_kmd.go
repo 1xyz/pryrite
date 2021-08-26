@@ -1,8 +1,8 @@
 package shells
 
 import (
-	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strconv"
 	"time"
@@ -45,6 +45,7 @@ func NewCmdInit() *cobra.Command {
 func NewCmdHistory() *cobra.Command {
 	reverse := false
 	currentSession := false
+	showWorkingDir := false
 
 	cmd := &cobra.Command{
 		Use:     "history",
@@ -63,7 +64,7 @@ func NewCmdHistory() *cobra.Command {
 			}
 
 			return EachHistoryEntry(reverse, duration, currentSession, func(item *historian.Item) error {
-				fmt.Println(item)
+				fmt.Println(item.StringWithOpts(showWorkingDir))
 				return nil
 			})
 		},
@@ -73,6 +74,8 @@ func NewCmdHistory() *cobra.Command {
 		"Show the entries in reverse")
 	cmd.Flags().BoolVarP(&currentSession, "session", "s", currentSession,
 		"Limit results to only those from the current session")
+	cmd.Flags().BoolVarP(&showWorkingDir, "workdir", "w", showWorkingDir,
+		"Show the working directory of each entry")
 
 	cmd.AddCommand(newCmdStart())
 	cmd.AddCommand(newCmdStop())
@@ -109,7 +112,10 @@ func newCmdStart() *cobra.Command {
 			hist := openHistorian(parent.Executable(), false)
 			defer hist.Close()
 
+			workingDir, _ := os.Getwd()
+
 			return hist.Put(&historian.Item{
+				WorkingDir:  workingDir,
 				CommandLine: args[0],
 				ParentPID:   &parentPID,
 			})
@@ -178,10 +184,6 @@ func newCmdGet() *cobra.Command {
 				item, err := GetHistoryEntry(args[0])
 				if err != nil {
 					return err
-				}
-
-				if item == nil {
-					return errors.New("item not found")
 				}
 
 				fmt.Print(item.CommandLine)

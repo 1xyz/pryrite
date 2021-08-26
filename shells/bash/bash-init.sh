@@ -33,26 +33,4 @@ EXE_DIR="$(dirname "{{ AppExe }}")"
 [[ ":${PATH}:" = *":${EXE_DIR}:"* ]] || PATH="${PATH}:${EXE_DIR}"
 unset EXE_DIR
 
-# wrapper to help with expansion of history lookups
-aardy() {
-    local args ch
-
-    if [[ " $* " =~ ' exec ' ]]; then
-        args=()
-        for arg in "$@"; do
-            ch=${arg:0:1}
-            if [[ $ch = '^' ]]; then
-                cmd=$({{ AppExe }} history get "$arg")
-                args+=("$cmd")
-            else
-                args+=("$arg")
-            fi
-        done
-    else
-        args=("$@")
-    fi
-
-    {{ AppExe }} "${args[@]}"
-}
-
 export AARDY_INTEGRATED=true

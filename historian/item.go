@@ -9,6 +9,7 @@ import (
 type Item struct {
 	ID          uint64        `json:"id"`
 	RecordedAt  time.Time     `json:"recorded_at"`
+	WorkingDir  string        `json:"working_dir"`
 	CommandLine string        `json:"command_line,omitempty"`
 	ParentPID   *int          `json:"parent_pid,omitempty"`
 	ExitStatus  *int          `json:"exit_status,omitempty"`
@@ -18,6 +19,10 @@ type Item struct {
 //------------------------------------------------------------------------
 
 func (item *Item) String() string {
+	return item.StringWithOpts(false)
+}
+
+func (item *Item) StringWithOpts(showWorkingDir bool) string {
 	tsFmt := time.RFC3339
 	if time.Since(item.RecordedAt) < 24*time.Hour {
 		tsFmt = "15:04" // or time.Kitchen?
@@ -35,6 +40,17 @@ func (item *Item) String() string {
 		exitStatus = fmt.Sprint(*item.ExitStatus)
 	}
 
+	finalElement := item.CommandLine
+
+	if showWorkingDir {
+		workingDir := item.WorkingDir
+		if workingDir == "" {
+			workingDir = "?"
+		}
+
+		finalElement = fmt.Sprintf("%-40s %s", workingDir, finalElement)
+	}
+
 	return fmt.Sprintf("%d  %s %7s %3s %s",
-		item.ID, ts, duration, exitStatus, item.CommandLine)
+		item.ID, ts, duration, exitStatus, finalElement)
 }
