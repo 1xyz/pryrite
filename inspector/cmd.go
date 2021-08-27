@@ -8,6 +8,7 @@ import (
 
 	"github.com/aardlabs/terminal-poc/app"
 	executor "github.com/aardlabs/terminal-poc/executors"
+	"github.com/aardlabs/terminal-poc/historian"
 	"github.com/aardlabs/terminal-poc/shells"
 
 	"github.com/spf13/cobra"
@@ -108,6 +109,8 @@ func NewCmdExecutor(register *executor.Register) *cobra.Command {
 			req := executor.DefaultRequest()
 
 			var content string
+			addToHistory := false
+
 			if !ignoreWorkingDir && len(args) == 1 && args[0][0] == shells.ExpandChar {
 				item, err := shells.GetHistoryEntry(args[0])
 				if err != nil {
@@ -122,6 +125,7 @@ func NewCmdExecutor(register *executor.Register) *cobra.Command {
 				}
 
 				content = item.CommandLine
+				addToHistory = true
 			} else {
 				content = strings.Join(args, " ")
 			}
@@ -148,11 +152,27 @@ func NewCmdExecutor(register *executor.Register) *cobra.Command {
 				ctx = context.Background()
 			}
 
+			startedAt := time.Now()
 			res := register.Execute(ctx, req)
+			duration := time.Since(startedAt)
+			exitStatus := res.ExitStatus
+
 			if res.Err != nil {
+				exitStatus = -1
 				cmd.PrintErrf("exit> execution failed: %v\n", res.Err)
 			} else {
-				cmd.Printf("exit> status: %d\n", res.ExitStatus)
+				cmd.Printf("exit> status: %d\n", exitStatus)
+			}
+
+			if addToHistory {
+				wd, _ := os.Getwd()
+				return shells.PutHistoryEntry(&historian.Item{
+					RecordedAt:  startedAt,
+					WorkingDir:  wd,
+					CommandLine: content,
+					ExitStatus:  &res.ExitStatus,
+					Duration:    duration,
+				})
 			}
 
 			return nil

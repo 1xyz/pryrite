@@ -85,6 +85,23 @@ func GetHistoryEntry(index string) (*historian.Item, error) {
 	return getItem(hist, id)
 }
 
+func PutHistoryEntry(item *historian.Item) error {
+	parent, err := GetParent()
+	if err != nil {
+		return err
+	}
+
+	hist := openHistorian(parent.Executable(), false)
+	defer hist.Close()
+
+	if item.ParentPID == nil {
+		pp := parent.Pid()
+		item.ParentPID = &pp
+	}
+
+	return hist.Put(item)
+}
+
 func GetHistoryLen() uint {
 	parent, err := GetParent()
 	if err != nil {
@@ -104,7 +121,7 @@ var historyDir = tools.MyPathTo("history")
 //go:embed **/*
 var thisDir embed.FS
 
-func getMostRecentEntry(parent ps.Process, hist *historian.Historian, currentSession bool, allowIncomplete bool) (*historian.Item, error) {
+func getMostRecentEntry(parent ps.Process, hist *historian.Historian, currentSession bool, incomplete bool) (*historian.Item, error) {
 	var parentPID *int
 	if currentSession {
 		pid := parent.Pid()
@@ -118,7 +135,8 @@ func getMostRecentEntry(parent ps.Process, hist *historian.Historian, currentSes
 			return nil, err
 		}
 
-		if allowIncomplete || item.ExitStatus != nil {
+		if (incomplete && item.ExitStatus == nil) ||
+			(!incomplete && item.ExitStatus != nil) {
 			return item, nil
 		}
 	}
