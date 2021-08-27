@@ -2,9 +2,7 @@ package kmd
 
 import (
 	"fmt"
-	"strings"
 
-	"github.com/MakeNowJust/heredoc"
 	"github.com/spf13/cobra"
 
 	"github.com/aardlabs/terminal-poc/app"
@@ -35,7 +33,7 @@ func NewCmdRoot(cfg *config.Config) *cobra.Command {
 	updateCheck := false
 	var updateCmd = &cobra.Command{
 		Use:   "update",
-		Short: examplef("Install the latest version of {AppName}"),
+		Short: tools.Examplef("Install the latest version of {AppName}"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if updateCheck {
 				if !update.Check(cfg, true) {
@@ -81,10 +79,4 @@ func Execute(cfg *config.Config) error {
 
 func NewGraphContext(cfg *config.Config) *snippet.Context {
 	return snippet.NewContext(cfg, fmt.Sprintf("TermConsole:%s", app.Version))
-}
-
-func examplef(format string, args ...string) string {
-	args = append(args, "{AppName}", app.UsageName)
-	r := strings.NewReplacer(args...)
-	return heredoc.Doc(r.Replace(format))
 }

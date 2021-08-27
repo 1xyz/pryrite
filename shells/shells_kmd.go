@@ -48,10 +48,27 @@ func NewCmdHistory() *cobra.Command {
 	showWorkingDir := false
 
 	cmd := &cobra.Command{
-		Use:     "history",
+		Use:     "history [<duration_limit>]",
 		Aliases: []string{"h", "hist"},
 		Short:   "Display the list of entries captured in the history log",
-		Args:    cobra.MaximumNArgs(1),
+		Long: tools.Examplef(`
+            Displays the list of entries captured in the history log
+
+            {AppName} history will accept an optional agument to limit entries shown.
+            This value is a number followed by one of the following unit abbreviations:
+
+              s - seconds
+              m - minutes
+              h - hours
+        `),
+		Example: tools.Examplef(`
+            To list all entries recorded in the previous 10 minutes:
+              $ {AppName} history 10m
+
+            To list the entries with the oldest items last:
+              $ {AppName} history -r
+		`),
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var duration time.Duration
 

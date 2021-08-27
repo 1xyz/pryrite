@@ -34,14 +34,14 @@ func NewCmdSnippetSearch(gCtx *snippet.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "search",
 		Short: "Search available snippets",
-		Long: examplef(`
+		Long: tools.Examplef(`
               {AppName} search, searches all snippets which are visible to the current
               logged-in user. This includes both a user's own snippets as well
               as snippets shared.
 
 			  The results of search are presented in a simple UI interface
         `),
-		Example: examplef(`
+		Example: tools.Examplef(`
             To search snippets for the term certutil, run:
               $ {AppName} search certutil
 		`),
@@ -83,7 +83,7 @@ func NewCmdSnippetList(gCtx *snippet.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List available snippets",
-		Long: examplef(`
+		Long: tools.Examplef(`
               {AppName} list, lists all snippets which are visible to the current
               logged-in user. This includes both a user's own snippets as well
               as snippet shared.
@@ -91,7 +91,7 @@ func NewCmdSnippetList(gCtx *snippet.Context) *cobra.Command {
               By default, only "command" snippets are listed. This can be changed
               by using the --kind=all flag.
         `),
-		Example: examplef(`
+		Example: tools.Examplef(`
             To list the most recently created snippets, run:
               $ {AppName} list
 
@@ -151,14 +151,14 @@ func NewCmdSnippetDesc(gCtx *snippet.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "describe <name>",
 		Short: "Describe the specified Snippet",
-		Long: examplef(`
+		Long: tools.Examplef(`
               {AppName} describe <name>, describes all data associated with the specified snippet.
 
               Here, <name> can be the identifier or the URL of the snippet.
         `),
 
 		Aliases: []string{"view", "show", "desc"},
-		Example: examplef(`
+		Example: tools.Examplef(`
             To describe a specific snippet by URL, run:
               $ {AppName} describe https://aardy.app/edy6819l
 
@@ -197,7 +197,7 @@ func NewCmdSnippetSave(gCtx *snippet.Context) *cobra.Command {
 
 		Use:   "save [flags] <content>...",
 		Short: "Save a new snippet with the specified content",
-		Long: examplef(`
+		Long: tools.Examplef(`
               {AppName} save <content>, save content to the remote service.
 
               Here, <content> can be any content (typically a shell commend) that you want to be saved.
@@ -209,7 +209,7 @@ func NewCmdSnippetSave(gCtx *snippet.Context) *cobra.Command {
                 -m, --message  Include an optional message
         `),
 		Aliases: []string{"add", "stash"},
-		Example: examplef(`
+		Example: tools.Examplef(`
             To save a specified docker command, run:
 
               $ {AppName} save docker-compose run --rm --service-ports development bash
@@ -357,7 +357,7 @@ func NewCmdSnippetEdit(gCtx *snippet.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "edit <name>",
 		Short: "Edit and update content of the specified snippet",
-		Long: examplef(`
+		Long: tools.Examplef(`
               {AppName} edit <name>, edits the content of the specified snippet.
 
               Here, <name> can be the identifier or the URL of the snippet.
@@ -367,7 +367,7 @@ func NewCmdSnippetEdit(gCtx *snippet.Context) *cobra.Command {
               or 'notepad' for Windows. Upon exiting the editor, the content will be updated on the remote
               service.
         `),
-		Example: examplef(`
+		Example: tools.Examplef(`
             To edit a specific snippet by URL, run:
               $ {AppName} edit https://aardy.app/edy6819l
 
@@ -402,14 +402,14 @@ func NewCmdSnippetRun(gCtx *snippet.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "run <name>",
 		Short: "Interactively run the content of the specified snippet",
-		Long: examplef(`
+		Long: tools.Examplef(`
               {AppName} inspect <name>, inspects the content of the specified snippet.
 
               Here, <name> can be the identifier or the URL of the snippet.
 
               The run command allows you to interactively view & run the content of a snippet.
         `),
-		Example: examplef(`
+		Example: tools.Examplef(`
             To run a specific snippet by URL, run:
               $ {AppName} inspect https://aardy.app/edy6819l
 

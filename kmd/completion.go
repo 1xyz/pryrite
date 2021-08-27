@@ -17,7 +17,7 @@ func NewCmdCompletion() *cobra.Command {
 		Hidden: true,
 		Use:    "completion [bash|zsh|fish|powershell]",
 		Short:  "Generate completion script",
-		Long: examplef(`
+		Long: tools.Examplef(`
 Generate shell completion scripts for the CLI commands.
 
 When installing the CLI through a package manager, it's possible that

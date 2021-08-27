@@ -16,7 +16,7 @@ func NewCmdAuthLogin(cfg *config.Config) *cobra.Command {
 		Use:   "login",
 		Short: "Login an authorized user to the aard service.",
 		Long:  heredoc.Doc(`Authorizes the user to access the service.`),
-		Example: examplef(`
+		Example: tools.Examplef(`
 			In order to login to this service, run:
 
               $ {AppName} auth login
@@ -46,7 +46,7 @@ func NewCmdAuthLogout(cfg *config.Config) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "logout",
 		Short: "Logout an authorized user",
-		Example: examplef(`
+		Example: tools.Examplef(`
 			To logout the current logged in user, run:
 
               $ {AppName} auth logout
@@ -64,7 +64,7 @@ func NewCmdAuthLogout(cfg *config.Config) *cobra.Command {
 			if err := auth.LogoutUser(entry); err != nil {
 				return err
 			}
-			tools.LogStdout(fmt.Sprintf("user logged out"))
+			tools.LogStdout("user logged out")
 			return nil
 		},
 	}

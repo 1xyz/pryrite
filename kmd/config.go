@@ -17,7 +17,7 @@ func NewCmdConfigAdd(cfg *config.Config) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "add <name>",
 		Short: "Register a new named configuration",
-		Example: examplef(`
+		Example: tools.Examplef(`
 			To add a new named configuration, run:
 
 			   $ {AppName} config add my-config --service-url https://tail.aardy.app
@@ -50,7 +50,7 @@ func NewCmdConfigList(cfg *config.Config) *cobra.Command {
 		Use:     "list",
 		Short:   "Lists existing named configurations.",
 		Aliases: []string{"ls"},
-		Example: examplef(`
+		Example: tools.Examplef(`
 			To list all available configurations, run::
 
 			   $ {AppName} config list
@@ -71,7 +71,7 @@ func NewCmdConfigActivate(cfg *config.Config) *cobra.Command {
 		Use:     "activate <name>",
 		Short:   "Activates an existing named configuration.",
 		Aliases: []string{"use"},
-		Example: examplef(`
+		Example: tools.Examplef(`
 			To activate an existing named configuration, run::
 
 			   $ {AppName} config activate my-config
@@ -104,12 +104,12 @@ func NewCmdConfigDelete(cfg *config.Config) *cobra.Command {
 		Use:     "delete <name>",
 		Short:   "Deletes a named configuration.",
 		Aliases: []string{"remove", "rm"},
-		Long: examplef(`
+		Long: tools.Examplef(`
             Deletes a named configuration. You cannot delete a configuration that is
             active,  To delete the current active configuration, first run
             {AppName} config activate another one.
         `),
-		Example: examplef(`
+		Example: tools.Examplef(`
             To delete a named configuration, run:
 
               $ {AppName} config delete my_config
@@ -142,7 +142,7 @@ func NewCmdConfig(cfg *config.Config) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "config",
 		Aliases: []string{"cfg"},
-		Short:   examplef("Manage the set of {AppName} named configurations"),
+		Short:   tools.Examplef("Manage the set of {AppName} named configurations"),
 	}
 	cmd.AddCommand(NewCmdConfigAdd(cfg))
 	cmd.AddCommand(NewCmdConfigList(cfg))
