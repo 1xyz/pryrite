@@ -135,9 +135,11 @@ func getMostRecentEntry(parent ps.Process, hist *historian.Historian, currentSes
 			return nil, err
 		}
 
-		if (incomplete && item.ExitStatus == nil) ||
-			(!incomplete && item.ExitStatus != nil) {
-			return item, nil
+		if item != nil {
+			if (incomplete && item.ExitStatus == nil) ||
+				(!incomplete && item.ExitStatus != nil) {
+				return item, nil
+			}
 		}
 	}
 
