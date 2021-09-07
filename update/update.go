@@ -2,6 +2,9 @@ package update
 
 import (
 	"errors"
+	"io"
+	"net"
+	"net/http"
 	"net/url"
 	"path/filepath"
 	"time"
@@ -28,6 +31,11 @@ func Check(cfg *config.Config, force bool) bool {
 		}
 	}
 
+	// always update the check date, even if we might fail below, to avoid constant checks
+	// when offline, etc. we'll just try again in X hours, no rush
+	entry.LastUpdateCheck = time.Now()
+	config.SetEntry(entry)
+
 	updater := getUpdater(entry, app.Version)
 
 	newVersion, err := updater.UpdateAvailable()
@@ -35,9 +43,6 @@ func Check(cfg *config.Config, force bool) bool {
 		tools.Log.Err(err).Msg("unable to check for updates")
 		return false
 	}
-
-	entry.LastUpdateCheck = time.Now()
-	config.SetEntry(entry)
 
 	if newVersion != "" {
 		tools.LogStderr(nil,
@@ -52,7 +57,6 @@ func Check(cfg *config.Config, force bool) bool {
 
 func GetLatest(cfg *config.Config) (string, error) {
 	entry, _ := cfg.GetDefaultEntry()
-	// updater := getUpdater(entry, "0.9.32")
 	updater := getUpdater(entry, app.Version)
 
 	err := updater.BackgroundRun()
@@ -82,5 +86,29 @@ func getUpdater(entry *config.Entry, currentVersion string) *selfupdate.Updater 
 		DiffURL:        updateURL.String(),
 		Dir:            filepath.Dir(config.DefaultConfigFile),
 		CmdName:        "aardy",
+		Requester:      &requestor{},
 	}
+}
+
+//--------------------------------------------------------------------------------
+// provide a timeout for HTTP requests...
+
+type requestor struct{}
+
+func (r *requestor) Fetch(url string) (io.ReadCloser, error) {
+	client := &http.Client{
+		Transport: &http.Transport{
+			DialContext: (&net.Dialer{
+				Timeout: 1 * time.Second,
+			}).DialContext,
+			TLSHandshakeTimeout: 3 * time.Second,
+		},
+	}
+
+	resp, err := client.Get(url)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Body, nil
 }

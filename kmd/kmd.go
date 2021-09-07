@@ -20,6 +20,11 @@ func NewCmdRoot(cfg *config.Config) *cobra.Command {
 		Use:          app.UsageName,
 		Short:        "Work seamlessly with the aardy service from the command line",
 		SilenceUsage: true,
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			if cmd.Annotations["SkipUpdateCheck"] == "" {
+				update.Check(cfg, false)
+			}
+		},
 	}
 	var versionCmd = &cobra.Command{
 		Use:   "version",
@@ -32,8 +37,9 @@ func NewCmdRoot(cfg *config.Config) *cobra.Command {
 	}
 	updateCheck := false
 	var updateCmd = &cobra.Command{
-		Use:   "update",
-		Short: tools.Examplef("Install the latest version of {AppName}"),
+		Annotations: map[string]string{"SkipUpdateCheck": "true"},
+		Use:         "update",
+		Short:       tools.Examplef("Install the latest version of {AppName}"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if updateCheck {
 				if !update.Check(cfg, true) {

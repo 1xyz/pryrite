@@ -105,10 +105,11 @@ func NewCmdHistory() *cobra.Command {
 
 func newCmdStart() *cobra.Command {
 	cmd := &cobra.Command{
-		Hidden: true,
-		Use:    "start <command-line>",
-		Short:  "Start a history entry for the provided command-line",
-		Args:   cobra.ExactArgs(1),
+		Hidden:      true,
+		Annotations: map[string]string{"SkipUpdateCheck": "true"},
+		Use:         "start <command-line>",
+		Short:       "Start a history entry for the provided command-line",
+		Args:        cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			parent, err := GetParent()
 			if err != nil {
@@ -144,10 +145,11 @@ func newCmdStart() *cobra.Command {
 
 func newCmdStop() *cobra.Command {
 	cmd := &cobra.Command{
-		Hidden: true,
-		Use:    "stop <exit-status>",
-		Short:  "Stop and record a history log for the most recently started entry in this session",
-		Args:   cobra.ExactArgs(1),
+		Hidden:      true,
+		Annotations: map[string]string{"SkipUpdateCheck": "true"},
+		Use:         "stop <exit-status>",
+		Short:       "Stop and record a history log for the most recently started entry in this session",
+		Args:        cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			now := time.Now()
 

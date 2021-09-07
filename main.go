@@ -11,7 +11,6 @@ import (
 	"github.com/aardlabs/terminal-poc/kmd"
 	"github.com/aardlabs/terminal-poc/repl"
 	"github.com/aardlabs/terminal-poc/tools"
-	"github.com/aardlabs/terminal-poc/update"
 )
 
 var (
@@ -50,7 +49,6 @@ func main() {
 	if err != nil {
 		tools.LogStderrExit(err, "config.Default")
 	}
-	update.Check(cfg, false)
 
 	// if #arguments (incl. of program-name) is one; open the repl
 	if len(os.Args) == 1 {
