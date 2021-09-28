@@ -70,12 +70,12 @@ type Run struct {
 
 // NewRun constructs a new run for the provided playbook for the
 func NewRun(gCtx *snippet.Context, playbookIDOrURL string) (*Run, error) {
-	id, err := snippet.GetID(playbookIDOrURL)
+	store, err := gCtx.GetStore()
 	if err != nil {
 		return nil, err
 	}
 
-	store, err := gCtx.GetStore()
+	id, err := store.ExtractID(playbookIDOrURL)
 	if err != nil {
 		return nil, err
 	}

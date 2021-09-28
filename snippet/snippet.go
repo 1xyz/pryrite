@@ -9,10 +9,8 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"os"
 	"os/exec"
-	"strings"
 	"time"
 
 	"github.com/aardlabs/terminal-poc/config"
@@ -41,6 +39,7 @@ type Context struct {
 	store       graph.Store
 }
 
+func (c *Context) SetStore(store graph.Store) { c.store = store }
 func (c *Context) GetStore() (graph.Store, error) {
 	if c.store == nil {
 		s, err := NewStoreFromContext(c)
@@ -53,16 +52,17 @@ func (c *Context) GetStore() (graph.Store, error) {
 }
 
 func GetSnippetNode(ctx *Context, id string) (*graph.Node, error) {
-	id, err := GetID(id)
-	if err != nil {
-		return nil, err
-	}
-
 	store, err := ctx.GetStore()
 	if err != nil {
 		return nil, err
 	}
-	n, err := store.GetNode(id)
+
+	nodeID, err := store.ExtractID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	n, err := store.GetNode(nodeID)
 	if err != nil {
 		ctxMsg := fmt.Sprintf("GetSnippetNode(%s) = %v", id, err)
 		var ghe *graph.HttpError
@@ -421,19 +421,6 @@ func handleGraphHTTPErr(ghe *graph.HttpError, ctxMessage string) error {
 		return fmt.Errorf("snippet not found")
 	}
 	return fmt.Errorf("%s code = %v", ctxMessage, ghe.HTTPCode)
-}
-
-func GetID(idOrURL string) (string, error) {
-	idOrURL = strings.TrimSpace(idOrURL)
-	u, err := url.Parse(idOrURL)
-	if err != nil {
-		return "", err
-	}
-	tokens := strings.Split(u.Path, "/")
-	if len(tokens) == 0 || len(idOrURL) == 0 {
-		return "", fmt.Errorf("empty id")
-	}
-	return tokens[len(tokens)-1], nil
 }
 
 func NewStoreFromContext(ctx *Context) (graph.Store, error) {

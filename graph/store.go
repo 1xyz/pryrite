@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -21,6 +22,10 @@ import (
 )
 
 type Store interface {
+	// ExtractID parses the input string to
+	// extract the ID understood by the store
+	ExtractID(string) (string, error)
+
 	// GetNodes returns the most recent n entries
 	GetNodes(limit int, kind Kind) ([]Node, error)
 
@@ -91,6 +96,19 @@ func NewStore(configEntry *config.Entry, metadata *Metadata) Store {
 		client:      client,
 		token:       token,
 	}
+}
+
+func (r *remoteStore) ExtractID(input string) (string, error) {
+	idOrURL := strings.TrimSpace(input)
+	u, err := url.Parse(idOrURL)
+	if err != nil {
+		return "", err
+	}
+	tokens := strings.Split(u.Path, "/")
+	if len(tokens) == 0 || len(idOrURL) == 0 {
+		return "", fmt.Errorf("empty id")
+	}
+	return tokens[len(tokens)-1], nil
 }
 
 type getNodesResponse struct {

@@ -427,7 +427,12 @@ func NewCmdSnippetRun(gCtx *snippet.Context) *cobra.Command {
 
 			name := args[0]
 			tools.Log.Info().Msgf("run name=%s", name)
-			nodeId, err := snippet.GetID(name)
+			store, err := gCtx.GetStore()
+			if err != nil {
+				return err
+			}
+
+			nodeId, err := store.ExtractID(name)
 			if err != nil {
 				return err
 			}

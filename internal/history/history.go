@@ -1,8 +1,10 @@
 package history
 
 import (
+	"fmt"
 	"github.com/aardlabs/terminal-poc/historian"
 	"github.com/aardlabs/terminal-poc/tools"
+	"path/filepath"
 )
 
 var HistoryDir = tools.MyPathTo("history")
@@ -37,6 +39,14 @@ func (h *localHistory) Append(command string) error {
 }
 
 func newLocalHistory(filename string) (*localHistory, error) {
+	// Ensure that the directory exists!
+	dirPath := filepath.Dir(filename)
+	if dirPath != "." && dirPath != ".." {
+		if err := tools.EnsureDir(dirPath); err != nil {
+			return nil, fmt.Errorf("EnsureDir path=%s err %w", dirPath, err)
+		}
+	}
+
 	hist, err := historian.Open(filename+".db", false)
 	if err != nil {
 		return nil, err
