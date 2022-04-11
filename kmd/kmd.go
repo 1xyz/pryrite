@@ -11,7 +11,6 @@ import (
 	"github.com/1xyz/pryrite/shells"
 	"github.com/1xyz/pryrite/snippet"
 	"github.com/1xyz/pryrite/tools"
-	"github.com/1xyz/pryrite/update"
 )
 
 func NewCmdRoot(cfg *config.Config) *cobra.Command {
@@ -20,11 +19,6 @@ func NewCmdRoot(cfg *config.Config) *cobra.Command {
 		Use:          app.UsageName,
 		Short:        "Work seamlessly with the aardy service from the command line",
 		SilenceUsage: true,
-		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			if cmd.Annotations["SkipUpdateCheck"] == "" {
-				update.Check(cfg, false)
-			}
-		},
 	}
 	var versionCmd = &cobra.Command{
 		Use:   "version",
@@ -35,28 +29,7 @@ func NewCmdRoot(cfg *config.Config) *cobra.Command {
 			return nil
 		},
 	}
-	updateCheck := false
-	var updateCmd = &cobra.Command{
-		Annotations: map[string]string{"SkipUpdateCheck": "true"},
-		Use:         "update",
-		Short:       tools.Examplef("Install the latest version of {AppName}"),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if updateCheck {
-				if !update.Check(cfg, true) {
-					tools.LogStdout("The latest version is installed")
-				}
-			} else {
-				result, err := update.GetLatest(cfg)
-				if err != nil {
-					return err
-				}
-				tools.LogStdout(fmt.Sprintf("Done! The latest version is now installed: %s", result))
-			}
-			return nil
-		},
-	}
-	updateCmd.Flags().BoolVarP(&updateCheck, "check", "",
-		updateCheck, "check for updates")
+
 	gCtx := NewGraphContext(cfg)
 	rootCmd.AddCommand(NewCmdSnippetList(gCtx))
 	rootCmd.AddCommand(NewCmdSnippetSearch(gCtx))
@@ -73,7 +46,6 @@ func NewCmdRoot(cfg *config.Config) *cobra.Command {
 	rootCmd.AddCommand(shells.NewCmdInit())
 	rootCmd.AddCommand(shells.NewCmdHistory())
 	rootCmd.AddCommand(versionCmd)
-	rootCmd.AddCommand(updateCmd)
 
 	return rootCmd
 }
