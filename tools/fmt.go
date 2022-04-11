@@ -4,8 +4,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/MakeNowJust/heredoc"
 	"github.com/1xyz/pryrite/app"
+	"github.com/MakeNowJust/heredoc"
 )
 
 func FormatTime(t *time.Time) string {

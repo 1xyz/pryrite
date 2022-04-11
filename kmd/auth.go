@@ -3,10 +3,10 @@ package kmd
 import (
 	"fmt"
 
-	"github.com/MakeNowJust/heredoc"
 	"github.com/1xyz/pryrite/auth"
 	"github.com/1xyz/pryrite/config"
 	"github.com/1xyz/pryrite/tools"
+	"github.com/MakeNowJust/heredoc"
 	"github.com/spf13/cobra"
 )
 
