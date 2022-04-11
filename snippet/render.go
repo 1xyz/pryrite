@@ -5,11 +5,11 @@ import (
 	"io"
 	"os"
 
-	"github.com/aardlabs/terminal-poc/config"
-	"github.com/aardlabs/terminal-poc/graph"
-	"github.com/aardlabs/terminal-poc/internal/common"
-	"github.com/aardlabs/terminal-poc/markdown"
-	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/1xyz/pryrite/config"
+	"github.com/1xyz/pryrite/graph"
+	"github.com/1xyz/pryrite/internal/common"
+	"github.com/1xyz/pryrite/markdown"
+	"github.com/1xyz/pryrite/tools"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/rs/zerolog/log"
 )

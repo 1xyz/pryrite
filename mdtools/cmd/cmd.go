@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/aardlabs/terminal-poc/mdtools/markdown"
-	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/1xyz/pryrite/mdtools/markdown"
+	"github.com/1xyz/pryrite/tools"
 	"github.com/spf13/cobra"
 )
 

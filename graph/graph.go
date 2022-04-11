@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	executor "github.com/aardlabs/terminal-poc/executors"
+	executor "github.com/1xyz/pryrite/executors"
 )
 
 type Metadata struct {

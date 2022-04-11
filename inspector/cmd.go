@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aardlabs/terminal-poc/app"
-	executor "github.com/aardlabs/terminal-poc/executors"
-	"github.com/aardlabs/terminal-poc/historian"
-	"github.com/aardlabs/terminal-poc/shells"
+	"github.com/1xyz/pryrite/app"
+	executor "github.com/1xyz/pryrite/executors"
+	"github.com/1xyz/pryrite/historian"
+	"github.com/1xyz/pryrite/shells"
 
 	"github.com/spf13/cobra"
 )

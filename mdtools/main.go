@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/aardlabs/terminal-poc/mdtools/cmd"
-	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/1xyz/pryrite/mdtools/cmd"
+	"github.com/1xyz/pryrite/tools"
 	"os"
 )
 

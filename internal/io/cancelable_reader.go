@@ -2,7 +2,7 @@ package io
 
 import (
 	"context"
-	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/1xyz/pryrite/tools"
 	"io"
 	"os/exec"
 )

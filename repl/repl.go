@@ -3,13 +3,13 @@ package repl
 import (
 	"fmt"
 
-	"github.com/aardlabs/terminal-poc/app"
-	"github.com/aardlabs/terminal-poc/config"
-	"github.com/aardlabs/terminal-poc/internal/completer"
-	"github.com/aardlabs/terminal-poc/internal/history"
-	"github.com/aardlabs/terminal-poc/kmd"
-	"github.com/aardlabs/terminal-poc/snippet"
-	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/1xyz/pryrite/app"
+	"github.com/1xyz/pryrite/config"
+	"github.com/1xyz/pryrite/internal/completer"
+	"github.com/1xyz/pryrite/internal/history"
+	"github.com/1xyz/pryrite/kmd"
+	"github.com/1xyz/pryrite/snippet"
+	"github.com/1xyz/pryrite/tools"
 
 	"github.com/c-bata/go-prompt"
 	"github.com/spf13/cobra"

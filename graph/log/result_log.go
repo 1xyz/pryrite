@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/1xyz/pryrite/tools"
 )
 
 type ExecState string

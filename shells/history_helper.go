@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aardlabs/terminal-poc/app"
-	"github.com/aardlabs/terminal-poc/historian"
-	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/1xyz/pryrite/app"
+	"github.com/1xyz/pryrite/historian"
+	"github.com/1xyz/pryrite/tools"
 
 	"github.com/mitchellh/go-ps"
 )

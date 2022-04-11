@@ -10,7 +10,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/1xyz/pryrite/tools"
 	"github.com/pkg/errors"
 )
 

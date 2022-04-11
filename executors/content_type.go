@@ -5,7 +5,7 @@ import (
 	"mime"
 	"strings"
 
-	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/1xyz/pryrite/tools"
 )
 
 type ContentType struct {

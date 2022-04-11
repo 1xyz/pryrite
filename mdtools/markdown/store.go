@@ -2,7 +2,7 @@ package markdown
 
 import (
 	"fmt"
-	"github.com/aardlabs/terminal-poc/graph"
+	"github.com/1xyz/pryrite/graph"
 	"net/url"
 	"strings"
 )

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"os"
 
-	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/1xyz/pryrite/tools"
 
 	"github.com/spf13/cobra"
 )

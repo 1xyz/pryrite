@@ -4,10 +4,10 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/aardlabs/terminal-poc/config"
-	"github.com/aardlabs/terminal-poc/graph"
-	"github.com/aardlabs/terminal-poc/markdown"
-	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/1xyz/pryrite/config"
+	"github.com/1xyz/pryrite/graph"
+	"github.com/1xyz/pryrite/markdown"
+	"github.com/1xyz/pryrite/tools"
 )
 
 // CreateNodeSummary tries to pick the first available attribute as

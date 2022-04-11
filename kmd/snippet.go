@@ -8,18 +8,18 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aardlabs/terminal-poc/historian"
-	"github.com/aardlabs/terminal-poc/inspector"
-	"github.com/aardlabs/terminal-poc/internal/common"
-	"github.com/aardlabs/terminal-poc/internal/slurp"
-	"github.com/aardlabs/terminal-poc/internal/ui/components"
-	"github.com/aardlabs/terminal-poc/shells"
+	"github.com/1xyz/pryrite/historian"
+	"github.com/1xyz/pryrite/inspector"
+	"github.com/1xyz/pryrite/internal/common"
+	"github.com/1xyz/pryrite/internal/slurp"
+	"github.com/1xyz/pryrite/internal/ui/components"
+	"github.com/1xyz/pryrite/shells"
 
 	"github.com/spf13/cobra"
 
-	"github.com/aardlabs/terminal-poc/graph"
-	"github.com/aardlabs/terminal-poc/snippet"
-	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/1xyz/pryrite/graph"
+	"github.com/1xyz/pryrite/snippet"
+	"github.com/1xyz/pryrite/tools"
 )
 
 type SnippetListOpts struct {

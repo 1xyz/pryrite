@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	pio "github.com/aardlabs/terminal-poc/internal/io"
-	"github.com/aardlabs/terminal-poc/tools"
+	pio "github.com/1xyz/pryrite/internal/io"
+	"github.com/1xyz/pryrite/tools"
 
 	pseudoTY "github.com/creack/pty"
 	"github.com/mattn/go-shellwords"

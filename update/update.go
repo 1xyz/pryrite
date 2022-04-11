@@ -11,9 +11,9 @@ import (
 
 	"github.com/sanbornm/go-selfupdate/selfupdate"
 
-	"github.com/aardlabs/terminal-poc/app"
-	"github.com/aardlabs/terminal-poc/config"
-	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/1xyz/pryrite/app"
+	"github.com/1xyz/pryrite/config"
+	"github.com/1xyz/pryrite/tools"
 )
 
 func Check(cfg *config.Config, force bool) bool {

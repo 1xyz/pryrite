@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	executor "github.com/aardlabs/terminal-poc/executors"
+	executor "github.com/1xyz/pryrite/executors"
 
 	"github.com/spf13/cobra"
 )

@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/aardlabs/terminal-poc/config"
-	"github.com/aardlabs/terminal-poc/graph"
-	"github.com/aardlabs/terminal-poc/internal/common"
-	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/1xyz/pryrite/config"
+	"github.com/1xyz/pryrite/graph"
+	"github.com/1xyz/pryrite/internal/common"
+	"github.com/1xyz/pryrite/tools"
 	"github.com/manifoldco/promptui"
 )
 

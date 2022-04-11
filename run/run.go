@@ -15,12 +15,12 @@ import (
 	"github.com/pkg/errors"
 	"go.uber.org/atomic"
 
-	executor "github.com/aardlabs/terminal-poc/executors"
-	"github.com/aardlabs/terminal-poc/graph"
-	"github.com/aardlabs/terminal-poc/graph/log"
-	"github.com/aardlabs/terminal-poc/snippet"
-	"github.com/aardlabs/terminal-poc/tools"
-	"github.com/aardlabs/terminal-poc/tools/queue"
+	executor "github.com/1xyz/pryrite/executors"
+	"github.com/1xyz/pryrite/graph"
+	"github.com/1xyz/pryrite/graph/log"
+	"github.com/1xyz/pryrite/snippet"
+	"github.com/1xyz/pryrite/tools"
+	"github.com/1xyz/pryrite/tools/queue"
 )
 
 type StatusUpdateFn func(*Status)

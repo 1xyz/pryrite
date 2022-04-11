@@ -2,7 +2,7 @@ package components
 
 import (
 	"errors"
-	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/1xyz/pryrite/tools"
 	"io"
 	"os"
 )

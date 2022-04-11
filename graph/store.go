@@ -15,10 +15,10 @@ import (
 
 	"github.com/go-resty/resty/v2"
 
-	"github.com/aardlabs/terminal-poc/app"
-	"github.com/aardlabs/terminal-poc/auth"
-	"github.com/aardlabs/terminal-poc/config"
-	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/1xyz/pryrite/app"
+	"github.com/1xyz/pryrite/auth"
+	"github.com/1xyz/pryrite/config"
+	"github.com/1xyz/pryrite/tools"
 )
 
 type Store interface {

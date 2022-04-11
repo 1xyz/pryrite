@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/aardlabs/terminal-poc/graph"
+	"github.com/1xyz/pryrite/graph"
 )
 
 type NodeIndex struct {

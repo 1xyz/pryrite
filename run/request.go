@@ -3,9 +3,9 @@ package run
 import (
 	"context"
 	"fmt"
-	"github.com/aardlabs/terminal-poc/graph"
-	"github.com/aardlabs/terminal-poc/graph/log"
-	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/1xyz/pryrite/graph"
+	"github.com/1xyz/pryrite/graph/log"
+	"github.com/1xyz/pryrite/tools"
 	"io"
 	"time"
 )

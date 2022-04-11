@@ -2,8 +2,8 @@ package components
 
 import (
 	"fmt"
-	"github.com/aardlabs/terminal-poc/graph"
-	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/1xyz/pryrite/graph"
+	"github.com/1xyz/pryrite/tools"
 	"github.com/manifoldco/promptui"
 	"strings"
 )

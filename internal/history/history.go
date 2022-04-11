@@ -2,8 +2,8 @@ package history
 
 import (
 	"fmt"
-	"github.com/aardlabs/terminal-poc/historian"
-	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/1xyz/pryrite/historian"
+	"github.com/1xyz/pryrite/tools"
 	"path/filepath"
 )
 

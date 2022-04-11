@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/1xyz/pryrite/tools"
 
 	"github.com/google/uuid"
 	"gopkg.in/yaml.v2"

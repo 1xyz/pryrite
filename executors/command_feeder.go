@@ -5,7 +5,7 @@ import (
 	"io"
 	"reflect"
 
-	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/1xyz/pryrite/tools"
 )
 
 type CommandFeeder struct {

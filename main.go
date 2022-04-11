@@ -6,11 +6,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/aardlabs/terminal-poc/app"
-	"github.com/aardlabs/terminal-poc/config"
-	"github.com/aardlabs/terminal-poc/kmd"
-	"github.com/aardlabs/terminal-poc/repl"
-	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/1xyz/pryrite/app"
+	"github.com/1xyz/pryrite/config"
+	"github.com/1xyz/pryrite/kmd"
+	"github.com/1xyz/pryrite/repl"
+	"github.com/1xyz/pryrite/tools"
 )
 
 var (

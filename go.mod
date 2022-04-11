@@ -1,4 +1,4 @@
-module github.com/aardlabs/terminal-poc
+module github.com/1xyz/pryrite
 
 go 1.16
 

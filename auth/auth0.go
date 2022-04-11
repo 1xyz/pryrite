@@ -9,9 +9,9 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/pkg/errors"
 
-	"github.com/aardlabs/terminal-poc/app"
-	"github.com/aardlabs/terminal-poc/config"
-	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/1xyz/pryrite/app"
+	"github.com/1xyz/pryrite/config"
+	"github.com/1xyz/pryrite/tools"
 )
 
 var scopes = strings.Join([]string{"profile", "email", "openid", "offline_access"}, " ")

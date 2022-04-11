@@ -4,7 +4,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/aardlabs/terminal-poc/app"
+	"github.com/1xyz/pryrite/app"
 
 	"github.com/mattn/go-shellwords"
 	"github.com/spf13/cobra"

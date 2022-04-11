@@ -29,7 +29,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
       run: |
         gh --version
-        gh -R aardlabs/terminal-poc release download ${RELEASE_TAG}
+        gh -R 1xyz/pryrite release download ${RELEASE_TAG}
         echo "Release: ${RELEASE_TAG}" > changelog.md
         gh -R aardlabs/cli-release release create ${RELEASE_TAG} aardy* -F changelog.md
 

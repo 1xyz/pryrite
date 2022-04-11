@@ -3,8 +3,8 @@ package kmd
 import (
 	"fmt"
 
-	"github.com/aardlabs/terminal-poc/config"
-	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/1xyz/pryrite/config"
+	"github.com/1xyz/pryrite/tools"
 	"github.com/spf13/cobra"
 )
 

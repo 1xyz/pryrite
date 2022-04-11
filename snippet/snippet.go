@@ -13,11 +13,11 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/aardlabs/terminal-poc/config"
-	executor "github.com/aardlabs/terminal-poc/executors"
-	"github.com/aardlabs/terminal-poc/graph"
-	"github.com/aardlabs/terminal-poc/internal/slurp"
-	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/1xyz/pryrite/config"
+	executor "github.com/1xyz/pryrite/executors"
+	"github.com/1xyz/pryrite/graph"
+	"github.com/1xyz/pryrite/internal/slurp"
+	"github.com/1xyz/pryrite/tools"
 )
 
 func NewContext(cfg *config.Config, agent string) *Context {

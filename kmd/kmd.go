@@ -5,13 +5,13 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/aardlabs/terminal-poc/app"
-	"github.com/aardlabs/terminal-poc/config"
-	"github.com/aardlabs/terminal-poc/inspector"
-	"github.com/aardlabs/terminal-poc/shells"
-	"github.com/aardlabs/terminal-poc/snippet"
-	"github.com/aardlabs/terminal-poc/tools"
-	"github.com/aardlabs/terminal-poc/update"
+	"github.com/1xyz/pryrite/app"
+	"github.com/1xyz/pryrite/config"
+	"github.com/1xyz/pryrite/inspector"
+	"github.com/1xyz/pryrite/shells"
+	"github.com/1xyz/pryrite/snippet"
+	"github.com/1xyz/pryrite/tools"
+	"github.com/1xyz/pryrite/update"
 )
 
 func NewCmdRoot(cfg *config.Config) *cobra.Command {

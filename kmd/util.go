@@ -3,8 +3,8 @@ package kmd
 import (
 	"errors"
 
-	"github.com/aardlabs/terminal-poc/auth"
-	"github.com/aardlabs/terminal-poc/config"
+	"github.com/1xyz/pryrite/auth"
+	"github.com/1xyz/pryrite/config"
 	"github.com/spf13/cobra"
 )
 

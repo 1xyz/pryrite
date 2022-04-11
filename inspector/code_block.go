@@ -7,12 +7,12 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/aardlabs/terminal-poc/graph"
-	"github.com/aardlabs/terminal-poc/graph/log"
-	"github.com/aardlabs/terminal-poc/internal/history"
-	"github.com/aardlabs/terminal-poc/markdown"
-	"github.com/aardlabs/terminal-poc/run"
-	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/1xyz/pryrite/graph"
+	"github.com/1xyz/pryrite/graph/log"
+	"github.com/1xyz/pryrite/internal/history"
+	"github.com/1xyz/pryrite/markdown"
+	"github.com/1xyz/pryrite/run"
+	"github.com/1xyz/pryrite/tools"
 )
 
 func newCodeBlock(index int, prefix string, b *graph.Block, n *graph.Node, r *run.Run, h history.History) *codeBlock {

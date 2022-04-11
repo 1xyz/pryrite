@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/1xyz/pryrite/tools"
 )
 
 type Slurp struct {

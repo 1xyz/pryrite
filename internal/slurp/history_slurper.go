@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aardlabs/terminal-poc/shells"
-	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/1xyz/pryrite/shells"
+	"github.com/1xyz/pryrite/tools"
 
 	"github.com/itchyny/timefmt-go"
 )

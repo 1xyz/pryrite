@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/1xyz/pryrite/tools"
 )
 
 type readWriterProxy struct {

@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/aardlabs/terminal-poc/app"
-	"github.com/aardlabs/terminal-poc/tools"
+	"github.com/1xyz/pryrite/app"
+	"github.com/1xyz/pryrite/tools"
 )
 
 type Register struct {

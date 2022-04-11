@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	pio "github.com/aardlabs/terminal-poc/internal/io"
+	pio "github.com/1xyz/pryrite/internal/io"
 	"io"
 	"log"
 	"os"
