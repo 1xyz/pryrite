@@ -2,15 +2,11 @@ package inspector
 
 import (
 	"context"
-	"os"
 	"strings"
 	"time"
 
 	"github.com/1xyz/pryrite/app"
 	executor "github.com/1xyz/pryrite/executors"
-	"github.com/1xyz/pryrite/historian"
-	"github.com/1xyz/pryrite/shells"
-
 	"github.com/spf13/cobra"
 )
 
@@ -76,7 +72,7 @@ var localRegister *executor.Register
 func NewCmdExecutor(register *executor.Register) *cobra.Command {
 	var timeout time.Duration
 	var disablePTY bool
-	var ignoreWorkingDir bool
+	//var ignoreWorkingDir bool
 	var startPrompt string
 	var usePrompt string
 	cmd := &cobra.Command{
@@ -109,26 +105,26 @@ func NewCmdExecutor(register *executor.Register) *cobra.Command {
 			req := executor.DefaultRequest()
 
 			var content string
-			addToHistory := false
+			//addToHistory := false
 
-			if !ignoreWorkingDir && len(args) == 1 && args[0][0] == shells.ExpandChar {
-				item, err := shells.GetHistoryEntry(args[0])
-				if err != nil {
-					return err
-				}
-
-				if item.WorkingDir != "" {
-					err = os.Chdir(item.WorkingDir)
-					if err != nil {
-						return err
-					}
-				}
-
-				content = item.CommandLine
-				addToHistory = true
-			} else {
-				content = strings.Join(args, " ")
-			}
+			//if !ignoreWorkingDir && len(args) == 1 && args[0][0] == shells.ExpandChar {
+			//	item, err := shells.GetHistoryEntry(args[0])
+			//	if err != nil {
+			//		return err
+			//	}
+			//
+			//	if item.WorkingDir != "" {
+			//		err = os.Chdir(item.WorkingDir)
+			//		if err != nil {
+			//			return err
+			//		}
+			//	}
+			//
+			//	content = item.CommandLine
+			//	addToHistory = true
+			//} else {
+			content = strings.Join(args, " ")
+			//}
 
 			req.Content = []byte(content)
 			var err error
@@ -152,9 +148,9 @@ func NewCmdExecutor(register *executor.Register) *cobra.Command {
 				ctx = context.Background()
 			}
 
-			startedAt := time.Now()
+			//startedAt := time.Now()
 			res := register.Execute(ctx, req)
-			duration := time.Since(startedAt)
+			//duration := time.Since(startedAt)
 			exitStatus := res.ExitStatus
 
 			if res.Err != nil {
@@ -164,16 +160,16 @@ func NewCmdExecutor(register *executor.Register) *cobra.Command {
 				cmd.Printf("exit> status: %d\n", exitStatus)
 			}
 
-			if addToHistory {
-				wd, _ := os.Getwd()
-				return shells.PutHistoryEntry(&historian.Item{
-					RecordedAt:  startedAt,
-					WorkingDir:  wd,
-					CommandLine: content,
-					ExitStatus:  &res.ExitStatus,
-					Duration:    duration,
-				})
-			}
+			//if addToHistory {
+			//	wd, _ := os.Getwd()
+			//	return shells.PutHistoryEntry(&historian.Item{
+			//		RecordedAt:  startedAt,
+			//		WorkingDir:  wd,
+			//		CommandLine: content,
+			//		ExitStatus:  &res.ExitStatus,
+			//		Duration:    duration,
+			//	})
+			//}
 
 			return nil
 		},
