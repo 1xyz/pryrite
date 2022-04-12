@@ -27,7 +27,7 @@ func NewCmdRoot() *cobra.Command {
 	var execCmd = &cobra.Command{
 		Use:   "execute",
 		Short: "Execute a markdown file",
-		Args:  minArgs(1, "You need to specify a search query"),
+		Args:  minArgs(1, "You need to specify a markdown file"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			tools.LogStdout("execute filename=%s\n", args[0])
 			filename := args[0]
