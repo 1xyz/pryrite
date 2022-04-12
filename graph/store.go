@@ -16,7 +16,6 @@ import (
 	"github.com/go-resty/resty/v2"
 
 	"github.com/1xyz/pryrite/app"
-	"github.com/1xyz/pryrite/auth"
 	"github.com/1xyz/pryrite/config"
 	"github.com/1xyz/pryrite/tools"
 )
@@ -68,8 +67,6 @@ type remoteStore struct {
 }
 
 func NewStore(configEntry *config.Entry, metadata *Metadata) Store {
-	token, _ := auth.GetLoggedInUser(configEntry)
-
 	skipSSLCheck := configEntry.SkipSSLCheck
 	if skipSSLCheck {
 		tools.Log.Warn().Msg("Warning: SSL check is disabled")
@@ -94,7 +91,7 @@ func NewStore(configEntry *config.Entry, metadata *Metadata) Store {
 		configEntry: configEntry,
 		m:           metadata,
 		client:      client,
-		token:       token,
+		token:       "",
 	}
 }
 
