@@ -1,10 +1,7 @@
 package markdown
 
 import (
-	"fmt"
 	"github.com/1xyz/pryrite/graph"
-	"net/url"
-	"strings"
 )
 import "errors"
 
@@ -16,8 +13,8 @@ type fileStore struct {
 	Node   *graph.Node
 }
 
-func NewMDFileStore(mdFile string) (graph.Store, error) {
-	node, err := CreateNodeFromMarkdownFile(mdFile)
+func NewMDFileStore(id, mdFile string) (graph.Store, error) {
+	node, err := CreateNodeFromMarkdownFile(id, mdFile)
 	if err != nil {
 		return nil, err
 	}
@@ -52,14 +49,5 @@ func (f *fileStore) GetNode(id string) (*graph.Node, error) {
 }
 
 func (f *fileStore) ExtractID(input string) (string, error) {
-	idOrURL := strings.TrimSpace(input)
-	u, err := url.Parse(idOrURL)
-	if err != nil {
-		return "", err
-	}
-	tokens := strings.Split(u.Path, "/")
-	if len(tokens) == 0 || len(idOrURL) == 0 {
-		return "", fmt.Errorf("empty id")
-	}
-	return tokens[len(tokens)-1], nil
+	return ExtractIDFromFilePath(input)
 }
