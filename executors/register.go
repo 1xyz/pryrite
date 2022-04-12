@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/1xyz/pryrite/app"
 	"regexp"
 	"strconv"
 	"sync"
 
-	"github.com/1xyz/pryrite/app"
 	"github.com/1xyz/pryrite/tools"
 )
 
@@ -27,6 +27,7 @@ func NewRegister() (*Register, error) {
 	r := &Register{}
 
 	// do our best to kill/reap children before exiting
+	// ToDo
 	app.AtExit(r.Cleanup)
 
 	return r, nil

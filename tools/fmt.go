@@ -1,11 +1,7 @@
 package tools
 
 import (
-	"strings"
 	"time"
-
-	"github.com/1xyz/pryrite/app"
-	"github.com/MakeNowJust/heredoc"
 )
 
 func FormatTime(t *time.Time) string {
@@ -13,10 +9,4 @@ func FormatTime(t *time.Time) string {
 		return "time(nil)"
 	}
 	return t.Format("2006/01/02 15:04:05")
-}
-
-func Examplef(format string, args ...string) string {
-	args = append(args, "{AppName}", app.UsageName)
-	r := strings.NewReplacer(args...)
-	return heredoc.Doc(r.Replace(format))
 }
