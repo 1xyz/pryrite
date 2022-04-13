@@ -16,6 +16,8 @@ var (
 
 func main() {
 	app.Name = "pryrite"
+	app.AppDirectory = fmt.Sprintf(".%s", app.Name)
+	app.Version = version
 
 	wr, err := tools.OpenLogger(true)
 	if err != nil {

@@ -1,4 +1,4 @@
-# Welcome to the aardy interactive runner.
+# Welcome to the interactive runner.
 
 This is our attempt to bring a REPL driven programming to your document.
 
