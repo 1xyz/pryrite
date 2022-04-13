@@ -1,4 +1,4 @@
-![Build](https://github.com/1xyz/pryrite/actions/workflows/build.yml/badge.svg)
+![Build](https://github.com/1xyz/pryrite/workflows/Build/badge.svg)
 
 
 ## Pryrite
