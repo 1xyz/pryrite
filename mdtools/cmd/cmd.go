@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/1xyz/pryrite/app"
 	"github.com/1xyz/pryrite/mdtools/markdown"
 	"github.com/1xyz/pryrite/tools"
 	"github.com/spf13/cobra"
@@ -10,8 +11,8 @@ import (
 func NewCmdRoot() *cobra.Command {
 	var rootCmd = &cobra.Command{
 		Version:      "1.0",
-		Use:          "aardy-mdtools",
-		Short:        "aardy is a markdown executor",
+		Use:          app.Name,
+		Short:        fmt.Sprintf("%s is a markdown executor", app.Name),
 		SilenceUsage: true,
 	}
 
@@ -19,15 +20,16 @@ func NewCmdRoot() *cobra.Command {
 		Use:   "version",
 		Short: "Display the program version",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			tools.LogStdout("version a")
+			tools.LogStdout(app.Version)
 			return nil
 		},
 	}
 
 	var execCmd = &cobra.Command{
-		Use:   "execute",
-		Short: "Execute a markdown file",
-		Args:  minArgs(1, "You need to specify a markdown file"),
+		Use:     "open",
+		Short:   "open a markdown file to inspect",
+		Args:    minArgs(1, "You need to specify a local or http(s) URL to a markdown file"),
+		Example: fmt.Sprintf(" %s open /tmp/foo.md\n %s open https://foo.bar/blah.md", app.Name, app.Name),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			tools.LogStdout("execute filename=%s\n", args[0])
 			filename := args[0]
@@ -51,7 +53,7 @@ func minArgs(n int, msg string) cobra.PositionalArgs {
 	}
 	return func(cmd *cobra.Command, args []string) error {
 		if len(args) < n {
-			return fmt.Errorf("missing arguments, requires %d args got %d", n, len(args))
+			return fmt.Errorf("missing arguments\n%s", msg)
 		}
 		return nil
 	}
