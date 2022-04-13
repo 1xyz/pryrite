@@ -56,8 +56,7 @@ jobs:
           id: upload-release-binary-linux-amd64
           uses: actions/upload-release-asset@v1
           env:
-            GITHUB_USER: ${{ secrets.GH_USER }}
-            GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           with:
             upload_url: ${{ steps.create_release.outputs.upload_url }}
             asset_path: ./bin/linux-amd64/pryrite
@@ -68,8 +67,7 @@ jobs:
           id: upload-release-asset-linux-amd64
           uses: actions/upload-release-asset@v1
           env:
-            GITHUB_USER: ${{ secrets.GH_USER }}
-            GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           with:
             upload_url: ${{ steps.create_release.outputs.upload_url }}
             asset_path: ./zips/pryrite-linux-amd64.zip
@@ -80,8 +78,7 @@ jobs:
           id: upload-release-binary-linux-arm64
           uses: actions/upload-release-asset@v1
           env:
-            GITHUB_USER: ${{ secrets.GH_USER }}
-            GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           with:
             upload_url: ${{ steps.create_release.outputs.upload_url }}
             asset_path: ./bin/linux-arm64/pryrite
@@ -92,8 +89,7 @@ jobs:
           id: upload-release-asset-linux-arm64
           uses: actions/upload-release-asset@v1
           env:
-            GITHUB_USER: ${{ secrets.GH_USER }}
-            GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           with:
             upload_url: ${{ steps.create_release.outputs.upload_url }}
             asset_path: ./zips/pryrite-linux-arm64.zip
@@ -104,8 +100,7 @@ jobs:
           id: upload-release-binary-linux-arm
           uses: actions/upload-release-asset@v1
           env:
-            GITHUB_USER: ${{ secrets.GH_USER }}
-            GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           with:
             upload_url: ${{ steps.create_release.outputs.upload_url }}
             asset_path: ./bin/linux-arm/pryrite
@@ -116,8 +111,7 @@ jobs:
           id: upload-release-asset-linux-arm
           uses: actions/upload-release-asset@v1
           env:
-            GITHUB_USER: ${{ secrets.GH_USER }}
-            GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           with:
             upload_url: ${{ steps.create_release.outputs.upload_url }}
             asset_path: ./zips/pryrite-linux-arm.zip
@@ -128,28 +122,9 @@ jobs:
           id: upload-release-asset-darwin
           uses: actions/upload-release-asset@v1
           env:
-            GITHUB_USER: ${{ secrets.GH_USER }}
-            GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           with:
             upload_url: ${{ steps.create_release.outputs.upload_url }}
             asset_path: ./zips/pryrite-darwin-amd64.zip
             asset_name: pryrite-darwin-amd64-${{ steps.get_tag_name.outputs.value }}.zip
             asset_content_type: application/zip
-
-        - name: Notify Slack
-          uses: rtCamp/action-slack-notify@v2
-          if: ${{ success() }}
-          env:
-            SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-            SLACK_CHANNEL: ops
-            SLACK_USERNAME: ${{ github.repository }}
-            SLACK_MESSAGE: "CLI release created :rocket:"
-
-        - name: Notify Slack on failure
-          uses: rtCamp/action-slack-notify@v2
-          if: ${{ ! success() }}
-          env:
-            SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-            SLACK_CHANNEL: ops
-            SLACK_USERNAME: ${{ github.repository }}
-            SLACK_MESSAGE: "CLI release creation *FAILED* :fire:"
