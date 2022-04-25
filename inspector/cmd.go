@@ -22,6 +22,7 @@ func newRootCmd(n *NodeInspector) *cobra.Command {
 	rootCmd.AddCommand(newRunCmd(n))
 	rootCmd.AddCommand(NewCmdExecutor(n.runner.Register))
 	rootCmd.AddCommand(newWhereAmICmd(n))
+	rootCmd.AddCommand(newLogCmd(n))
 	rootCmd.AddCommand(newActionCmd(n, "quit", []string{"q", "exit"}, "Quit this session"))
 	return rootCmd
 }
@@ -50,6 +51,16 @@ func newWhereAmICmd(n *NodeInspector) *cobra.Command {
 		Short: "Show content surrounding the current context",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			n.currentBlock().WhereAmI()
+			return nil
+		},
+	}
+}
+
+func newLogCmd(n *NodeInspector) *cobra.Command {
+	return &cobra.Command{
+		Use:   "log",
+		Short: "Show past execution log entries",
+		RunE: func(cmd *cobra.Command, args []string) error {
 			return nil
 		},
 	}

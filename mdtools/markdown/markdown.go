@@ -39,7 +39,7 @@ func MDFileInspect(mdFile string) error {
 			Name:             "Unknown",
 			LastUpdateCheck:  time.Now(),
 			Email:            "unknown@bar.com",
-			ExecutionTimeout: tools.MarshalledDuration{Duration: 30 * time.Second},
+			ExecutionTimeout: tools.MarshalledDuration{Duration: 0 * time.Second},
 			HideInspectIntro: false,
 		},
 		Metadata: nil,
