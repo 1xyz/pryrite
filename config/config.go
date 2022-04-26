@@ -2,9 +2,7 @@ package config
 
 import (
 	"fmt"
-	"net/url"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/1xyz/pryrite/tools"
@@ -14,12 +12,12 @@ import (
 )
 
 var (
-	DefaultConfigFile = tools.MyPathTo("aard.yaml")
+	DefaultConfigFile = tools.MyPathTo("pryrite.yaml")
 )
 
 const (
-	DefaultDashboardURL = "https://aardy.app/"
-	DefaultServiceURL   = "https://tail.aardy.app/"
+	DefaultDashboardURL = "https://foo/bar"
+	DefaultServiceURL   = "https://foo/bar"
 )
 
 type Entry struct {
@@ -29,8 +27,6 @@ type Entry struct {
 	ServiceUrl       string                   `yaml:"service_url"`
 	LastUpdateCheck  time.Time                `yaml:"last_update_check"`
 	AuthScheme       string                   `yaml:"auth_scheme"`
-	User             string                   `yaml:"user"`
-	UserExpiresAt    *time.Time               `yaml:"user_expires_at"`
 	Email            string                   `yaml:"email"`
 	ClientID         string                   `yaml:"client_id"`
 	SkipSSLCheck     bool                     `yaml:"skip_ssl_check"`
@@ -50,54 +46,11 @@ func (c *Config) Get(name string) (*Entry, bool) {
 		return nil, found
 	}
 
-	config := &c.Entries[index]
-
-	// check if a migration is necessary
-	set := false
-
-	serviceURL, err := url.Parse(config.ServiceUrl)
-	if err != nil || serviceURL.Host == "aardy.app" {
-		set = true
-		config.ServiceUrl = DefaultServiceURL
-		serviceURL, _ = url.Parse(config.ServiceUrl)
-	}
-
-	if config.Mode == "" {
-		set = true
-		if strings.HasPrefix(serviceURL.Host, "localhost") {
-			config.Mode = "development"
-		} else if strings.Contains(serviceURL.Host, "staging") {
-			config.Mode = "staging"
-		} else {
-			config.Mode = "production"
-		}
-	}
-
-	if config.DashboardUrl == "" {
-		set = true
-		switch config.Mode {
-		case "development", "silly":
-			config.DashboardUrl = "http://localhost:3000/"
-		case "staging":
-			config.DashboardUrl = "https://sweetie-deathtaco-staging.herokuapp.com/"
-		default:
-			config.DashboardUrl = DefaultDashboardURL
-		}
-	}
-
-	if set {
-		SetEntry(config)
-	}
-
-	return config, found
+	return &c.Entries[index], found
 }
 
 func (c *Config) GetDefaultEntry() (*Entry, bool) {
-	cfg := os.Getenv("AARDY_CONFIG")
-	if cfg == "" {
-		cfg = c.DefaultEntry
-	}
-	return c.Get(cfg)
+	return c.Get(c.DefaultEntry)
 }
 
 func (c *Config) Set(e *Entry) error {
@@ -177,11 +130,23 @@ func New(filename string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	if size == 0 {
-		return &Config{
-			Entries:      []Entry{},
-			DefaultEntry: "",
-		}, nil
+		e := Entry{
+			Name:             "Default",
+			LastUpdateCheck:  time.Now(),
+			Email:            "unknown@bar.com",
+			ExecutionTimeout: tools.MarshalledDuration{Duration: 0 * time.Second},
+			HideInspectIntro: false,
+		}
+		c := &Config{
+			Entries:      []Entry{e},
+			DefaultEntry: e.Name,
+		}
+		if err := c.Set(&e); err != nil {
+			return nil, err
+		}
+		return c, nil
 	}
 
 	dec := yaml.NewDecoder(fp)
@@ -213,7 +178,7 @@ func GetEntry(name string) (*Entry, error) {
 	if name == "" {
 		name = cfg.DefaultEntry
 		if name == "" {
-			return nil, fmt.Errorf("there is no default configuration. See aard Config --help to set a default configuration")
+			return nil, fmt.Errorf("there is no default configuration. See  Config --help to set a default configuration")
 		}
 	}
 
