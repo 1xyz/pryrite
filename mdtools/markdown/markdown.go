@@ -34,15 +34,19 @@ func MDFileInspect(mdFile string) error {
 		return err
 	}
 
+	cfg, err := config.Default()
+	if err != nil {
+		return err
+	}
+
+	entry, ok := cfg.GetDefaultEntry()
+	if !ok {
+		return fmt.Errorf("default not found")
+	}
+
 	graphCtx := snippet.Context{
-		ConfigEntry: &config.Entry{
-			Name:             "Unknown",
-			LastUpdateCheck:  time.Now(),
-			Email:            "unknown@bar.com",
-			ExecutionTimeout: tools.MarshalledDuration{Duration: 0 * time.Second},
-			HideInspectIntro: false,
-		},
-		Metadata: nil,
+		ConfigEntry: entry,
+		Metadata:    nil,
 	}
 	graphCtx.SetStore(store)
 	return inspector.InspectNode(&graphCtx, nodeID)

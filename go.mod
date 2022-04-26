@@ -30,7 +30,4 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 )
 
-replace (
-	github.com/manifoldco/promptui => github.com/aardlabs/promptui v0.8.1-0.20210630201735-534be89033d6
-	github.com/sanbornm/go-selfupdate v0.0.0-20210106163404-c9b625feac49 => github.com/aardlabs/go-selfupdate v0.0.0-20210615201232-2426e0201381
-)
+replace github.com/manifoldco/promptui => github.com/1xyz/promptui v0.8.1-0.20210630201735-534be89033d6

@@ -18,7 +18,7 @@ import (
 var (
 	Log           = zlog.Logger
 	logConfigFile = MyPathTo("logging.yaml")
-	logFile       = MyPathTo("aard.log")
+	logFile       = MyPathTo("activity.log")
 	traceLabels   = map[string]string{}
 )
 

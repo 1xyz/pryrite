@@ -1,9 +1,11 @@
 package app
 
-var Name string
-var AppDirectory string
-var Version string
-var CommitHash string
+var (
+	Name         = "pryrite"
+	AppDirectory = ".pryrite"
+	CommitHash   string
+	Version      string
+)
 
 var atExitFuncs = []func(){}
 

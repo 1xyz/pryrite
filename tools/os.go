@@ -1,6 +1,7 @@
 package tools
 
 import (
+	"github.com/1xyz/pryrite/app"
 	"os"
 	"path/filepath"
 )
@@ -14,7 +15,7 @@ func MyPathTo(filename string) string {
 			panic(err)
 		}
 
-		myDir := filepath.Join(homeDir, ".aardvark")
+		myDir := filepath.Join(homeDir, app.AppDirectory)
 		err = os.Mkdir(myDir, 0700)
 		if err != nil && !os.IsExist(err) {
 			panic(err)
