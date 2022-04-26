@@ -14,6 +14,7 @@ require (
 	github.com/manifoldco/promptui v0.8.0
 	github.com/mattn/go-runewidth v0.0.12 // indirect
 	github.com/mattn/go-shellwords v1.0.12
+	github.com/microcosm-cc/bluemonday v1.0.16 // indirect
 	github.com/muesli/reflow v0.2.1-0.20210115123740-9e1d0d53df68
 	github.com/muesli/termenv v0.8.1
 	github.com/pkg/errors v0.9.1
