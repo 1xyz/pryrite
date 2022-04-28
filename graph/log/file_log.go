@@ -53,7 +53,7 @@ func (l *fsLog) Each(cb func(int, *ResultLogEntry) bool) error {
 		return err
 	}
 	sort.Slice(files, func(i, j int) bool {
-		return files[i].ModTime().Before(files[j].ModTime())
+		return files[i].ModTime().After(files[j].ModTime())
 	})
 	for i := range files {
 		entry, err := l.decode(files[i].Name())

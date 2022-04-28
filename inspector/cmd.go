@@ -2,6 +2,9 @@ package inspector
 
 import (
 	"context"
+	"github.com/jedib0t/go-pretty/v6/table"
+	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -56,14 +59,34 @@ func newWhereAmICmd(n *NodeInspector) *cobra.Command {
 	}
 }
 
+const (
+	ansi       = "[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))"
+	timeLayout = "2006-01-02 15:04:05"
+)
+
+var re = regexp.MustCompile(ansi)
+
+func Strip(str string) string {
+	return re.ReplaceAllString(str, "")
+}
+
+type logListOpts struct {
+	Limit int
+}
+
 func newLogCmd(n *NodeInspector) *cobra.Command {
-	return &cobra.Command{
+	opts := &logListOpts{}
+	cmd := &cobra.Command{
 		Use:   "log",
 		Short: "Show past execution log entries",
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return nil
+			return n.IterateLogEntries(opts.Limit)
 		},
 	}
+	cmd.Flags().IntVarP(&opts.Limit, "limit", "n",
+		1, "Limit the number of log entries to display")
+	return cmd
 }
 
 func newActionCmd(n *NodeInspector, use string, aliases []string, short string) *cobra.Command {
@@ -197,4 +220,12 @@ func NewCmdExecutor(register *executor.Register) *cobra.Command {
 		"Use a running prompt to execute this command")
 
 	return cmd
+}
+
+func renderRows(rows ...table.Row) {
+	tc := table.NewWriter()
+	tc.SetStyle(table.StyleBold)
+	tc.SetOutputMirror(os.Stdout)
+	tc.AppendRows(rows)
+	tc.Render()
 }
