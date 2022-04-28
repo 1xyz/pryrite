@@ -104,9 +104,10 @@ func TestFsLog_Each(t *testing.T) {
 	}
 
 	idx := 0
+	n := len(entries)
 	err = log.Each(func(i int, entry *ResultLogEntry) bool {
 		assert.Equal(t, idx, i)
-		assert.Equal(t, entries[idx].ID, entry.ID)
+		assert.Equal(t, entries[n-idx-1].ID, entry.ID)
 		idx++
 		return true
 	})

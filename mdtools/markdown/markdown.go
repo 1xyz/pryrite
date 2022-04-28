@@ -130,7 +130,7 @@ func fetchFile(filename string) (string, error) {
 	case "http", "https":
 		return httpDownloadFile(filename)
 	default:
-		return "", fmt.Errorf("unsupported scheme %w", u.Scheme)
+		return "", fmt.Errorf("unsupported scheme %v", u.Scheme)
 	}
 }
 

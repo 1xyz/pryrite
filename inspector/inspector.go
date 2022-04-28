@@ -3,6 +3,9 @@ package inspector
 import (
 	_ "embed"
 	"fmt"
+	"github.com/1xyz/pryrite/graph/log"
+	"github.com/jedib0t/go-pretty/v6/table"
+	"os"
 
 	"github.com/1xyz/pryrite/config"
 	"github.com/1xyz/pryrite/graph"
@@ -172,6 +175,65 @@ func (n *NodeInspector) populateCodeBlocks(node *graph.Node, prefix string) {
 			n.populateCodeBlocks(node.ChildNodes[i], pfx)
 		}
 	}
+}
+
+func (n *NodeInspector) ResultLog() (log.ResultLog, error) {
+	return n.runner.ExecIndex.Get(n.runner.PlaybookID)
+}
+
+func (n *NodeInspector) IterateLogEntries(limit int) error {
+	rl, err := n.ResultLog()
+	if err != nil {
+		return err
+	}
+
+	count := 0
+	if err := rl.Each(func(i int, entry *log.ResultLogEntry) bool {
+		if entry.State == log.ExecStateStarted || entry.State == log.ExecStateQueued {
+			// skip the started and queued states. There is not much to show
+			return true
+		}
+
+		count++
+		if count > limit {
+			return false
+		}
+
+		executedAt := "unknown"
+		if entry.ExecutedAt != nil {
+			executedAt = entry.ExecutedAt.Format(timeLayout)
+		}
+
+		renderRows(table.Row{"log entry:", fmt.Sprintf("log entry %d", count)})
+		renderRows([]table.Row{
+			{"Block", entry.BlockID},
+			{"Executed On", executedAt},
+			{"Exit Status", entry.ExitStatus},
+			{"Error", entry.Err},
+		}...)
+
+		renderRows(table.Row{"Command"})
+		fmt.Fprintf(os.Stdout, Strip(entry.Content))
+		fmt.Fprintf(os.Stdout, "\n")
+
+		if len(entry.Stdout) > 0 {
+			renderRows(table.Row{"stdout"})
+			fmt.Fprintf(os.Stdout, Strip(entry.Stdout))
+			fmt.Fprintf(os.Stdout, "\n")
+		}
+
+		if len(entry.Stderr) > 0 {
+			renderRows(table.Row{"stderr"})
+			fmt.Fprintf(os.Stdout, Strip(entry.Stdout))
+			fmt.Fprintf(os.Stdout, "\n")
+		}
+
+		return true
+	}); err != nil {
+		return fmt.Errorf("rleach Err = %w", err)
+	}
+
+	return nil
 }
 
 var (
