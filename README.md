@@ -21,9 +21,9 @@ Pryrite attempts to solve this by providing these features:
 
 
 
-	```shell
-	pryrite open https://raw.githubusercontent.com/1xyz/pryrite/main/_examples/hello-world.md
-	```
+```shell
+pryrite open https://raw.githubusercontent.com/1xyz/pryrite/main/_examples/hello-world.md
+```
 
 
 ## Install
