@@ -26,10 +26,11 @@ func NewCmdRoot() *cobra.Command {
 	}
 
 	var execCmd = &cobra.Command{
-		Use:     "open",
-		Short:   "open a markdown file to inspect",
-		Args:    minArgs(1, "You need to specify a local or http(s) URL to a markdown file"),
-		Example: fmt.Sprintf(" %s open /tmp/foo.md\n %s open https://foo.bar/blah.md", app.Name, app.Name),
+		Use:   "open",
+		Short: "open a markdown file to inspect",
+		Args:  minArgs(1, "You need to specify a local or http(s) URL to a markdown file"),
+		Example: fmt.Sprintf(" %s open _examples/hello_world.md\n %s open https://raw.githubusercontent.com/1xyz/pryrite/main/_examples/hello-world.md\n",
+			app.Name, app.Name),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			tools.LogStdout("execute filename=%s\n", args[0])
 			filename := args[0]
