@@ -10,7 +10,7 @@ import (
 
 func NewCmdRoot() *cobra.Command {
 	var rootCmd = &cobra.Command{
-		Version:      "1.0",
+		Version:      app.Version,
 		Use:          app.Name,
 		Short:        fmt.Sprintf("%s is a markdown executor", app.Name),
 		SilenceUsage: true,
