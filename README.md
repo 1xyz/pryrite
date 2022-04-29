@@ -19,7 +19,7 @@ Pryrite attempts to solve this by providing these features:
 
 ## Demo
 
-
+The following video shows pryrite working with a markdown file.
 
 ```shell
 pryrite open https://raw.githubusercontent.com/1xyz/pryrite/main/_examples/hello-world.md
@@ -35,9 +35,8 @@ pryrite open https://raw.githubusercontent.com/1xyz/pryrite/main/_examples/hello
 	brew install pryrite
 	```
 
-* Linux
+* Linux (amd64)
 
-	For amd64.
 	```shell
 	wget -O pryrite https://github.com/1xyz/pryrite/releases/latest/download/pryrite-linux-amd64 && chmod 755 pryrite
 	````
@@ -62,7 +61,7 @@ Latest released binaries are available [here](https://github.com/1xyz/pryrite/re
 	pryrite open https://raw.githubusercontent.com/1xyz/pryrite/main/_examples/cleanup-diskspace-ubuntu.md
 	```
 
-* MacOs
+* MacOS
 
 	Install and work with Redis
 	```shell
