@@ -30,6 +30,9 @@ func (r *Runner) Execute(cmd string) {
 	if len(cmd) == 0 {
 		return
 	}
+	if strings.HasPrefix(cmd, "#") {
+		return
+	}
 
 	if cmd == "q" || cmd == "quit" || cmd == "exit" {
 		os.Exit(0)
