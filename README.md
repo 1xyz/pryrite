@@ -2,6 +2,7 @@
 ![Release](https://github.com/1xyz/pryrite/workflows/Release/badge.svg)
 
 # Pryrite
+<img src=".images/noun-pryrite.png" align=right width=200px />
 
 Pryrite is a command line tool that interactively runs executable blocks in a markdown file. One can think of pryrite as a console REPL/debugger for a markdown file. We drew inspiration from ruby's [pry](https://github.com/pry/pry) for the interface.
 
