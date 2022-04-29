@@ -3,7 +3,7 @@
 
 # Pryrite
 
-Pryrite is a command line tool that interactively runs executable blocks defined in a markdown file. One can think of pryrite as a REPL/debugger console for a markdown file. We drew inspiration from ruby's [pry](https://github.com/pry/pry) for the interface.
+Pryrite is a command line tool that interactively runs executable blocks in a markdown file. One can think of pryrite as a console REPL/debugger for a markdown file. We drew inspiration from ruby's [pry](https://github.com/pry/pry) for the interface.
 
 ## Motivation
 
@@ -13,13 +13,19 @@ As developers, we come across plentiful documents that provide a prescriptive se
 
 Pryrite attempts to solve this by providing these features:
 
-1. An interactive runner for a markdown so that blocks marked as \`\`\`shell can be executed (Note: we plan to support more in the near future).
-2. The result of each executable block is stored so that it can be retrieved contextually.
+1. An interactive runner for markdown so that blocks marked as \`\`\`shell can be executed. 
+	* (Note: we plan to support more executable types in the near future).
+3. The result of each executable block is stored so that it can be retrieved contextually.
 
 
-## Demo
+## Demo Example
 
 The following video shows pryrite working with a markdown file.
+
+https://user-images.githubusercontent.com/58613330/166069790-8de28d76-7103-40e0-bac3-f10b34df1655.mp4
+
+
+* Try it out yourself
 
 ```shell
 pryrite open https://raw.githubusercontent.com/1xyz/pryrite/main/_examples/hello-world.md
@@ -46,7 +52,7 @@ pryrite open https://raw.githubusercontent.com/1xyz/pryrite/main/_examples/hello
 Latest released binaries are available [here](https://github.com/1xyz/pryrite/releases/latest/). This includes other architectures.
 
 
-## Some examples to try
+## Examples to try
 
 * Ubuntu
 
